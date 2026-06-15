@@ -36,6 +36,21 @@ inline Color errorColor(float absEy) {
 
 const Color kBg{18, 18, 24, 255};
 
+// Visual-only held-command lookahead. The scheduler and recorded metrics keep
+// using PredictParams' 500 ms horizon; this longer rollout exists only to show
+// where the selected vehicle goes if no fresh command arrives.
+constexpr long kVizPredictionHorizonTicks = 20000;  // 2.0 s at 0.1 ms/tick
+
+PredictParams visualPredictionParams() {
+    PredictParams p;
+    p.horizonTicks = kVizPredictionHorizonTicks;
+    return p;
+}
+
+float visualPredictionHorizonMs() {
+    return (float)(kVizPredictionHorizonTicks * vr::kBaseStepSeconds * 1000.0);
+}
+
 }  // namespace
 
 Visualizer::Visualizer(std::shared_ptr<Trajectory> traj, const VizConfig& cfg)
@@ -198,23 +213,22 @@ void Visualizer::drawScene() {
 
 const Prediction* Visualizer::currentPrediction() {
     if (rec_->frames[selected_].empty()) return nullptr;
-    if (sim_ && !sim_->finished())
-        return &sim_->prediction(selected_);  // live: the 10 ms cache
 
-    // Replay (or scrubbing a finished run): recompute from the frame's stored
-    // physical state + held command. Needs format >= 4 frames.
+    // Visualization-only long rollout from the frame's stored physical state +
+    // held command. This works in replay and live mode without changing the
+    // scheduler's shorter prediction cache.
     if (rec_->loadedVersion < 4) return nullptr;
-    if (replayPredVeh_ != selected_ || replayPredFrame_ != gFrame) {
+    if (vizPredVeh_ != selected_ || vizPredFrame_ != gFrame) {
         const Frame& f = rec_->frames[selected_][gFrame];
         double x0[6];
         for (int i = 0; i < 6; ++i) x0[i] = f.phys[i];
         // f.refStep is already the wrapped trajectory index (offset included),
         // so it serves directly as the rollout's input index base.
-        replayPred_ = predictHold(x0, f.act, f.refStep, *traj_, 0, PredictParams{});
-        replayPredVeh_ = selected_;
-        replayPredFrame_ = gFrame;
+        vizPred_ = predictHold(x0, f.act, f.refStep, *traj_, 0, visualPredictionParams());
+        vizPredVeh_ = selected_;
+        vizPredFrame_ = gFrame;
     }
-    return &replayPred_;
+    return &vizPred_;
 }
 
 void Visualizer::drawPrediction() {
@@ -238,7 +252,7 @@ void Visualizer::drawPrediction() {
     }
 
     // Marker at the predicted 0.8 m crossing (red ring), if within horizon.
-    const long H = PredictParams{}.horizonTicks;
+    const long H = kVizPredictionHorizonTicks;
     if (pred->ttvTicks < H) {
         const size_t iv = std::min(pred->e_y.size() - 1,
                                    static_cast<size_t>(pred->ttvTicks / stride));
@@ -350,21 +364,27 @@ void Visualizer::drawHud() {
                                                   : Color{60, 200, 90, 255};
         std::snprintf(line, sizeof line, "%s%s", state, (f.flags & Frame::kCritical) ? "  [curve]" : "");
         put(line, sc);
-        // Held-command predictions (>= horizon shown as ">=500"; -1 = no data).
-        if (f.ttpnr_ms >= 0.0f) {
-            const float H = 500.0f;
+        // Held-command predictions. Prefer the visualizer's longer selected-car
+        // rollout; fall back to recorded 500 ms values for older recordings.
+        const Prediction* pred = currentPrediction();
+        if (pred || f.ttpnr_ms >= 0.0f) {
+            const float H = pred ? visualPredictionHorizonMs() : 500.0f;
+            const float ttvMs = pred ? (float)(pred->ttvTicks * rec_->baseStep * 1000.0)
+                                     : f.ttv_ms;
+            const float pnrMs = pred ? (float)(pred->ttpnrTicks * rec_->baseStep * 1000.0)
+                                     : f.ttpnr_ms;
             char ttvBuf[16], pnrBuf[16];
-            if (f.ttv_ms >= H) std::snprintf(ttvBuf, sizeof ttvBuf, ">=%.0f", H);
-            else               std::snprintf(ttvBuf, sizeof ttvBuf, "%.0f", f.ttv_ms);
-            if (f.ttpnr_ms >= H) std::snprintf(pnrBuf, sizeof pnrBuf, ">=%.0f", H);
-            else                 std::snprintf(pnrBuf, sizeof pnrBuf, "%.0f", f.ttpnr_ms);
-            if (f.ttpnr_ms <= 0.0f) {
+            if (ttvMs >= H) std::snprintf(ttvBuf, sizeof ttvBuf, ">=%.0f", H);
+            else            std::snprintf(ttvBuf, sizeof ttvBuf, "%.0f", ttvMs);
+            if (pnrMs >= H) std::snprintf(pnrBuf, sizeof pnrBuf, ">=%.0f", H);
+            else            std::snprintf(pnrBuf, sizeof pnrBuf, "%.0f", pnrMs);
+            if (pnrMs <= 0.0f) {
                 put("pred: PAST POINT OF NO RETURN", Color{255, 60, 50, 255});
             } else {
                 std::snprintf(line, sizeof line, "pred: hits 0.8m in %s ms   PNR in %s ms",
                               ttvBuf, pnrBuf);
-                const Color pc = f.ttpnr_ms < 100.0f ? Color{255, 160, 40, 255}
-                                                     : Color{200, 200, 215, 255};
+                const Color pc = pnrMs < 100.0f ? Color{255, 160, 40, 255}
+                                                : Color{200, 200, 215, 255};
                 put(line, pc);
             }
         }

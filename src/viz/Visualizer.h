@@ -51,8 +51,9 @@ private:
     // the predicted 0.8 m crossing and the point of no return (PREDICTOR.md).
     void drawPrediction();
     // The prediction to draw for the current (selected_, gFrame), or nullptr.
-    // Live: the simulation's 10 ms cache. Replay / finished run: recomputed
-    // from the frame's stored state (recording format >= 4), cached per frame.
+    // Recomputed from the frame's stored state (recording format >= 4), cached
+    // per frame. This is visualization-only and can use a longer horizon than
+    // the scheduler's prediction cache.
     const Prediction* currentPrediction();
     void drawCars();
     void drawHud();
@@ -87,10 +88,10 @@ private:
     float  fitZoom_      = 1.0f;
     Vec2   trackCenter_{};
 
-    // Replay-mode prediction cache (recomputed when the cursor or selection moves).
-    Prediction replayPred_;
-    int        replayPredVeh_   = -1;
-    int        replayPredFrame_ = -1;
+    // Visualization prediction cache (recomputed when the cursor or selection moves).
+    Prediction vizPred_;
+    int        vizPredVeh_   = -1;
+    int        vizPredFrame_ = -1;
 };
 
 }  // namespace cps
