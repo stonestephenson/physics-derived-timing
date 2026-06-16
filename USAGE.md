@@ -43,7 +43,7 @@ Key options: `--scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard`, `--vehic
 `--exec avg|worst|best|pert`, `--overrun kill|skip`, `--net-delay MS` (fix
 both network delays, for delay-tolerance sweeps), `--delta-max RAD` +
 `--triage` + `--guard MS` + `--floor MS` + `--validate-predictor` (prediction system, see
-PREDICTOR.md),
+PREDICTOR.md)
 `--seed N`, `--headless`, `--csv FILE` (append per-vehicle summary rows for
 sweeps), `--save FILE`, `--replay FILE`, `--screenshot FILE` with
 `--screenshot-at N`, `--select N`, `--speed X` (aim scripted screenshots).

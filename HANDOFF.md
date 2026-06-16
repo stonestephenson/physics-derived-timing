@@ -1,201 +1,246 @@
 # Session Handoff — CPS Challenge Visualizer
 
-Snapshot for a fresh agent to resume quickly. Last updated 2026-06-12 PM
-(adaptive guard; design docs: BOUND.md, ZONE_TOLERANCE.md, PREDICTOR.md).
+Resume point for a fresh agent. Last updated **2026-06-16**.
 
-## Goal and research plan
-Use this simulator to **empirically validate an analytical bound on end-to-end
-data age** (latency) of the control chain. The measured worst-case `age_path`
-must sit **at or below** the bound (soundness check); the gap shows the bound's
-pessimism (tightness). Simulation can *refute* a bound (if ever exceeded) but
-cannot *prove* it (a run may not hit the worst-case phasing).
+**Read order:** `CLAUDE.md` (stable bootstrap: invariants, reading map, rules) →
+this file (what's true *now*) → the owning design docs as your task needs them
+(`DATA_AGE.md`, `BOUND.md`, `PREDICTOR.md`, `ZONE_TOLERANCE.md`, `USAGE.md`).
+Rule of thumb: change how the project *works* → update `CLAUDE.md`; change what
+is *true right now* → update this file; change a convention/result → update the
+owning design doc **in the same commit as the code**.
 
-The bound is being **derived in this project** — current draft in `BOUND.md`
-(v0.1, needs verification). `relatedPapers/` (untracked) holds third-party
-literature only: Guo-lab priors (Wilson et al. MEMOCODE'24 physics-aware MC;
-Arafat et al. DAC'22 ROS2 chain RTA), Li et al. RTSS'24 (tightest multi-rate
-chain reaction-time bound), the mixed-criticality canon (Vestal, AMC,
-Burns–Davis), and foundations (Liu & Layland, Audsley).
+---
 
-**Plan of record** (10-week REU w/ Dr. Guo, ~6.5 weeks left as of 2026-06-10):
-- **Route A** (now): workshop-grade paper — formal chain model + proven age
-  bound + soundness/tightness experiments on this harness, plus capacity
-  (Q1) and oracle-vs-honest (Q2) studies. Target: RTSS'26 WiP / workshop.
-- **Route B** (builds on A): physics-derived *age-criticality* scheduling —
-  per-track-zone max tolerable age (`ZONE_TOLERANCE.md` derives it
-  empirically) enforced by a mode-switching cloud scheduler with a
-  schedulability test. Target: RTAS'27. Extends Wilson et al. MEMOCODE'24
-  from 1 vehicle/verification to N vehicles/scheduling theory.
-- **Team**: user + CS student (sweeps, fixed-point solver, infra) + EE student
-  (zone tolerance, control-side) + Kurt Wilson (PhD mentor: guidance and
-  spot-checks on formal claims; students do the bulk of verification).
+## 1. What this project is
 
-## Current state (2026-06-10 end of day)
-- Remote **`tempbosch`** = `github.com/stonestephenson/tempboschchall`, branch `main`.
-- **End-to-end data-age tracking: DONE**, dual conventions (`age_fresh`,
-  `age_path`). Full design + rationale in **`DATA_AGE.md`**; candidate bound +
-  draft RTA in **`BOUND.md`**; EE experiment spec in **`ZONE_TOLERANCE.md`**.
-- Working tree clean except untracked `relatedPapers/` (user-added; not committed).
+REU research (Dr. Guo's lab) responding to the Bosch RTAS 2026 Physics-Driven
+CPS Challenge. N simulated vehicles share `N_c=3` cloud cores for their control
+chains; we control *who computes when*. We built, in layers:
 
-## What the data-age feature does (full detail in DATA_AGE.md)
-Stamps each sensor sample with the tick it fires, rides that stamp through the
-**real trigger events** (real core contention + sampled network delays) to the
-actuator, computes `age = now − stamp` **every tick (incl. hold time)**, keeps a
-per-vehicle running **max** → printed as `age_fresh(ms)` / `age_path(ms)`
-columns + a `worst-case data age:` line in the headless metrics table.
+1. **Data-age measurement** — how stale the applied steering command's sensor
+   data is (`DATA_AGE.md`). Two conventions: `age_fresh` (newest contributing
+   sample) and `age_path` (classical S→E→B→M→A chain age — **what the bound
+   targets**).
+2. **Analytical bound** (`BOUND.md`, **v0.1, UNVERIFIED**) — a ceiling on
+   `age_path`, plus a draft tick-quantum global-FP response-time analysis (§7).
+3. **Predictor** (`PREDICTOR.md`) — a verbatim port of the FMU plant that
+   fast-forwards each car to compute **TTV** (time until |e_y| crosses the
+   0.8 m hard bound under the held command) and **TTPNR** (time until recovery
+   becomes impossible — the physical deadline). Fidelity-gated.
+4. **Schedulers** — a lineage from classical to predictive (table below).
+5. **Visualizer** — dotted predicted path, 0.8 m-crossing ring, point-of-no-
+   return diamond, rescue trajectory; live + replay.
 
-**Conventions (the bound is defined against `age_path`):** feedforward excluded
-(reference, not sensor data); hold time included; at the merger BOTH rules are
-tracked — `age_fresh` = freshest contributing sample (≡ the S→E→M→A shortcut)
-and `age_path` = oldest direct input (≡ the classical S→E→B→M→A chain), which
-coincide up to the controller and satisfy `age_fresh ≤ age_path`.
+### Plan of record (the strategic frame — read before doing anything)
+- **Route A (workshop / challenge-response):** realistically achievable —
+  *draft this summer, submit to an RTSS-colocated workshop / WiP in fall 2026.*
+- **Route B (RTSS/RTAS main track):** **not as-is.** Needs the theorem +
+  honest information + generality + a verified bound + SOTA comparison.
+  Months of lab work, Kurt-led, RTAS'27/RTSS'27.
+- **The project is currently in "keep adding policies" mode. Publishability
+  now requires the opposite: freeze the policy set, then harden / generalize /
+  prove / write.** Do not add another scheduler unless asked — consolidate.
+- **Kurt and Dr. Guo are the authority on venue/bar, not us.** The open
+  decision they must make: workshop-this-fall vs hold-for-main-track, and
+  whether the θ-from-age-bound theorem is provable on a useful timeline.
 
-## Key facts — do NOT re-derive these
-- Measurement is **harness-side** (`src/sched/TaskModel.cpp` `endTick`). The FMU
-  carries **no timestamps**; it only returns `e_y`, perf metrics, steering. Age
-  is pure harness bookkeeping shadowing the FMU's data routing.
-- For the bound comparison use **`--exec worst`** (fixed delays → FIFO preserved).
-  `--exec pert` can reorder network deliveries (harness earliest-arrival vs FMU
-  strict FIFO) and desync the stamp from the delivered data.
-- `measured worst ≤ true worst ≤ analytical bound`.
-- **The architecture is a flat cross-vehicle ready pool.** `PolicyScheduler`
-  hands `CorePolicy::assign` the pool + a core *count* (no core identity).
-  Partitioning is a choice *inside* `assign()` — `PartitionedRM` does exactly
-  that (`vehicle % nCores`) with no architecture change.
-- **Fixed-priority tie-breaks are the strict total order (period, vehicle,
-  kind)** — deterministic across STLs and exactly the FP model BOUND.md §7
-  analyzes. Stage-major (kind-first) ordering was tried and starves the whole
-  Merger class under overload (BOUND.md §7.1).
-- **`context` is an oracle, `honest` is the legitimate variant.** One class,
-  two information sets (`ContextAware.cpp`): oracle scores on `*_real`
-  (ground-truth) metrics the cloud could never see; honest scores on the
-  estimator-derived remote metrics. In the triplicate metrics: `real` = grade,
-  `in_remote_platform` = what the cloud scheduler may use,
-  `in_local_platform` = the vehicle's view (currently unread/unused).
+Team: user (lead) + CS student (sweeps, RTA fixed-point solver, infra) + EE
+student (zone tolerance, control side) + Kurt Wilson (PhD mentor; spot-checks
+formal claims; first author of the MEMOCODE'24 paper Route B extends).
 
-## Done in the 2026-06-10 PM session (uncommitted in working tree)
-1. **Dual age conventions**: `age_fresh` (freshest-contributing = S→E→M→A
-   shortcut) and `age_path` (oldest-direct-input = classical S→E→B→M→A chain;
-   the bound's target) tracked in parallel; both printed, in `VehicleSummary`
-   (recording format v3, loads v2), and in `--csv` rows. See DATA_AGE.md §4d.
-2. **Honest ContextAware** (`--scheduler honest`): remote flags VR 1026/1038
-   plumbed through `readOutputs` → `VehicleOutputs` → `VehicleView`. Finding:
-   honest ≈ oracle at 6 veh/worst (estimation penalty ~0 at moderate load).
-3. **PartitionedRM** (`--scheduler prm`). Finding: beats global RM at 6
-   veh/worst (veh 3 soft 9.2% vs 13.4%; uniform 90.5 ms path age).
-4. **Overrun toggle** `--overrun kill|skip` (kill = the Challenge's
-   "kill-and-hold"; skip = continue-to-completion). Headline finding at 12
-   veh/RM: kill silently destroys 4 vehicles (2 never actuate → age n/a +
-   divergence); skip rescues 3 of them and makes the last failure visible as a
-   29.9 s age.
-5. **`--csv FILE`** append-mode summary rows for sweeps.
-6. **BOUND.md**: candidate analytical bound v0.1 (parametric in R_i) — needs
-   Kurt's line-by-line review. Soundness consistent (N=1: 90.5 ≤ 120.8;
-   N=6: 100.5 ≤ 216.6). Instructive negative result in §5.4 (hold-free bound
-   survives N=1 by 0.3 ms via slack cancellation).
-7. **ZONE_TOLERANCE.md**: experiment spec for zone-wise max tolerable age
-   (EE-student track). Phase 1a needs a tiny `--net-delay MS` flag (not yet
-   implemented).
+## 2. Current state
 
-## Also done (second commit batch, same day)
-8. **`--net-delay MS`** (fixes both network delays; CSV gained a net_delay_ms
-   column). Validation: N=1/worst at delay 4 → 65.5 ms vs linear prediction
-   66.5 — the 1.0 ms residual is phasing quantization (BOUND.md work item 2).
-9. **Deterministic strict priority order (period, vehicle, kind)** in
-   RM/EDF/PRM/Context tie-breaks: reproducible across STLs and *exactly* the
-   FP model the new RTA (BOUND.md §7) analyzes. Vehicle-major chosen to match
-   the Challenge's Q1 exemplar; a stage-major (kind-first) trial starved the
-   entire Merger class at 12 veh (every chain dead) — kept as a finding, see
-   BOUND.md §7.1.
-10. **BOUND.md §7**: tick-quantum global FP RTA (exact per-tick interference
-   argument), preliminary hand-iterated R_i at N=6/worst (all ≤ T ⇒ P1
-   certified), per-vehicle bound instantiation: veh 5 167.2 vs measured 100.5
-   (1.66×), veh 0 131.6 vs 110.5 (1.19×). Hand numbers need machine solving.
+- HEAD `883f051`, pushed to remote **`tempbosch`** (`github.com/
+  stonestephenson/tempboschchall`, branch `main`). **Push only to `tempbosch`.
+  NEVER push to `origin`** (the Bosch upstream). `relatedPapers/` stays
+  untracked (third-party PDFs).
+- Working tree clean after this handoff commit.
+- Builds clean: `cmake --build build -j`. Fidelity gate passes
+  (1.49e-08 m, all 3 profiles). All policy baselines reproduce.
 
-## Re-baselined numbers (vehicle-major order; worst exec, RM)
-- N=1: 90.5 / 90.5 (fresh/path) — unchanged. With `--net-delay 4`: 65.5.
-- N=6: fresh 90.5 / path 100.5, missed 0, veh 3 = 0.50700 / 13.43% (matches
-  the original pre-tie-break baselines — the old libc++ order happened to act
-  vehicle-major).
-- 12 veh kill: veh 10–11 never actuate (n/a), identical to original baseline.
-- 12 veh skip: **all 12 chains alive** (0 n/a), worst path age 505.5 ms.
+### Policy lineage (`--scheduler NAME`)
+| name | rule | role |
+|---|---|---|
+| `rm` | rate-monotonic (shorter period first) | Challenge Q1 baseline |
+| `prm` | partitioned RM (`vehicle % nCores`, no migration) | global-vs-partitioned |
+| `edf` | earliest absolute deadline | baseline |
+| `context` | rank by current tracking error | **reactive**; reads `*_real` ⇒ ORACLE |
+| `honest` | same rule, estimator-derived remote metrics only | legitimate context |
+| `ttu` | rank by TTPNR (physical deadline) | **predictive**; the safe core |
+| `hybrid` | TTPNR<`--guard` ⇒ emergency tier (ttu rule); else comfort tier (context rule) | fixed guarded triage |
+| `aguard` | hybrid with self-tuning guard θ=`--floor`+live round-trip | adaptive guarded triage |
 
-## Done 2026-06-11 (prediction system; commits b0877db..)
-**PREDICTOR.md is the design doc.** Harness-side verbatim port of the FMU
-plant (fidelity gate `--validate-predictor`: 1.2M samples, max dev 1.49e-08 m
-= float floor, all profiles) drives per-vehicle held-command predictions:
-TTV (time until |e_y| crosses 0.8 under the held command) and TTPNR (time
-until recovery under an assumed steering limit becomes impossible; the
-*physical deadline*). `--scheduler ttu` ranks on TTPNR; `--triage` flips
-past-PNR handling. Recording v4 stores per-frame state so replays recompute
-the overlay; the viz draws the selected car's dotted predicted line + 0.8m
-ring + PNR diamond, live and replay (`--select/--speed/--screenshot-at`).
-Headline (worst/kill/3 cores, 30 s): classic policies die at N≈10–12 (RM@12:
-4519 hard breaches, 2 dead chains); **ttu: zero hard breaches through N=14
-with ≥150 ms fleet-wide PNR margin** — beats even the oracle reactive
-scheduler on margin at equal information. Calibrated steering limits
-(×1.5 of observed max |act_out|): 0.285/0.534/0.419 rad per profile.
-Prediction overhead +17% at 12 veh. Sweep: `predictive_sweep.csv`.
+Mental model: emergency tier = ttu; comfort tier = context; the **guard** is
+the TTPNR line dividing them. `context` = guard 0, `ttu` = guard ∞, `hybrid` =
+fixed guard, `aguard` = guard that tunes itself.
 
-## Done 2026-06-12 (hybrid policy)
-`--scheduler hybrid` (`Hybrid.cpp`): two-tier guarded triage — TTPNR < `--guard`
-(default 150 ms) = emergency tier under ttu's rule; remaining capacity by the
-shared comfort score (`comfortUrgencyOracle` in Policies.h; ContextAware
-refactored onto the same helpers, regression bit-identical). Results
-(PREDICTOR.md §5b): ≡ context at N≤12 (guard never fires); N=14: 0 breaches,
-36% soft, 35 ms floor (context floor = 0); guard dial verified — floor ≈
-θ − round-trip(~100 ms ≈ measured age), θ=300 dominates ttu at N=14, θ=400
-survives & dominates ttu at N=16, θ=600 ≡ ttu exactly. Next policy: adaptive θ.
+### Headline results (worst exec, kill-and-hold, 3 cores, 30 s unless noted)
+- N=1: `age_path` 90.5 ms ≤ bound 120.8 (uncontended) / 216.6 (degenerate).
+- N=6 RM: 90.5/100.5 ms (fresh/path), 0 missed, veh 3 = 0.507 avg / 13.4% soft.
+- **Capacity:** classic policies die at N≈10–12 (RM@12: 4519 hard breaches, 2
+  vehicles never actuate). `ttu` zero hard breaches through N≥14 but ~75% soft.
+  `context` survives N=14 at **zero** PNR margin, collapses at N=16. **`aguard`
+  carries 18 vehicles, zero hard, ~220 ms fleet floor — 50% past the classics.**
+- Prediction overhead **+17% wall** at 12 veh (13×→11× real-time).
 
-## Done 2026-06-12 PM (adaptive guard — PREDICTOR.md §5c)
-`--scheduler aguard` (`--floor MS`, default 100): θ(t) = floor + live fleet
-round-trip (new `VehicleView.age_recent_ms` from TaskModel's windowed
-latch-age), clamp [floor+60, 450]. Warm-started TTPNR search → PNR refresh
-at 10 ms at unchanged wall speed; rescue clearance (h=0 probe byproduct)
-tie-breaks the emergency tier; rescue trajectory drawn in viz (cyan) +
-"rescue margin" HUD. Sweep: matches context at N≤12, dominates ttu on both
-axes at every N, **18 vehicles with zero hard breaches / 220 ms floor** on
-one default. The cached-rescue-as-command idea was assessed impossible
-(FMU owns data; scheduler owns time only) — see plan + PREDICTOR.md §5c.
-Legacy CLI alias `adaptive`→context removed. New 10 ms PNR cadence also
-improved fixed hybrid (N=14 floor 35→75, soft 36→31%).
+## 3. Key facts — do NOT re-derive or violate these
 
-## Open next-steps
-1. **Kurt review of BOUND.md** (Lemma 1 pairing, hold-term composition, §7.2
-   workload bound for the discrete model) **+ PREDICTOR.md §3** (recovery
-   heuristic, monotonicity assumption).
-2. Machine-solve the §7 fixed points + sweep N for the certified-capacity
-   number (CS-student script; also general CSV sweep automation).
-3. EE student: ZONE_TOLERANCE.md Phase 1 (unblocked — `--net-delay` exists);
-   δ_max ±50% sensitivity for PNR (PREDICTOR.md §6.1).
-4. Honest-information predictor (estimated state + last-sent command via the
-   InfoSet pattern) — the N=14 honest-reactive collapse motivates it.
-5. **Adaptive guard** for hybrid (θ scaled with load/live age; PREDICTOR.md §6.1).
-6. Offset/harmonic-aware sampling terms + limited carry-in (after 1–2).
-7. (Optional) plumb `in_local_platform` metrics (VR 1025/1028/1031/1034/1037) if
-   vehicle-side decisions are wanted; currently unread.
+- **Measurement is harness-side** (`TaskModel.cpp::endTick`). The FMU carries no
+  timestamps; age is bookkeeping shadowing its data routing. The FMU is a
+  prebuilt black box — never edit/recompile it (CLAUDE.md invariant 6).
+- **Formal/soundness runs use `--exec worst` and require `missed jobs: 0`**
+  (precondition P1). `--exec pert` reorders network deliveries vs the stamps —
+  excluded from bound work.
+- **`age_path` is the bound's target**; `age_fresh` is reaction latency;
+  `age_fresh ≤ age_path` always.
+- **Flat cross-vehicle ready pool**: `CorePolicy::assign` gets the pool + a core
+  *count* (no core identity). Partitioning lives *inside* `assign()` (see `prm`).
+- **Fixed-priority tie order is the strict total order (period, vehicle, kind)**
+  — deterministic across STLs, exactly the model `BOUND.md §7` analyzes.
+  Vehicle-major matches the Q1 exemplar; stage-major (kind-first) starves the
+  whole Merger class under overload (`BOUND.md §7.1`).
+- **`context` is an ORACLE** (reads ground-truth `*_real`); `honest` is the
+  legitimate variant (estimator-derived). All predictive policies (ttu/hybrid/
+  aguard) likewise read ground-truth state today — see Finding C.
+- **Predictor:** verbatim FMU port (`Predictor.cpp` matrices = `LateralMotion
+  Control.c:793-880`). The steering limit (δ_max) exists **only in the
+  predictor** (the FMU's steering is amplitude-unbounded), calibrated ×1.5 of
+  observed max |act_out|: 0.285/0.534/0.419 rad (v10/12.5/15). The recovery /
+  PNR is a **bang-bang heuristic with a monotonicity assumption — not certified
+  reachability.**
+- **Re-run `--validate-predictor` after ANY predictor change** (must stay
+  ~1.49e-08 m). Recording format is v4 (loads v2/v3).
+- **`ContextAware`, `Hybrid`, `AdaptiveGuard` share `comfortUrgency*` helpers
+  in `Policies.h`** — keep it that way so A/Bs isolate the mechanism, not a
+  copy-paste drift.
 
-## Run / verify
+## 4. Open findings from this session — discussed, NOT yet in code/docs
+
+These three came out of analysis this session and are the most immediate
+pickup work. Each has a concrete remedy.
+
+**A. `--floor` on `aguard` is currently inert (a real bug-shaped gap).**
+Sweeps (this session) show floor 0→300 produce **byte-identical** results at
+N=11, 12, and 14; only floor=400/N=14 differs, non-monotonically. Cause:
+θ = min(450, floor + max(60, **fleet-max** `age_recent_ms`)); under load one
+starved car pins the fleet-max high, slamming θ into the 450 clamp regardless
+of floor (compounded by TTPNR being near-bimodal under overload). So aguard's
+headline tunable knob has almost no authority right now.
+*Fix:* make θ **per-vehicle** — `θ_v = min(450, floor + max(60, age_recent_ms[v]))`
+(the per-vehicle age already flows through `VehicleView.age_recent_ms`; ~2-line
+change in `AdaptiveGuard.cpp`), then re-sweep floor to confirm it comes alive.
+*Doc:* `PREDICTOR.md §5c` presents aguard without noting this — correct it.
+(Note: the *fixed* hybrid guard IS a real dial — `§5b` is correct; only the
+adaptive coupling swallows the knob.)
+
+**B. Prediction compute cost is never measured or charged — only assumed.**
+The predictor runs in zero sim-time, is not charged to the 3 cores, and uses
+a 10 ms refresh; we only have the aggregate "+17% wall" (wrong denominator —
+the FMU sim is "free" in reality). Indirect arithmetic suggests **~10 µs per
+prediction** (sub-core for the whole fleet, ~800× headroom vs the 10 ms
+refresh) ⇒ the method *is* computationally realistic — but we haven't shown
+it. *Fixes, all cheap:* (1) time `predictHold` directly and report µs +
+%-of-a-core; (2) state the "scheduler runs on separate orchestration
+infrastructure, not the N_c worker cores" assumption in `PREDICTOR.md`
+(justified by the challenge's "dedicated cloud scheduler" framing); (3)
+optionally model a prediction latency δ_pred and show results are insensitive.
+*Note:* compute speed is NOT the binding realism constraint — input freshness
+(the oracle problem, Finding C) is.
+
+**C. Fairness-under-overload finding (publishable, not yet written down).**
+Under overload `ttu` produces an **ID-locked starvation caste**: at N=14/30 s,
+cars 0–6 get fresh data (~100 ms age, ~3% soft) while 7–13 are starved (age up
+to 8320 ms, 40–77% soft). Proven to be the static vehicle-ID tie-break, not
+geography: over a full lap (120 s, geography averaged out) the contiguous split
+**persists**; with 6 cores it **dissolves**. `aguard`'s comfort tier (error-
+ranked = max-min "serve worst-off") equalizes the fleet (~25% across all). This
+is the classic EDF-overload unfairness/domino effect, and graceful degradation
+via the two-tier structure is the known fix — a crisp result for the paper.
+*Action:* add a "fairness under overload" paragraph to `PREDICTOR.md §5c`,
+backed by the runs in this finding. Reproduce: `ttu` at N=14 30 s vs 120 s vs
+`--cores 6`, and `aguard` N=14.
+
+## 5. Prioritized next steps
+
+Reframed around publishability (consolidate, don't add features):
+
+1. **Decide venue with Kurt/Guo** (workshop-fall vs main-track) — gates
+   everything below. Put Findings A–C and the capacity result in front of him.
+2. **Kurt verifies `BOUND.md`** (Lemma 1 pairing, hold-term composition, §7.2
+   discrete workload bound) + `PREDICTOR.md §3` (recovery heuristic,
+   monotonicity). Without a verified bound there is no theory leg.
+3. **The theorem** (main-track spine): prove `floor ≥ θ − age_bound` ⇒ no car
+   crosses 0.8 m under stated assumptions. Composes `BOUND.md` with the guard.
+4. **Close Findings A & B** (per-vehicle θ; prediction-cost instrumentation +
+   assumption statement) — both cheap, both pre-submission must-dos.
+5. **Honest predictor** (the biggest credibility gap): predict from estimated
+   state + last-sent command via the `InfoSet` pattern in `ContextAware.cpp`.
+   Every predictive policy currently cheats with ground-truth state.
+6. **Generality:** multi-track / multi-profile / δ_max ±50% sensitivity sweeps
+   (EE student — `ZONE_TOLERANCE.md`, unblocked; `--net-delay` exists).
+7. **CS student:** machine-solve `BOUND.md §7` fixed points → the *certified*
+   capacity number to set against the empirical 18; general sweep automation.
+8. Lower priority: clearance-ablation study, triage A/B under real overload,
+   network-side scheduling, Q6 event-triggered (drop fixed periods).
+
+## 6. Run / verify
+
 ```sh
 cmake --build build -j
-./build/cps --headless --vehicles 6 --scheduler rm --exec worst --duration 30
-# compare: --scheduler rm|prm|edf|context|honest ; --overrun kill|skip ;
-# raise --vehicles to stress contention ; --net-delay MS for delay sweeps ;
-# --csv out.csv to accumulate sweep rows
+./build/cps --headless --vehicles 14 --scheduler aguard --exec worst --duration 30
+# the tournament (read hard / worst soft% / min_pnr per row):
+for s in rm context ttu aguard; do ./build/cps --headless --vehicles 14 --scheduler $s --exec worst --duration 30; done
+./build/cps --headless --vehicles 1 --scheduler rm --exec worst --duration 120 --validate-predictor  # trust anchor
+./build/cps --headless --vehicles 14 --scheduler ttu --exec worst --duration 60 --save ttu14.cpsr
+./build/cps --replay ttu14.cpsr --speed 16     # press ] to cycle cars; watch the error strip
 ```
-Reference magnitudes (6 veh / 3 cores, RM): ~70 ms data age in `avg`,
-90.5/100.5 ms (fresh/path) in `worst`, 0 missed jobs. N=1 worst: 90.5/90.5
-(deterministic).
+Flags: `--scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard`, `--vehicles
+N`, `--cores N`, `--profile 10|12.5|15`, `--duration SEC`, `--exec
+avg|worst|best|pert`, `--overrun kill|skip`, `--guard MS` (hybrid), `--floor MS`
+(aguard), `--triage`, `--delta-max RAD`, `--net-delay MS`, `--validate-predictor`,
+`--csv FILE`, `--save/--replay FILE`, `--select N`, `--speed X`, `--screenshot[-at]`.
 
-## Key files
-- `DATA_AGE.md` — data-age design + decision rationale (dual conventions: §4d)
-- `BOUND.md` — candidate analytical bound v0.1 + draft RTA (§7); review flags inline
-- `ZONE_TOLERANCE.md` — EE experiment spec (per-zone max tolerable age, Q4)
-- `USAGE.md` — build/run/controls + how to add a scheduler
-- `src/sched/TaskModel.cpp` (`endTick`) — stamping + propagation + per-tick max;
-  `releaseIfDue` — overrun policies (kill-and-hold / skip-next)
-- `src/sched/PolicyScheduler.cpp` — per-tick selection (beginTick/assign/grantCore/endTick)
-- `src/sched/policies/` — RateMonotonic, PartitionedRM, Edf, ContextAware
-  (oracle+honest via InfoSet)
-- `src/sched/Scheduler.h` (`VehicleView`), `CorePolicy.h` — interfaces
-- `src/fmu/Fmu.cpp` (`readOutputs`) — which FMU outputs are read
+## 7. Key files
+- `CLAUDE.md` — agent bootstrap (invariants, reading map).
+- `DATA_AGE.md` — age metric + conventions (§4d = dual conventions).
+- `BOUND.md` — analytical bound v0.1 + draft RTA (§7); review flags inline.
+- `PREDICTOR.md` — TTV/TTPNR, policies, fidelity gate, sweeps (§5–5c).
+- `ZONE_TOLERANCE.md` — EE experiment spec.
+- `src/sim/Predictor.{h,cpp}` — plant port, rollouts, warm-started PNR search.
+- `src/sim/Simulation.cpp` — `refreshPredictions` (cadence, warm-start), `buildViews`.
+- `src/sched/TaskModel.cpp` — `endTick` (stamps, age), `releaseIfDue` (overrun);
+  `recentLatchAgeTicks` (the live round-trip signal).
+- `src/sched/policies/` — one .cpp per policy; `Policies.h` has shared helpers.
+- `src/viz/Visualizer.cpp` — `drawPrediction` (overlay, live + replay).
+- `*_sweep.csv` — committed sweep data behind the result tables.
+
+## 8. Lessons learned / best practices (this codebase)
+
+- **The simulator is the adversary — verify, never assume.** This project has
+  twice caught a plausible claim being false by *running* it: the hold-free
+  bound that survived N=1 by 0.3 ms of slack-cancellation, and the `--floor`
+  knob that looked like a dial but was byte-identically inert. Any claim that
+  ends in a number must be reproduced by a run. "Looks right" is not evidence.
+- **Mind the denominator.** "+17% wall" looked alarming until you notice the
+  FMU sim (the denominator) is free in reality; against a CPU core the cost is
+  ~0.1%/vehicle. Always ask what a number is *relative to*.
+- **Single-source any rule two policies share** (`comfortUrgency*`), so an A/B
+  measures the mechanism, not an accidental divergence.
+- **Determinism is a feature:** strict total-order tie-breaks (no `std::sort`
+  nondeterminism) → reproducible across platforms AND matches the analyzed
+  model. Changing a tie-break re-baselines everything — re-run and update docs
+  in the same commit.
+- **When you port/duplicate a model, build an exact-match gate** and re-run it
+  after every change (`--validate-predictor`). It catches coefficient typos
+  the eye never will.
+- **Version serialized formats with back-compat loaders** (recording v2→v3→v4);
+  old runs must still replay.
+- **Keep the hot path fast but keep an exact path for the gate:** rollouts use
+  a velocity-quantized matrix cache + coarse 10-tick affine stepping +
+  warm-started search; `--validate-predictor` runs the exact tick-by-tick model.
+- **Docs are load-bearing and go stale silently.** When a finding invalidates a
+  documented claim (e.g. Finding A vs `PREDICTOR.md §5c`), fix the doc in the
+  same change — a fresh agent will otherwise trust the stale claim.
+- **Honesty over polish in the writeup-facing docs.** The negative results
+  (hold-free bound, inert floor, oracle dependence) are recorded deliberately;
+  they're what makes the eventual paper credible. Don't bury them.
