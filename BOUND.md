@@ -246,10 +246,13 @@ NOT yet use except where noted.
 The same computation certifies **P1** (no overruns): if x_k ≤ T_k for all k,
 the kill-and-hold path is never taken, and the bound of §4 applies.
 
-### 7.3 Preliminary numbers — N = 6, m = 3, worst exec (hand-iterated)
+### 7.3 Numbers — N = 6, m = 3, worst exec (machine-verified 2026-06-17, `tools/rta_solve.py`)
 
-Ticks (0.1 ms): C_E = 11, C_B = 5, C_F = 25, C_M = 5; T_E = 100, T_20 = 200.
-Priority: all E's (by vehicle), then vehicle blocks [B_v, F_v, M_v].
+Ticks (0.1 ms): C_E = 11, C_B = 5, C_F = 25, C_M = 5; T_E = 100, T_20 = 200
+(verified against `TaskModel.cpp:38-52`). Priority: all E's (by vehicle), then
+vehicle blocks [B_v, F_v, M_v]. R's below are solved by `tools/rta_solve.py`
+(validated: it reproduces the hand-cranked E-tier and vehicle-0 values, and its
+RTA is cross-checked sound against the simulator).
 
 | task | hp set | R (ticks) | R (ms) |
 |---|---|---|---|
@@ -258,26 +261,57 @@ Priority: all E's (by vehicle), then vehicle blocks [B_v, F_v, M_v].
 | B_0 | 6 E's | 27 | 2.7 |
 | F_0 | 6E + B_0 | 48 | 4.8 |
 | M_0 | 6E + B_0 + F_0 | 37 | 3.7 |
-| B_5 | 6E + 15 band-20 | 107 | 10.7 |
-| F_5 | + B_5 | 129 | 12.9 |
-| M_5 | + F_5 | 117 | 11.7 |
+| B_5 | 6E + 15 band-20 | 117 | 11.7 |
+| F_5 | + B_5 | 203 | 20.3 |
+| M_5 | + F_5 | 152 | 15.2 |
 
-All ≤ T ⇒ **P1 certified at N = 6 / worst** (preliminary). Instantiating §4's
-theorem per vehicle:
+**§7.2-as-written (full carry-in) ⇒ F_5 = 203 > T_F = 200, so P1 is NOT
+certified at N = 6** — correcting the earlier "P1 certified at N=6." The hand
+values 107/129/117 were wrong: they match neither the full-carry-in workload
+(117/203/152) nor a no-carry-in variant (85/129/95) consistently. The
+**certified capacity is N = 5** (first overrun at N=6, F_5). At the certified
+N=5 the fleet-max §4 bound is **151.6 ms**; at N=6 vehicle 0 = **131.6 ms** (its
+R's are jitter-inactive, so unchanged and still a valid upper bound), but the
+fleet is no longer P1-certified under full carry-in.
 
-- vehicle 5 (worst R's): 22.0 + 14.7 + 40.9 + 58.9 + 30.7 ≈ **167.2 ms**
-  vs measured path age 100.5 → 1.66×.
-- vehicle 0 (best R's): ≈ **131.6 ms** vs measured 110.5 → 1.19×.
+**Certification gap — the Q1 headline (§7.4 item 1).** The simulator runs
+breach-free (`missed jobs: 0`) through **N = 10** (4497 missed at N=11), so the
+*empirical* capacity is **10** — a **2× gap** over the certified 5. The gap is
+the pessimism of the borrowed full-carry-in workload term: a no-carry-in variant
+certifies N ≥ 6 (and reproduces the old F_5 = 129) but is not sound for the
+global model. The sound tightening is limited carry-in (m−1, Guan RTA-LC, §7.4
+items 2–3), which would place the certified capacity in (5, 10]. **The formula
+re-derivation, not the arithmetic, is now the critical path for a defensible
+capacity number.** (Machine-verified by `tools/rta_solve.py`; formula soundness
+still pending Kurt — §7.4 item 2.)
 
-Hold-free check (§5.4): 167.2 − 30 = 137.2 > 100.5 — still not refuted with
-true-R; the refutation experiment needs higher load or a longer actuator
-period, as predicted.
+**Reconciliation (2026-06-17, `--exec worst`, 30 s, `missed jobs: 0`).** Fixes a
+stale transcription (was: v0 = 110.5, with 100.5 attributed to v5). Measured
+`age_path`: v0 = **100.5**, v1 = 80.5, v2–v5 = 90.5 — so the measured-worst
+vehicle is **0**, NOT the worst-R vehicle 5. Ages cluster in 10 ms steps set by
+benign synchronous phasing, not R magnitude, so per-vehicle age cannot be read
+off the R ordering (§4's benign-phasing pessimism, observed directly).
+Soundness holds: every measured age ≤ its (full-carry-in) bound — cross-checked
+by `rta_solve.py --cross-check` at N=5 and N=6.
+
+Hold-free check (§5.4) — now resolvable, since §7 supplies true-R. Tightest at
+**vehicle 0**: hold-free bound 131.6 − 30 = **101.6** vs measured **100.5** —
+survives by just **1.1 ms**, the N=6 true-R analogue of the N=1 0.3 ms
+slack-cancellation. This closes §5.4's "cannot evaluate until the RTA exists":
+with true-R the hold-free bound survives v0 by only 1.1 ms. The cleaner of
+§5.4's two refutation routes is a **longer actuator period**: T_A appears in the
+bound *only* in the hold term, so the hold-free bound (= full − T_A) is
+independent of T_A, while measured age grows with the real hold — push T_A and
+measured overtakes the flat hold-free bound. More load is ambiguous: the bound's
+benign-phasing pessimism grows with R too, so the bound may outrun measurement.
 
 ### 7.4 Open items
 
-1. Machine-solve the fixed points (script over the CSV configs; also sweep N
-   until some x_k > T_k — that N is the *certified* capacity, vs the larger
-   empirical capacity: the certification gap is a headline number for Q1).
+1. ~~Machine-solve the fixed points~~ — **done**: `tools/rta_solve.py` (validated
+   vs hand values; cross-checked sound vs the sim). Result: **certified capacity
+   5** (full carry-in) vs **empirical 10** — the Q1 certification gap; it also
+   corrected §7.3's v5 R-values. Remaining: feed it the limited-carry-in
+   workload (item 2/3) for a tight certified number.
 2. Re-derive the workload bound for the discrete synchronized-quantum model
    rather than citing continuous-time sporadic results (Kurt).
 3. Limited carry-in (m−1) refinement, then offset/harmonic-aware sampling

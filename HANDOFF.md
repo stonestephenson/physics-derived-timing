@@ -1,6 +1,6 @@
 # Session Handoff — CPS Challenge Visualizer
 
-Resume point for a fresh agent. Last updated **2026-06-16**.
+Resume point for a fresh agent. Last updated **2026-06-17**.
 
 **Read order:** `CLAUDE.md` (stable bootstrap: invariants, reading map, rules) →
 this file (what's true *now*) → the owning design docs as your task needs them
@@ -50,7 +50,8 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
 
 ## 2. Current state
 
-- HEAD `883f051`, pushed to remote **`tempbosch`** (`github.com/
+- HEAD = this session's commit (2026-06-17: RTA solver + §7.3 corrections; prior
+  `883f051`), pushed to remote **`tempbosch`** (`github.com/
   stonestephenson/tempboschchall`, branch `main`). **Push only to `tempbosch`.
   NEVER push to `origin`** (the Bosch upstream). `relatedPapers/` stays
   untracked (third-party PDFs).
@@ -82,6 +83,11 @@ fixed guard, `aguard` = guard that tunes itself.
   `context` survives N=14 at **zero** PNR margin, collapses at N=16. **`aguard`
   carries 18 vehicles, zero hard, ~220 ms fleet floor — 50% past the classics.**
 - Prediction overhead **+17% wall** at 12 veh (13×→11× real-time).
+- **RTA (BOUND §7) machine-verified** (`tools/rta_solve.py`, cross-checked sound
+  vs sim): RM/worst certified capacity **5** (full carry-in) vs empirical **10**
+  — a 2× gap that is full-carry-in pessimism, so the limited-carry-in
+  re-derivation (§7.4 item 2) is the critical path. The solver corrected §7.3's
+  wrong v5 R's (107/129/117 → 117/203/152) and the false "P1 certified at N=6".
 
 ## 3. Key facts — do NOT re-derive or violate these
 
@@ -166,9 +172,11 @@ Reframed around publishability (consolidate, don't add features):
 
 1. **Decide venue with Kurt/Guo** (workshop-fall vs main-track) — gates
    everything below. Put Findings A–C and the capacity result in front of him.
-2. **Kurt verifies `BOUND.md`** (Lemma 1 pairing, hold-term composition, §7.2
-   discrete workload bound) + `PREDICTOR.md §3` (recovery heuristic,
-   monotonicity). Without a verified bound there is no theory leg.
+2. **Kurt verifies `BOUND.md`** (Lemma 1 pairing, hold-term composition) +
+   `PREDICTOR.md §3` (recovery heuristic, monotonicity). **Now the blocking item
+   for the Q1 capacity number: the §7.2 workload bound** — full carry-in is 2×
+   pessimistic (certified 5 vs empirical 10); re-derive it (limited carry-in,
+   m−1) for this discrete model. `tools/rta_solve.py` is ready to plug it in.
 3. **The theorem** (main-track spine): prove `floor ≥ θ − age_bound` ⇒ no car
    crosses 0.8 m under stated assumptions. Composes `BOUND.md` with the guard.
 4. **Close Findings A & B** (per-vehicle θ; prediction-cost instrumentation +
@@ -178,8 +186,9 @@ Reframed around publishability (consolidate, don't add features):
    Every predictive policy currently cheats with ground-truth state.
 6. **Generality:** multi-track / multi-profile / δ_max ±50% sensitivity sweeps
    (EE student — `ZONE_TOLERANCE.md`, unblocked; `--net-delay` exists).
-7. **CS student:** machine-solve `BOUND.md §7` fixed points → the *certified*
-   capacity number to set against the empirical 18; general sweep automation.
+7. ~~CS student: machine-solve `BOUND.md §7` fixed points~~ — **done**
+   (`tools/rta_solve.py`: RTA + capacity sweep + sim cross-check; see §2). Next:
+   feed it Kurt's limited-carry-in workload (item 2) for the tight certified number.
 8. Lower priority: clearance-ablation study, triage A/B under real overload,
    network-side scheduling, Q6 event-triggered (drop fixed periods).
 
@@ -203,7 +212,8 @@ avg|worst|best|pert`, `--overrun kill|skip`, `--guard MS` (hybrid), `--floor MS`
 ## 7. Key files
 - `CLAUDE.md` — agent bootstrap (invariants, reading map).
 - `DATA_AGE.md` — age metric + conventions (§4d = dual conventions).
-- `BOUND.md` — analytical bound v0.1 + draft RTA (§7); review flags inline.
+- `BOUND.md` — analytical bound v0.1 + RTA (§7, machine-verified); review flags inline.
+- `PAPER_NOTES.md` — running log of paper-worthy findings (cert gap, phasing, hold-free).
 - `PREDICTOR.md` — TTV/TTPNR, policies, fidelity gate, sweeps (§5–5c).
 - `ZONE_TOLERANCE.md` — EE experiment spec.
 - `src/sim/Predictor.{h,cpp}` — plant port, rollouts, warm-started PNR search.
@@ -212,6 +222,7 @@ avg|worst|best|pert`, `--overrun kill|skip`, `--guard MS` (hybrid), `--floor MS`
   `recentLatchAgeTicks` (the live round-trip signal).
 - `src/sched/policies/` — one .cpp per policy; `Policies.h` has shared helpers.
 - `src/viz/Visualizer.cpp` — `drawPrediction` (overlay, live + replay).
+- `tools/rta_solve.py` — RTA solver + capacity sweep + sim cross-check (machine-verifies §7).
 - `*_sweep.csv` — committed sweep data behind the result tables.
 
 ## 8. Lessons learned / best practices (this codebase)
