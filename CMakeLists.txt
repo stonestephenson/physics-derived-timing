@@ -44,6 +44,7 @@ add_library(cps_core STATIC
     src/sim/Predictor.cpp
     src/sim/Recording.cpp
     src/sim/LateralPlant.cpp
+    src/sim/CartPolePlant.cpp
     src/sim/Simulation.cpp)
 
 target_include_directories(cps_core PUBLIC

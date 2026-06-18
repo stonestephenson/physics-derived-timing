@@ -8,6 +8,7 @@
 #include <string>
 
 #include "fmu/FmuVariables.h"
+#include "sim/CartPolePlant.h"
 #include "sim/LateralPlant.h"
 
 namespace cps {
@@ -59,7 +60,9 @@ void Simulation::start() {
             p->initialize(0.0, stopTime, v0);
             veh.plant = std::move(p);
         } else {
-            throw std::runtime_error("cartpole plant not yet implemented (Phase 2)");
+            auto p = std::make_unique<CartPolePlant>();
+            p->initialize(0.0, stopTime, v0);
+            veh.plant = std::move(p);
         }
     }
 
