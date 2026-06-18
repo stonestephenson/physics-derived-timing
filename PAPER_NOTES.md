@@ -10,6 +10,60 @@ Newest first.
 
 ---
 
+## 2026-06-18 — Age-tolerance is physics-derived & plant-dependent (cart-pole vs car)
+
+**Observation.** A second plant (inverted pendulum on a cart, `--plant cartpole`)
+runs on the *identical* scheduler / data-age / bound machinery as the FMU car —
+only the physics differs. Delay sweep at N=1 (`tools/tolerance_sweep.py`);
+tolerance = largest achieved `age_path` with zero hard breaches:
+- **car (stable): ~245 ms, gradual** onset (breaches by 345 ms).
+- **cart-pole (unstable): ~110 ms, a razor-sharp ~5 ms cliff** (safe at age
+  105.5 ms, crashed at 110.5 ms).
+At any delivered age ≥ 110 ms the pole has crashed while the car is fine to
+~345 ms — a **~2.5× tighter, far sharper** tolerance, set purely by the plant's
+dynamics. Clean controlled comparison: same chain, same delivered age per delay;
+only the physics changes.
+
+**Why it matters.** The thesis on two plants: timing requirements should be
+*derived from the physics* because they are plant-dependent, and instability
+makes the point-of-no-return genuinely physical / the deadline tight. This is the
+headline generalization figure.
+
+**Evidence / repro.** `python3 tools/tolerance_sweep.py` → `tolerance_sweep.csv`.
+
+**Where it lands.** Route A/B intro + Q4 (the age↔control / physics-derived-timing figure).
+
+---
+
+## 2026-06-18 — Age-criticality scheduling generalizes: aguard protects the unstable plant
+
+**Observation.** Cart-pole under contention (exec worst), crashed poles (hard>0),
+RM vs aguard:
+
+| N | RM crashed | aguard crashed |
+|---|---|---|
+| 12 | 3/12 | **0/12** |
+| 14 | 5/14 | **0/14** |
+| 16 | 9/16 | **1/16** |
+
+aguard carries **~14 cart-poles crash-free vs RM's ~11**, and crashes far fewer
+at every overload — by feeding the freshest command to whichever pole is nearest
+its (physics-derived) PNR. (It takes more overruns from reordering but converts
+them into zero crashes.)
+
+**Why it matters.** The *same* age-criticality scheduler that carries 18 cars
+(vs classics' 10–12) also protects the tight-tolerance *unstable* plant where RM
+fails — the TTPNR-guided guard is plant-agnostic because TTPNR is computed from
+each plant's own physics. Route-B generality, on a second plant.
+
+**Evidence / repro.** `for n in 12 14 16; do for s in rm aguard; do ./build/cps
+--headless --plant cartpole --vehicles $n --scheduler $s --exec worst
+--duration 20; done; done` (count vehicle rows with hard>0).
+
+**Where it lands.** Route B (age-criticality scheduling) generality section.
+
+---
+
 ## 2026-06-17 — RTA certification gap (Q1 headline): certified 5 vs empirical 10
 
 **Observation.** A machine RTA solver (`tools/rta_solve.py`, validated against
