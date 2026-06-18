@@ -66,6 +66,11 @@ OverrunPolicy parseOverrun(const std::string& s) {
     return OverrunPolicy::KillAndHold;  // "kill" / default
 }
 
+PlantKind parsePlant(const std::string& s) {
+    if (s == "cartpole" || s == "cp") return PlantKind::CartPole;
+    return PlantKind::Lateral;  // "lateral" / default
+}
+
 // Append the run's per-vehicle summary to a CSV (header written if the file is
 // new/empty), so parameter sweeps can be aggregated across invocations.
 // net_delay_ms is the --net-delay override; -1 = challenge default delays.
@@ -117,6 +122,7 @@ void usage() {
         "  --vehicles N                 number of vehicles (default 1)\n"
         "  --cores N                    shared cloud cores (default 3)\n"
         "  --profile 10|12.5|15         speed profile (default 10)\n"
+        "  --plant lateral|cartpole     controlled system (default lateral)\n"
         "  --duration SEC               sim seconds (default 0 = one lap)\n"
         "  --exec avg|worst|best|pert   execution-time model (default avg)\n"
         "  --overrun kill|skip          job overrun policy (default kill = kill-and-hold;\n"
@@ -171,6 +177,7 @@ int main(int argc, char** argv) {
         // --- Build a fresh simulation ---
         SimParams params;
         params.profile       = parseProfile(argValue(argc, argv, "--profile", "10"));
+        params.plant         = parsePlant(argValue(argc, argv, "--plant", "lateral"));
         params.nVehicles     = std::max(1, std::atoi(argValue(argc, argv, "--vehicles", "1")));
         params.nCores        = std::max(1, std::atoi(argValue(argc, argv, "--cores", "3")));
         const std::string execName    = argValue(argc, argv, "--exec", "avg");

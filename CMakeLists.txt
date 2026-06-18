@@ -43,6 +43,7 @@ add_library(cps_core STATIC
     ${POLICY_SOURCES}
     src/sim/Predictor.cpp
     src/sim/Recording.cpp
+    src/sim/LateralPlant.cpp
     src/sim/Simulation.cpp)
 
 target_include_directories(cps_core PUBLIC

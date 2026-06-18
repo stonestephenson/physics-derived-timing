@@ -23,6 +23,7 @@ namespace cps {
 
 struct SimParams {
     Profile  profile       = Profile::V10;
+    PlantKind plant        = PlantKind::Lateral;  // which controlled system
     int      nVehicles     = 1;
     int      nCores        = 3;
     long     durationSteps = 0;   // 0 -> one full lap of the chosen profile

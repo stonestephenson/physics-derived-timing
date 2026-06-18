@@ -4,9 +4,11 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <stdexcept>
 #include <string>
 
 #include "fmu/FmuVariables.h"
+#include "sim/LateralPlant.h"
 
 namespace cps {
 
@@ -22,7 +24,8 @@ void Simulation::start() {
     traj_ = Trajectory::load(params_.profile);
     durationSteps_ =
         params_.durationSteps > 0 ? params_.durationSteps : traj_->lapSteps();
-    if (!lib_) lib_ = std::make_shared<FmuLibrary>();
+    if (params_.plant == PlantKind::Lateral && !lib_)
+        lib_ = std::make_shared<FmuLibrary>();
 
     const int n = params_.nVehicles;
     offsets_ = params_.startOffsets;
@@ -49,9 +52,15 @@ void Simulation::start() {
         }
         taskSets[v] = veh.taskSet;
 
-        veh.fmu = lib_->instantiate("veh" + std::to_string(v));
         const double v0 = traj_->inputsAt(offsets_[v]).vel;
-        veh.fmu->initialize(0.0, static_cast<double>(durationSteps_) * dt_, v0);
+        const double stopTime = static_cast<double>(durationSteps_) * dt_;
+        if (params_.plant == PlantKind::Lateral) {
+            auto p = std::make_unique<LateralPlant>(lib_, "veh" + std::to_string(v));
+            p->initialize(0.0, stopTime, v0);
+            veh.plant = std::move(p);
+        } else {
+            throw std::runtime_error("cartpole plant not yet implemented (Phase 2)");
+        }
     }
 
     SimConfig cfg{n, params_.nCores, dt_};
@@ -100,8 +109,8 @@ void Simulation::refreshPredictions(bool withPnr) {
             p.warmStartTtpnrTicks =
                 std::max<long>(0, ttpnrTicks_[v] - (step_ - ttpnrBaseStep_[v]));
         }
-        predCache_[v] = predictHold(o.phys, o.act_out, step_ + 1, *traj_,
-                                    offsets_[v], p);
+        predCache_[v] = vehicles_[v].plant->predictHeld(o, step_ + 1, *traj_,
+                                                        offsets_[v], p);
         predBaseStep_[v] = step_;
         if (withPnr) {
             ttpnrTicks_[v] = predCache_[v].ttpnrTicks;
@@ -158,7 +167,7 @@ bool Simulation::step() {
     for (size_t v = 0; v < vehicles_.size(); ++v) {
         const Trajectory::Inputs in = vehicles_[v].traj->inputsAt(step_ + offsets_[v]);
         vehicles_[v].curVel = in.vel;
-        vehicles_[v].fmu->setInputs(in.ff0, in.ff1, in.vel);
+        vehicles_[v].plant->setInputs(in.ff0, in.ff1, in.vel);
     }
     buildViews();
 
@@ -167,9 +176,9 @@ bool Simulation::step() {
 
     // 3. Apply triggers, advance the FMUs, read outputs.
     for (size_t v = 0; v < vehicles_.size(); ++v) {
-        vehicles_[v].fmu->applyTriggers(triggers_[v]);
-        vehicles_[v].fmu->doStep(t, dt_);
-        vehicles_[v].out = vehicles_[v].fmu->readOutputs();
+        vehicles_[v].plant->applyTriggers(triggers_[v]);
+        vehicles_[v].plant->doStep(t, dt_);
+        vehicles_[v].out = vehicles_[v].plant->readOutputs();
     }
 
     if (params_.validatePredictor) validatePredictions();
@@ -218,8 +227,8 @@ void Simulation::recordFrame(double t) {
 
         const double absEy = std::fabs(o.e_y_real);
         uint8_t flags = 0;
-        if (o.violated_real || absEy > vr::kSoftBound) flags |= Frame::kSoft;
-        if (absEy > vr::kHardBound) { flags |= Frame::kHard; ++hardCount_[v]; }
+        if (o.violated_real || absEy > vehicles_[v].plant->softBound()) flags |= Frame::kSoft;
+        if (absEy > vehicles_[v].plant->hardBound()) { flags |= Frame::kHard; ++hardCount_[v]; }
         if (o.critical_real) flags |= Frame::kCritical;
         f.flags = flags;
 
