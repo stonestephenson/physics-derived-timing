@@ -1,6 +1,6 @@
 # Session Handoff — CPS Challenge Visualizer
 
-Resume point for a fresh agent. Last updated **2026-06-17**.
+Resume point for a fresh agent. Last updated **2026-06-18**.
 
 **Read order:** `CLAUDE.md` (stable bootstrap: invariants, reading map, rules) →
 this file (what's true *now*) → the owning design docs as your task needs them
@@ -32,17 +32,21 @@ chains; we control *who computes when*. We built, in layers:
    return diamond, rescue trajectory; live + replay.
 
 ### Plan of record (the strategic frame — read before doing anything)
-- **Route A (workshop / challenge-response):** realistically achievable —
-  *draft this summer, submit to an RTSS-colocated workshop / WiP in fall 2026.*
-- **Route B (RTSS/RTAS main track):** **not as-is.** Needs the theorem +
-  honest information + generality + a verified bound + SOTA comparison.
-  Months of lab work, Kurt-led, RTAS'27/RTSS'27.
-- **The project is currently in "keep adding policies" mode. Publishability
-  now requires the opposite: freeze the policy set, then harden / generalize /
-  prove / write.** Do not add another scheduler unless asked — consolidate.
-- **Kurt and Dr. Guo are the authority on venue/bar, not us.** The open
-  decision they must make: workshop-this-fall vs hold-for-main-track, and
-  whether the θ-from-age-bound theorem is provable on a useful timeline.
+*Updated after the 2026-06-18 Dr. Guo meeting.* Our work is **evidence for a
+general thesis, not a Bosch-specific solution**: *timing requirements should be
+derived from the physics (the max tolerable data age, per context), and doing so
+exposes and safely exploits beyond-worst-case slack.* Bosch is case study #1.
+- **Target: main track** (RTAS/RTSS '27), not the fall workshop. Bar = theorem
+  + honest information + **generality** + verified bound + SOTA comparison.
+- **Generality is first-class and underway:** a second plant (cart-pole) now
+  runs the *same* scheduler / data-age / bound machinery — see §2. Don't add
+  schedulers; generalize / prove / document / write.
+- **Document with the paper in mind** (Guo's directive): findings →
+  `PAPER_NOTES.md`; results reproducible (`tools/*.py`, committed CSVs).
+- **Kurt/Guo own the bar.** The θ-from-age-bound theorem is the one leg neither
+  the user (novice at proofs) nor the AI agent can own — Kurt or a proof assistant.
+- Ownership now: **user + AI agent** drive build / experiments / docs; Kurt the
+  formal leg. (The old "Route A workshop / freeze policies" frame is superseded.)
 
 Team: user (lead) + CS student (sweeps, RTA fixed-point solver, infra) + EE
 student (zone tolerance, control side) + Kurt Wilson (PhD mentor; spot-checks
@@ -50,14 +54,31 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
 
 ## 2. Current state
 
-- HEAD = this session's commit (2026-06-17: RTA solver + §7.3 corrections; prior
-  `883f051`), pushed to remote **`tempbosch`** (`github.com/
-  stonestephenson/tempboschchall`, branch `main`). **Push only to `tempbosch`.
-  NEVER push to `origin`** (the Bosch upstream). `relatedPapers/` stays
-  untracked (third-party PDFs).
+- **Active branch `paper-generalization`** (off `main`, pushed to **`tempbosch`**:
+  `github.com/stonestephenson/tempboschchall`). `main` holds through the RTA
+  solver (`4f49f46`); the cart-pole generalization (Plant seam + second plant +
+  Phase-3 evidence, 4 commits) lives on the branch. **Push only to `tempbosch`.
+  NEVER push to `origin`** (the Bosch upstream). `relatedPapers/` untracked.
 - Working tree clean after this handoff commit.
 - Builds clean: `cmake --build build -j`. Fidelity gate passes
   (1.49e-08 m, all 3 profiles). All policy baselines reproduce.
+
+### Generalization — `Plant` seam + cart-pole (2026-06-18, on the branch)
+The FMU is now one implementation of a `Plant` interface (`src/sim/Plant.h`); the
+scheduler, data-age model, bound, and `rta_solve.py` are plant-agnostic. A second
+plant — an inverted pendulum (`--plant cartpole`, `src/sim/CartPolePlant.{h,cpp}`:
+dynamics + the trigger-driven chain + a validated physics-derived predictor) —
+runs the same machinery; the Phase-1 refactor preserved every Bosch baseline.
+Headline results (`PAPER_NOTES.md`, `tools/tolerance_sweep.py`):
+- **Age-tolerance is physics-derived & plant-dependent:** car ~245 ms (gradual)
+  vs cart-pole ~110 ms (sharp ~5 ms cliff). Same chain, same delivered age per
+  delay; only the physics differs.
+- **Age-criticality scheduling generalizes:** aguard carries ~14 cart-poles
+  crash-free vs RM's ~11 (N=16: 1 vs 9 crashed).
+- The two plants bind on *different legs*: car on scheduling (overrun ~N=11),
+  cart-pole on physics (age-tolerance ~110 ms).
+- *Caveat:* cart-pole params (shoveForce/u_max/θ_max) are first-pass, not yet
+  calibrated like the car's δ_max — qualitative contrast solid, exact numbers TBD.
 
 ### Policy lineage (`--scheduler NAME`)
 | name | rule | role |
@@ -168,29 +189,23 @@ backed by the runs in this finding. Reproduce: `ttu` at N=14 30 s vs 120 s vs
 
 ## 5. Prioritized next steps
 
-Reframed around publishability (consolidate, don't add features):
+Reframed (post-Guo 2026-06-18) around the main-track generalization paper:
 
-1. **Decide venue with Kurt/Guo** (workshop-fall vs main-track) — gates
-   everything below. Put Findings A–C and the capacity result in front of him.
-2. **Kurt verifies `BOUND.md`** (Lemma 1 pairing, hold-term composition) +
-   `PREDICTOR.md §3` (recovery heuristic, monotonicity). **Now the blocking item
-   for the Q1 capacity number: the §7.2 workload bound** — full carry-in is 2×
-   pessimistic (certified 5 vs empirical 10); re-derive it (limited carry-in,
-   m−1) for this discrete model. `tools/rta_solve.py` is ready to plug it in.
-3. **The theorem** (main-track spine): prove `floor ≥ θ − age_bound` ⇒ no car
-   crosses 0.8 m under stated assumptions. Composes `BOUND.md` with the guard.
-4. **Close Findings A & B** (per-vehicle θ; prediction-cost instrumentation +
-   assumption statement) — both cheap, both pre-submission must-dos.
-5. **Honest predictor** (the biggest credibility gap): predict from estimated
-   state + last-sent command via the `InfoSet` pattern in `ContextAware.cpp`.
-   Every predictive policy currently cheats with ground-truth state.
-6. **Generality:** multi-track / multi-profile / δ_max ±50% sensitivity sweeps
-   (EE student — `ZONE_TOLERANCE.md`, unblocked; `--net-delay` exists).
-7. ~~CS student: machine-solve `BOUND.md §7` fixed points~~ — **done**
-   (`tools/rta_solve.py`: RTA + capacity sweep + sim cross-check; see §2). Next:
-   feed it Kurt's limited-carry-in workload (item 2) for the tight certified number.
-8. Lower priority: clearance-ablation study, triage A/B under real overload,
-   network-side scheduling, Q6 event-triggered (drop fixed periods).
+1. **Cart-pole → paper-grade:** calibrate its params (shoveForce/u_max/θ_max,
+   ×1.5-style like the car's δ_max) so the headline numbers are publishable; a
+   "reproduce-all-figures" orchestrator; optionally a 3rd plant.
+2. **Kurt — the formal leg** (neither user nor AI can own it): verify `BOUND.md`
+   + re-derive the §7.2 workload bound (full carry-in is 2× pessimistic,
+   certified 5 vs empirical 10; limited carry-in m−1 — `tools/rta_solve.py`
+   ready), and the theorem `floor ≥ θ − age_bound` ⇒ no crossing.
+3. **Honest predictor** (biggest credibility gap): predict from estimated state +
+   last-sent command (InfoSet pattern, `ContextAware.cpp`). Every predictive
+   policy reads ground truth today.
+4. **Generality breadth:** parameter sweeps (speed/δ_max/net-delay/WCET/cores) on
+   *both* plants; the car's zone-tolerance A(zone) (`ZONE_TOLERANCE.md`).
+5. **Close Findings A & B** (per-vehicle θ; prediction-cost instrumentation).
+6. Lower priority: clearance-ablation, triage A/B under overload, network-side
+   scheduling, Q6 event-triggered.
 
 ## 6. Run / verify
 
@@ -216,13 +231,16 @@ avg|worst|best|pert`, `--overrun kill|skip`, `--guard MS` (hybrid), `--floor MS`
 - `PAPER_NOTES.md` — running log of paper-worthy findings (cert gap, phasing, hold-free).
 - `PREDICTOR.md` — TTV/TTPNR, policies, fidelity gate, sweeps (§5–5c).
 - `ZONE_TOLERANCE.md` — EE experiment spec.
-- `src/sim/Predictor.{h,cpp}` — plant port, rollouts, warm-started PNR search.
-- `src/sim/Simulation.cpp` — `refreshPredictions` (cadence, warm-start), `buildViews`.
+- `src/sim/Plant.h` — plant-agnostic seam; `LateralPlant.{h,cpp}` (FMU wrapper),
+  `CartPolePlant.{h,cpp}` (inverted-pendulum 2nd plant: dynamics + chain + predictor).
+- `src/sim/Predictor.{h,cpp}` — car plant port, rollouts, warm-started PNR search.
+- `src/sim/Simulation.cpp` — plant-generic loop; `refreshPredictions`, `buildViews`.
 - `src/sched/TaskModel.cpp` — `endTick` (stamps, age), `releaseIfDue` (overrun);
   `recentLatchAgeTicks` (the live round-trip signal).
 - `src/sched/policies/` — one .cpp per policy; `Policies.h` has shared helpers.
 - `src/viz/Visualizer.cpp` — `drawPrediction` (overlay, live + replay).
 - `tools/rta_solve.py` — RTA solver + capacity sweep + sim cross-check (machine-verifies §7).
+- `tools/tolerance_sweep.py` — per-plant age-tolerance sweep (car vs cart-pole).
 - `*_sweep.csv` — committed sweep data behind the result tables.
 
 ## 8. Lessons learned / best practices (this codebase)
