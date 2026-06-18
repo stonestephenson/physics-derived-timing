@@ -50,7 +50,7 @@ public:
 
 private:
     using State = std::array<double, 4>;          // [x, xdot, theta, thetadot]
-    State  integrate(const State& s, double force) const;  // one tick (RK4)
+    State  integrate(const State& s, double force, double dt) const;  // one RK4 step of `dt`
     double disturbance(long absStep) const;               // the known "track"
 
     CartPoleParams params_;
