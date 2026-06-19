@@ -30,6 +30,9 @@ The executable is `build/cps`.
 # Multiple vehicles sharing 3 cloud cores, context-aware scheduler:
 ./build/cps --vehicles 6 --scheduler context
 
+# A different plant (inverted pendulum) on the same scheduler/age machinery:
+./build/cps --headless --plant cartpole --vehicles 8 --scheduler aguard
+
 # Headless (no window): run fast and print per-vehicle metrics.
 ./build/cps --headless --vehicles 6 --scheduler rm --duration 120
 
@@ -38,7 +41,9 @@ The executable is `build/cps`.
 ./build/cps --replay run.cpsr
 ```
 
-Key options: `--scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard`, `--vehicles N`,
+Key options: `--scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard`, `--plant
+lateral|cartpole` (controlled system: lateral = Bosch FMU car, cartpole = inverted
+pendulum — see `GENERALIZATION.md`), `--vehicles N`,
 `--cores N`, `--profile 10|12.5|15`, `--duration SEC`,
 `--exec avg|worst|best|pert`, `--overrun kill|skip`, `--net-delay MS` (fix
 both network delays, for delay-tolerance sweeps), `--delta-max RAD` +

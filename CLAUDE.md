@@ -6,18 +6,26 @@ this file; if you change what is *true right now*, update `HANDOFF.md`.
 
 ## What this project is
 
-REU research project (Dr. Guo's lab) on the Bosch RTAS 2026 "Physics-Driven
-Real-Time CPS Challenge": N simulated vehicles' control chains share N_c cloud
-cores; we study the end-to-end **data age** (staleness of the applied steering
-command) under different scheduling policies, in this repo's harness around
-Bosch's LateralMotionControl FMU.
+REU research project (Dr. Guo's lab) sparked by the Bosch RTAS 2026
+"Physics-Driven Real-Time CPS Challenge": N simulated plants' control chains
+share N_c cloud cores; we study the end-to-end **data age** (staleness of the
+applied command) under different scheduling policies, and how much
+**physics-derived, beyond-worst-case** slack that exposes.
 
-Two deliverables:
-- **Route A** (active): workshop paper — a proven analytical upper bound on
-  data age, validated for soundness and tightness against this harness.
-- **Route B** (builds on A): *age-criticality* scheduling — per-track-zone
-  maximum tolerable age, enforced by a mode-switching cloud scheduler with a
-  schedulability test. Extends Wilson et al. (MEMOCODE 2024).
+The harness is **plant-agnostic** (a `Plant` interface, `src/sim/Plant.h`): the
+Bosch LateralMotionControl FMU (`LateralPlant`) is case study #1; an inverted
+**cart-pole** (`CartPolePlant`, `--plant cartpole`) is case study #2, proving the
+framework generalizes beyond Bosch.
+
+Three building blocks (the general thesis: *derive timing requirements from the
+physics, then exploit the beyond-worst-case slack*):
+- **The bound** — a proven analytical upper bound on data age + a
+  machine-verified response-time analysis (`BOUND.md`).
+- **Age-criticality scheduling** — per-context maximum tolerable age enforced by
+  a guarded/adaptive cloud scheduler; extends Wilson et al. (MEMOCODE 2024).
+- **Generalization** — the same machinery across plants (`GENERALIZATION.md`).
+
+Current strategy, venue, and what's true *now*: `HANDOFF.md`.
 
 Team: Stone (lead) + CS student (solver, sweeps, infra) + EE student (zone
 tolerance, control side) + Kurt Wilson (PhD mentor: spot-checks formal claims;
@@ -43,6 +51,8 @@ Then by task:
 - **Prediction system / ttu scheduler / overlay**: `PREDICTOR.md` — TTV and
   TTPNR definitions, the assumed steering limit, the fidelity gate
   (`--validate-predictor`; re-run after ANY predictor change).
+- **Second plant / the `Plant` seam / cart-pole / adding a plant**:
+  `GENERALIZATION.md` — the plant-agnostic architecture and case study #2.
 - **Scheduler / policy code**: `src/sched/` — `TaskModel.cpp` (`endTick` =
   stamp propagation, `releaseIfDue` = overrun policies),
   `PolicyScheduler.cpp`, `policies/*.cpp`, interfaces in `Scheduler.h` +
@@ -69,7 +79,10 @@ Then by task:
    "preliminary / hand-iterated" must be machine-verified before use. No
    lemma goes into a paper without human re-derivation.
 6. The FMU is a prebuilt black box — never edit or recompile it; all
-   measurement is harness-side shadowing of its trigger events.
+   measurement is harness-side shadowing of its trigger events. It lives behind
+   the `Plant` seam (`src/sim/Plant.h`) as `LateralPlant`; a new plant is a new
+   `Plant` implementation, never a change to that path — re-run the HANDOFF
+   baselines after touching the seam (the refactor was verified byte-identical).
 7. Git: push to `tempbosch` only. NEVER push to `origin` (the Bosch
    upstream). `relatedPapers/` stays untracked.
 
@@ -92,15 +105,17 @@ Then by task:
 
     cmake -B build -S . -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
     ./build/cps --headless --vehicles 6 --scheduler rm --exec worst --duration 30
-    # schedulers: rm | prm | edf | context (oracle) | honest
-    # other flags: --overrun kill|skip, --net-delay MS, --csv FILE, --seed N
+    ./build/cps --headless --plant cartpole --vehicles 8 --scheduler aguard --exec worst
+    # schedulers: rm | prm | edf | context(oracle) | honest | ttu | hybrid | aguard
+    # plants: lateral (FMU car) | cartpole    other: --overrun, --net-delay MS,
+    #   --guard/--floor MS, --delta-max RAD, --validate-predictor, --csv FILE, --seed N
 
 ## Before you end a session (this keeps the system alive)
 
 1. Update `HANDOFF.md`: current state, changed baselines, done/open lists.
 2. If you changed a convention, structure, or process: update the owning doc
-   (`DATA_AGE` / `BOUND` / `ZONE_TOLERANCE` / `USAGE` / this file) in the
-   same commit as the code change.
+   (`DATA_AGE` / `BOUND` / `PREDICTOR` / `GENERALIZATION` / `ZONE_TOLERANCE` /
+   `USAGE` / this file) in the same commit as the code change.
 3. Commit in the existing log style (imperative summary + bullet body).
    Push to `tempbosch` when asked.
 4. Keep this file stable and short (≤ ~150 lines). Detail belongs in the
