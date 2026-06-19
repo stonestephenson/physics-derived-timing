@@ -197,6 +197,12 @@ Data: `predictive_sweep.csv` (hybrid rows appended),
 
 ## 5c. AdaptiveGuard: the self-tuning guard (2026-06-12)
 
+> **Stale — Finding A (see HANDOFF §4).** `--floor` is currently a near-inert
+> knob: θ uses the *fleet-max* recent age (`AdaptiveGuard.cpp:47`), so one
+> starved car pins θ to the 450 ms clamp regardless of floor (sweeps: floor
+> 0→300 byte-identical under load). Fix = a per-vehicle θ_v. Read the "floor is
+> a dial" claims below as the *intended*, not the current, behavior.
+
 `--scheduler aguard` (`AdaptiveGuard.cpp`, `--floor MS` default 100) closes
 the §5b loop online: **θ(t) = floor + A(t)**, A(t) = fleet-max *recent
 latch-time age* (a ~2 s windowed max of the age of data at each actuator

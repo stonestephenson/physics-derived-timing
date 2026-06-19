@@ -3,7 +3,9 @@
 Status: **draft derivation, not yet human-verified.** Every lemma needs a line-by-line
 re-derivation (Kurt) before anything here is claimed in a paper. The numeric
 instantiations below are consistent with measurement (soundness not refuted),
-but consistency is not proof.
+but consistency is not proof. (§7's RTA *arithmetic* is now machine-verified and
+sim-cross-checked by `tools/rta_solve.py` — see §7.3; the lemmas and the §7.2
+workload *formula* itself remain unverified draft.)
 
 The quantity bounded is the **oldest-direct-input ("path") data age** measured by
 the harness (`age_path` column; `TaskChainModel::maxDataAgeOldestTicks`). See
@@ -139,6 +141,10 @@ contend for cores, so it enters only through the R_i of E/B/M.)*
 |---|---|---|---|
 | N=1 (R=C exact; deterministic, same at 30 s and 120 s) | **90.5** | 120.8 ✓ (1.34×) | 216.6 ✓ |
 | N=6 / 3 cores | **100.5** | (R=C not valid here) | 216.6 ✓ (2.2×) |
+
+(P1 holds *empirically* at N=6 — sim `missed jobs: 0` through N=10 — so the
+degenerate bound is sound here; the full-carry-in RTA only **certifies** P1 to
+N=5 (§7.3). That gap is analysis pessimism, not an actual overrun.)
 
 No violation observed ⇒ soundness not refuted. The 1.34× gap at N=1 — where
 R is exact — isolates the *structural* pessimism: the per-hop sampling terms
