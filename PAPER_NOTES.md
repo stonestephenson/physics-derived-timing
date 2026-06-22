@@ -10,6 +10,40 @@ Newest first.
 
 ---
 
+## 2026-06-21 — Where the novelty must live (candidate contributions + honesty boundary)
+
+The high-level thesis ("derive timing from physics / more context → better timing
+decisions") is **not novel** — it's the field's premise plus dense prior art
+(self-triggered & event-triggered control, control–scheduling co-design,
+mixed-criticality, weakly-hard RT, cause-effect-chain latency, and Wilson
+MEMOCODE'24, which we *extend*). A real contribution must be a *specific
+provable/measurable delta* the prior lacks. Three candidates:
+
+- **(A) Fleet-safety theorem for shared-resource control** — prove m cores keep
+  ALL N physics-driven loops safe, by composing (control) a bound on how many
+  loops can be *simultaneously* near their PNR with (scheduling) an RTA that those
+  can be served in time. Technical heart: bounding *simultaneous criticality* from
+  the dynamics. Beats single-loop self-triggered control. Deepest; the formal/Kurt
+  leg. (Generalizes the θ ≥ floor + age_bound theorem in §5.)
+- **(B) Predictive law: age-tolerance from plant physics** — A(plant) computable
+  from a characteristic timescale (e.g. ~1/λ for an unstable mode), validated
+  across a *spectrum* of plants. Turns two examples into a general law.
+- **(C) Physics-derived scheduling under honest (estimated) information** —
+  near-optimal scheduling + a safety margin from *estimated* state despite
+  estimation error (self/event-triggered assume full state). = the honest
+  predictor, reframed as a contribution.
+
+**Honesty boundary:** the cart-pole generalization proves the framework is
+*general & physics-derived* (meaningful), **NOT** *novel*. Generality ≠ novelty.
+
+**Next gate (existential):** which (if any) of A/B/C is unclaimed needs the
+**related-work survey** + Kurt's field judgment — it determines whether there's a
+paper at all. An AI lit survey can *scaffold* it (find/map the closest prior) but
+cannot render the *verdict* (missed-scoop risk; community judgment). A survey
+prompt was prepared 2026-06-21.
+
+---
+
 ## 2026-06-18 — Age-tolerance is physics-derived & plant-dependent (cart-pole vs car)
 
 **Observation.** A second plant (inverted pendulum on a cart, `--plant cartpole`)

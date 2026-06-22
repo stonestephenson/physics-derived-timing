@@ -191,6 +191,12 @@ backed by the runs in this finding. Reproduce: `ttu` at N=14 30 s vs 120 s vs
 
 Reframed (post-Guo 2026-06-18) around the main-track generalization paper:
 
+**Existential gate — do before over-investing in experiments: the related-work /
+novelty survey.** Whether there is a paper hinges on whether the candidate
+contributions (A/B/C, see `PAPER_NOTES.md` 2026-06-21) are actually unclaimed vs.
+already done (self-triggered control is the sharpest threat). An AI can *scaffold*
+it; Kurt renders the verdict. A survey prompt was prepared 2026-06-21.
+
 1. **Cart-pole → paper-grade:** calibrate its params (shoveForce/u_max/θ_max,
    ×1.5-style like the car's δ_max) so the headline numbers are publishable; a
    "reproduce-all-figures" orchestrator; optionally a 3rd plant.
