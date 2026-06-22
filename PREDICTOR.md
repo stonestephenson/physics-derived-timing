@@ -200,14 +200,20 @@ Data: `predictive_sweep.csv` (hybrid rows appended),
 
 ## 5c. AdaptiveGuard: the self-tuning guard (2026-06-12)
 
-> **Stale — Finding A (see HANDOFF §4).** `--floor` is currently a near-inert
-> knob: θ uses the *fleet-max* recent age (`AdaptiveGuard.cpp:47`), so one
-> starved car pins θ to the 450 ms clamp regardless of floor (sweeps: floor
-> 0→300 byte-identical under load). Fix = a per-vehicle θ_v. Read the "floor is
-> a dial" claims below as the *intended*, not the current, behavior.
+> **Finding A — RESOLVED (per-vehicle θ_v, 2026-06-22).** θ is now computed
+> per-vehicle from each car's own `age_recent_ms` (not the fleet-max), so
+> `--floor` is a live knob again (floor 0→300 went from byte-identical to
+> distinct schedules at N=14). **The table below is PRE-fix data:** the inert
+> code pinned θ near the aggressive 450 ms clamp, so its `floor=100` numbers
+> reflect a ~max-guard operating point; post-fix `floor=100` is genuinely
+> relaxed and differs. Re-deriving the table needs a proper multi-N sweep —
+> single-run spot checks post-fix are load-dependent (the achieved floor tracks
+> `--floor` under heavy load but barely moves at light load) and the 450 clamp
+> collapses everyone into the emergency tier ⇒ pure-ttu starvation. Default
+> `--floor` stays 100 (provisional) pending that sweep.
 
 `--scheduler aguard` (`AdaptiveGuard.cpp`, `--floor MS` default 100) closes
-the §5b loop online: **θ(t) = floor + A(t)**, A(t) = fleet-max *recent
+the §5b loop online: **θ_v(t) = floor + A_v(t)**, A_v(t) = vehicle v's own *recent
 latch-time age* (a ~2 s windowed max of the age of data at each actuator
 latch — the live round-trip estimate, `VehicleView::age_recent_ms`), clamped
 to [floor+60, 450] so extreme overload degrades gracefully toward pure ttu.

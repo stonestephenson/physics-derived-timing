@@ -5,11 +5,14 @@
 // acts, so achieved floor ≈ guard − round-trip. This policy closes that loop
 // online:
 //
-//   θ(t) = floorTarget + A(t)
+//   θ_v(t) = floorTarget + A_v(t)
 //
-// where A(t) is the fleet-max *measured recent latch-time age*
-// (VehicleView::age_recent_ms — the live round-trip estimate, which inflates
-// under contention and thereby also covers queueing implicitly). θ is clamped
+// where A_v(t) is vehicle v's OWN *measured recent latch-time age*
+// (VehicleView::age_recent_ms — its live round-trip estimate, which inflates
+// under contention and thereby also covers queueing implicitly). Per-vehicle,
+// not fleet-max: one starved car's age once pinned a fleet-max θ to the 450 ms
+// clamp for everyone, making --floor inert under load (HANDOFF Finding A). θ
+// is clamped
 // to [floorTarget + 60 ms, 450 ms]: the lower clamp keeps a sane guard before
 // any latch is observed; the upper clamp means extreme overload degrades
 // gracefully into pure TimeToUnsafe (θ ≥ horizon ⇒ everyone with a finite
@@ -42,19 +45,16 @@ public:
     void assign(const std::vector<ReadyJob>& ready, int nCores,
                 const std::vector<VehicleView>& ctx,
                 std::vector<int>& chosen) override {
-        // Adaptive threshold from the live fleet-max round-trip estimate.
-        double recentAge = 0.0;
-        for (const VehicleView& v : ctx) recentAge = std::max(recentAge, v.age_recent_ms);
-        const double theta =
-            std::min(450.0, floorMs_ + std::max(60.0, recentAge));
-
         struct Key { int tier; double k1, k2, k3; };
         auto key = [&](const ReadyJob& j) -> Key {
             if (j.vehicle < 0 || j.vehicle >= static_cast<int>(ctx.size()))
                 return {1, 0.0, 0.0, 0.0};
             const VehicleView& v = ctx[j.vehicle];
+            // Per-vehicle guard from this car's own live round-trip estimate.
+            const double theta_v =
+                std::min(450.0, floorMs_ + std::max(60.0, v.age_recent_ms));
             if (triage_ && v.ttpnr_ms <= 0.0) return {2, 0.0, 0.0, 0.0};
-            if (v.ttpnr_ms < theta)
+            if (v.ttpnr_ms < theta_v)
                 return {0, v.ttpnr_ms, v.rescue_clearance_m, v.ttv_ms};
             return {1, -comfortUrgencyOracle(v), 0.0, 0.0};
         };
