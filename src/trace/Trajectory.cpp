@@ -1,6 +1,7 @@
 #include "trace/Trajectory.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <fstream>
 #include <iterator>
@@ -56,6 +57,31 @@ const char* profileName(Profile p) {
         case Profile::V15:   return "v15";
     }
     return "v10";
+}
+
+TrackZone trackZoneFromFf0(float ff0) {
+    const float curvature = std::fabs(ff0);
+    if (curvature <= kZoneZeroEpsilon) return TrackZone::Z0Straight;
+    if (curvature < kZoneSharpThreshold) return TrackZone::Z1SlightTurn;
+    return TrackZone::Z2SharpTurn;
+}
+
+const char* trackZoneCode(TrackZone zone) {
+    switch (zone) {
+        case TrackZone::Z0Straight:   return "z0";
+        case TrackZone::Z1SlightTurn: return "z1";
+        case TrackZone::Z2SharpTurn:  return "z2";
+    }
+    return "z0";
+}
+
+const char* trackZoneName(TrackZone zone) {
+    switch (zone) {
+        case TrackZone::Z0Straight:   return "straight";
+        case TrackZone::Z1SlightTurn: return "slight turn";
+        case TrackZone::Z2SharpTurn:  return "sharp turn";
+    }
+    return "straight";
 }
 
 std::string Trajectory::defaultExamplesDir() {

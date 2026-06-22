@@ -12,10 +12,12 @@
 // pass it to the Simulation instead of a PolicyScheduler.
 // ============================================================================
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <stdexcept>
 #include <string>
 
 #include "fmu/FmuVariables.h"
@@ -95,6 +97,74 @@ void appendCsv(const std::string& path, const RunRecording& rec,
     std::fclose(f);
 }
 
+// Export a held-command time-to-violation table from a nominal run. Each
+// recorded frame supplies the physical state and currently-applied actuator
+// command; predictHold then rolls the plant forward with that command frozen.
+void writeTtvCsv(const std::string& path, const RunRecording& rec,
+                 const Trajectory& traj, const std::string& scheduler,
+                 const std::string& exec, const std::string& overrun,
+                 double netDelayMs, uint64_t seed, double horizonMs,
+                 bool fastApprox, double fromSec, double toSec) {
+    std::FILE* f = std::fopen(path.c_str(), "w");
+    if (!f) throw std::runtime_error("cannot open TTV CSV file " + path);
+
+    std::fprintf(f,
+        "scheduler,profile,vehicles,cores,exec,overrun,net_delay_ms,seed,"
+        "vehicle,sample,t_s,ref_step,from_ref_step,zone,zone_name,"
+        "vel,ff_ref_0,ff_ref_1,"
+        "act_out,phys_0_yaw_rate,phys_1_slip,phys_2_steer,phys_3_steer_rate,"
+        "phys_4_e_y,phys_5_e_y_dot,abs_e_y,ttv_ms,ttpnr_ms,"
+        "ttv_horizon_ms,ttv_censored\n");
+
+    PredictParams pp;
+    pp.computePnr = true;
+    pp.horizonTicks = std::max<long>(1, std::lround(horizonMs / (rec.baseStep * 1000.0)));
+    if (!fastApprox) {
+        pp.velQuantum = 0.0;  // tick-exact FMU dynamics path for offline analysis
+        pp.vizStride = 1;
+    }
+
+    for (int v = 0; v < rec.nVehicles; ++v) {
+        const auto& frames = rec.frames[static_cast<size_t>(v)];
+        for (size_t i = 0; i < frames.size(); ++i) {
+            const Frame& fr = frames[i];
+            if (fromSec >= 0.0 && fr.t < fromSec) continue;
+            if (toSec >= 0.0 && fr.t > toSec) continue;
+            double x0[6];
+            for (int j = 0; j < 6; ++j) x0[j] = fr.phys[j];
+
+            // A frame's state is read after the FMU has advanced the physics
+            // for ref_step, so the first not-yet-simulated reference input is
+            // ref_step + 1. This matches Simulation::validatePredictions.
+            const long fromRef = traj.wrap(static_cast<long>(fr.refStep) + 1);
+            const Prediction pred = predictHold(x0, fr.act, fromRef, traj, 0, pp);
+            const Trajectory::Inputs in = traj.inputsAt(fr.refStep);
+            const TrackZone zone = traj.zoneAt(fr.refStep);
+            const double ttvMs = pred.ttvTicks * rec.baseStep * 1000.0;
+            const double ttpnrMs = pred.ttpnrTicks * rec.baseStep * 1000.0;
+            const double horizonMs = pp.horizonTicks * rec.baseStep * 1000.0;
+            const int censored = pred.ttvTicks >= pp.horizonTicks ? 1 : 0;
+
+            std::fprintf(f,
+                "%s,%s,%d,%d,%s,%s,%.2f,%llu,%d,%zu,%.6f,%u,%ld,%s,%s,"
+                "%.8g,%.8g,%.8g,%.8g,"
+                "%.10g,%.10g,%.10g,%.10g,%.10g,%.10g,%.10g,%.3f,%.3f,%.3f,%d\n",
+                scheduler.c_str(), profileName(static_cast<Profile>(rec.profile)),
+                rec.nVehicles, rec.nCores, exec.c_str(), overrun.c_str(),
+                netDelayMs, static_cast<unsigned long long>(seed), v, i,
+                fr.t, fr.refStep, fromRef, trackZoneCode(zone), trackZoneName(zone),
+                static_cast<double>(in.vel), static_cast<double>(in.ff0),
+                static_cast<double>(in.ff1), static_cast<double>(fr.act),
+                static_cast<double>(fr.phys[0]), static_cast<double>(fr.phys[1]),
+                static_cast<double>(fr.phys[2]), static_cast<double>(fr.phys[3]),
+                static_cast<double>(fr.phys[4]), static_cast<double>(fr.phys[5]),
+                std::fabs(static_cast<double>(fr.phys[4])), ttvMs, ttpnrMs,
+                horizonMs, censored);
+        }
+    }
+    std::fclose(f);
+}
+
 const char* argValue(int argc, char** argv, const char* key, const char* def) {
     for (int i = 1; i < argc - 1; ++i)
         if (std::strcmp(argv[i], key) == 0) return argv[i + 1];
@@ -135,6 +205,17 @@ void usage() {
         "  --seed N                     RNG seed for pert mode (default 0)\n"
         "  --headless                   run without the GUI, print metrics\n"
         "  --csv FILE                   append per-vehicle summary rows to FILE\n"
+        "  --ttv-csv FILE               run/export held-command TTV/TTPNR samples;\n"
+        "                               defaults for this mode are profile=10,\n"
+        "                               vehicles=1,\n"
+        "                               cores=1, scheduler=rm, exec=worst, one lap,\n"
+        "                               sampled every 100 ticks (10 ms)\n"
+        "  --ttv-horizon MS             held-command rollout cap for --ttv-csv\n"
+        "                               (default 5000)\n"
+        "  --ttv-fast                   use production approximate predictor for\n"
+        "                               --ttv-csv; default is tick-exact offline\n"
+        "                               rollout\n"
+        "  --ttv-from SEC --ttv-to SEC  optional time window for --ttv-csv export\n"
         "  --save FILE                  write the run recording to FILE\n"
         "  --replay FILE                visualize a saved recording (no sim)\n"
         "  --help                       this message\n");
@@ -169,11 +250,13 @@ int main(int argc, char** argv) {
         }
 
         // --- Build a fresh simulation ---
+        const std::string ttvCsvFile = argValue(argc, argv, "--ttv-csv", "");
+        const bool ttvMode = !ttvCsvFile.empty();
         SimParams params;
         params.profile       = parseProfile(argValue(argc, argv, "--profile", "10"));
         params.nVehicles     = std::max(1, std::atoi(argValue(argc, argv, "--vehicles", "1")));
-        params.nCores        = std::max(1, std::atoi(argValue(argc, argv, "--cores", "3")));
-        const std::string execName    = argValue(argc, argv, "--exec", "avg");
+        params.nCores        = std::max(1, std::atoi(argValue(argc, argv, "--cores", ttvMode ? "1" : "3")));
+        const std::string execName    = argValue(argc, argv, "--exec", ttvMode ? "worst" : "avg");
         const std::string overrunName = argValue(argc, argv, "--overrun", "kill");
         params.execMode      = parseExec(execName);
         params.overrun       = parseOverrun(overrunName);
@@ -183,10 +266,16 @@ int main(int argc, char** argv) {
         params.triage        = hasFlag(argc, argv, "--triage");
         const double guardMs = std::atof(argValue(argc, argv, "--guard", "150"));
         const double floorMs = std::atof(argValue(argc, argv, "--floor", "100"));
+        const double ttvHorizonMs = std::atof(argValue(argc, argv, "--ttv-horizon", "5000"));
+        const bool ttvFast = hasFlag(argc, argv, "--ttv-fast");
+        const double ttvFromSec = std::atof(argValue(argc, argv, "--ttv-from", "-1"));
+        const double ttvToSec = std::atof(argValue(argc, argv, "--ttv-to", "-1"));
         params.seed          = static_cast<uint64_t>(std::atoll(argValue(argc, argv, "--seed", "0")));
         const double durSec  = std::atof(argValue(argc, argv, "--duration", "0"));
         if (durSec > 0) params.durationSteps =
             static_cast<long>(durSec / vr::kBaseStepSeconds);
+
+        params.decimation    = 100;  // 10 ms samples; keep explicit for TTV exports.
 
         const std::string schedName = argValue(argc, argv, "--scheduler", "rm");
         const std::string csvFile   = argValue(argc, argv, "--csv", "");
@@ -194,6 +283,26 @@ int main(int argc, char** argv) {
             makePolicy(schedName, params.triage, guardMs, floorMs));
 
         Simulation sim(params, std::move(scheduler));
+
+        if (ttvMode) {
+            std::printf("Running TTV/TTPNR export: %s, %d vehicle(s), %d cores, profile %s, "
+                        "exec %s, overrun %s, sample 10 ms, %s rollout\n",
+                        schedName.c_str(), params.nVehicles, params.nCores,
+                        profileName(params.profile), execName.c_str(), overrunName.c_str(),
+                        ttvFast ? "fast approximate" : "tick-exact");
+            sim.runToCompletion(true);
+            writeTtvCsv(ttvCsvFile, sim.recording(), *sim.trajectory(), schedName,
+                        execName, overrunName, params.netDelayMs, params.seed,
+                        ttvHorizonMs, ttvFast, ttvFromSec, ttvToSec);
+            std::printf("Wrote TTV/TTPNR CSV to %s (%d vehicle(s), %d samples/vehicle)\n",
+                        ttvCsvFile.c_str(), sim.recording().nVehicles,
+                        sim.recording().frameCount());
+            if (!saveFile.empty()) {
+                sim.recording().save(saveFile);
+                std::printf("Saved recording to %s\n", saveFile.c_str());
+            }
+            return 0;
+        }
 
         if (hasFlag(argc, argv, "--headless")) {
             std::printf("Running headless: %s, %d vehicle(s), %d cores, profile %s, "

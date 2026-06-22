@@ -34,6 +34,15 @@ inline Color errorColor(float absEy) {
     return Color{150, 30, 30, 255};
 }
 
+inline Color zoneColor(TrackZone zone) {
+    switch (zone) {
+        case TrackZone::Z0Straight:   return Color{155, 165, 180, 190};
+        case TrackZone::Z1SlightTurn: return Color{70, 190, 210, 220};
+        case TrackZone::Z2SharpTurn:  return Color{245, 135, 65, 235};
+    }
+    return Color{155, 165, 180, 190};
+}
+
 const Color kBg{18, 18, 24, 255};
 
 }  // namespace
@@ -88,9 +97,11 @@ void Visualizer::loop() {
     for (long i = 0; i < n; i += step) {
         trackPos_.push_back(traj_->pointAt(i));
         trackNrm_.push_back(traj_->normalAt(i));
+        trackZone_.push_back(traj_->zoneAt(i));
     }
     trackPos_.push_back(traj_->pointAt(0));   // close the loop
     trackNrm_.push_back(traj_->normalAt(0));
+    trackZone_.push_back(traj_->zoneAt(0));
 
     const Vec2 mn = traj_->minBound();
     const Vec2 mx = traj_->maxBound();
@@ -125,6 +136,10 @@ void Visualizer::handleInput() {
     if (IsKeyPressed(KEY_SPACE)) playing_ = !playing_;
     if (IsKeyPressed(KEY_F)) follow_ = !follow_;
     if (IsKeyPressed(KEY_H)) showHelp_ = !showHelp_;
+    if (sim_ && !sim_->finished() && IsKeyPressed(KEY_A)) {
+        freezeActuator_ = !freezeActuator_;
+        sim_->setActuatorFrozen(freezeActuator_);
+    }
     if (nVeh > 0) {
         if (IsKeyPressed(KEY_RIGHT_BRACKET)) selected_ = (selected_ + 1) % nVeh;
         if (IsKeyPressed(KEY_LEFT_BRACKET))  selected_ = (selected_ - 1 + nVeh) % nVeh;
@@ -275,10 +290,9 @@ void Visualizer::drawPrediction() {
 void Visualizer::drawTrack() {
     const float soft = exag_ * (float)vr::kSoftBound;
     const float hard = exag_ * (float)vr::kHardBound;
-    const float wHard = 2.0f / gZoom, wSoft = 1.5f / gZoom, wMid = 1.2f / gZoom;
+    const float wHard = 2.0f / gZoom, wSoft = 1.5f / gZoom, wMid = 2.0f / gZoom;
     const Color cHard = Color{210, 70, 60, 150};
     const Color cSoft = Color{220, 195, 70, 120};
-    const Color cMid  = Color{200, 200, 215, 110};
 
     for (size_t i = 0; i + 1 < trackPos_.size(); ++i) {
         const Vec2 p0 = trackPos_[i], p1 = trackPos_[i + 1];
@@ -287,7 +301,7 @@ void Visualizer::drawTrack() {
         DrawLineEx(rl(p0 - n0 * hard), rl(p1 - n1 * hard), wHard, cHard);
         DrawLineEx(rl(p0 + n0 * soft), rl(p1 + n1 * soft), wSoft, cSoft);
         DrawLineEx(rl(p0 - n0 * soft), rl(p1 - n1 * soft), wSoft, cSoft);
-        DrawLineEx(rl(p0), rl(p1), wMid, cMid);  // expected (reference) path
+        DrawLineEx(rl(p0), rl(p1), wMid, zoneColor(trackZone_[i]));
     }
 }
 
@@ -335,7 +349,7 @@ void Visualizer::drawCars() {
 void Visualizer::drawHud() {
     const int sw = GetScreenWidth();
     const int avail = availableFrames();
-    DrawRectangle(0, 0, 360, 190, Color{0, 0, 0, 150});
+    DrawRectangle(0, 0, 360, 236, Color{0, 0, 0, 150});
 
     char line[160];
     int y = 8;
@@ -353,8 +367,15 @@ void Visualizer::drawHud() {
         std::snprintf(line, sizeof line, "t=%.2f/%.1fs  x%.1f  %s%s", f.t, total,
                       playbackSpeed_, playing_ ? "PLAY" : "PAUSE", live ? " LIVE" : "");
         put(line);
+        if (live && freezeActuator_)
+            put("ACTUATOR HOLD: stale command frozen", Color{255, 160, 40, 255});
         std::snprintf(line, sizeof line, "vehicle %d   v=%.1f m/s", selected_, f.vel);
         put(line, Color{90, 200, 255, 255});
+        const Trajectory::Inputs in = traj_->inputsAt(f.refStep);
+        const TrackZone zone = traj_->zoneAt(f.refStep);
+        std::snprintf(line, sizeof line, "zone %s: %s   ff0=%+.4f",
+                      trackZoneCode(zone), trackZoneName(zone), in.ff0);
+        put(line, zoneColor(zone));
         const float a = std::fabs(f.e_y_real);
         std::snprintf(line, sizeof line, "e_y=%+.3f m (est %+.3f)", f.e_y_real, f.e_y_est);
         put(line, errorColor(a));
@@ -402,7 +423,7 @@ void Visualizer::drawHud() {
     if (showHelp_) {
         const char* help =
             "Space play/pause   [ ] vehicle   F follow   wheel zoom   "
-            "Up/Down speed   ,/. exaggerate   Left/Right scrub   H help";
+            "A hold actuator   Up/Down speed   ,/. exaggerate   Left/Right scrub   H help";
         DrawRectangle(0, GetScreenHeight() - 24, sw, 24, Color{0, 0, 0, 150});
         DrawText(help, 10, GetScreenHeight() - 21, 16, Color{200, 200, 200, 255});
     }

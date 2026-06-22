@@ -8,7 +8,8 @@ and the empirical port of the Wilson et al. (MEMOCODE 2024) zone methodology
 from UPPAAL to the Bosch FMU.
 
 Everything here runs on the existing harness — **no code changes needed**
-(`--net-delay` and `--csv` are implemented). AI-assist the sweep scripts and
+(`--net-delay`, `--csv`, and the zone-tagged `--ttv-csv` are implemented).
+AI-assist the sweep scripts and
 plots freely; the analysis calls (zone boundaries, tolerance thresholds) are
 yours.
 
@@ -16,14 +17,16 @@ yours.
 
 Derive zones from the reference trace, not from runtime flags: the FMU's
 critical-section flag is just `|ff_ref_0| > 1e-6` (in-curve), which is binary.
-Better resolution: bin the track by |ff_ref_0| (curvature proxy) from
-`examples/example_v_10/feedforward_sequence_0.csv`:
-- Z0 straight (ff ≈ 0), Z1 gentle curve, Z2 sharp curve / double lane change
-  (the |ff| peaks; per the challenge paper, the double lane change at the start
-  is the most demanding maneuver, > 0.5 g).
+The provisional implementation bins the track by |ff_ref_0| (curvature proxy):
+- Z0 straight: `|ff_ref_0| <= 1e-6`.
+- Z1 slight turn: `1e-6 < |ff_ref_0| < 0.0215`.
+- Z2 sharp turn: `|ff_ref_0| >= 0.0215`.
+
+These thresholds are an initial analysis partition, not a final physical
+classification. Future refinements may incorporate `ff_ref_1` and short-window
+curvature changes to distinguish lane changes and other transient maneuvers.
 Map each recorded frame to its zone via `Frame.refStep` (the wrapped trajectory
-index — already in every recording/CSV frame row… in the recording; for CSV
-work, join on time × known start offset).
+index). `--ttv-csv` writes the resulting `zone` and `zone_name` directly.
 
 ## Phase 1 — whole-run delay sweeps, zone-attributed violations
 

@@ -56,6 +56,13 @@ public:
     bool step();                  // advance one base tick; false once finished
     void runToCompletion(bool verbose = true);
 
+    // Live exploratory control: when enabled, actuator activation/finish trigger
+    // pulses are suppressed before they reach the FMUs, so act_out holds stale.
+    // The scheduler still runs normally; this is intended for visual debugging,
+    // not headless metrics or formal data-age accounting.
+    void setActuatorFrozen(bool frozen) { actuatorFrozen_ = frozen; }
+    bool actuatorFrozen() const { return actuatorFrozen_; }
+
     long   currentStep()   const { return step_; }
     long   durationSteps() const { return durationSteps_; }
     bool   finished()      const { return started_ && step_ >= durationSteps_; }
@@ -88,6 +95,7 @@ private:
     long   durationSteps_ = 0;
     bool   started_       = false;
     bool   finalized_     = false;
+    bool   actuatorFrozen_= false;
 
     std::vector<double> maxRolling_;
     std::vector<int>    hardCount_;

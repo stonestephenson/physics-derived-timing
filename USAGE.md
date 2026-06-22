@@ -43,7 +43,10 @@ Key options: `--scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard`, `--vehic
 `--exec avg|worst|best|pert`, `--overrun kill|skip`, `--net-delay MS` (fix
 both network delays, for delay-tolerance sweeps), `--delta-max RAD` +
 `--triage` + `--guard MS` + `--floor MS` + `--validate-predictor` (prediction system, see
-PREDICTOR.md)
+PREDICTOR.md), `--ttv-csv FILE` + `--ttv-horizon MS` + `--ttv-fast` +
+`--ttv-from SEC` + `--ttv-to SEC` (offline held-command TTV/TTPNR export;
+defaults to the toy v10/RM/WCET/1-vehicle/1-core run and uses tick-exact
+rollouts unless `--ttv-fast` is passed),
 `--seed N`, `--headless`, `--csv FILE` (append per-vehicle summary rows for
 sweeps), `--save FILE`, `--replay FILE`, `--screenshot FILE` with
 `--screenshot-at N`, `--select N`, `--speed X` (aim scripted screenshots).
@@ -78,13 +81,22 @@ chain path — the one BOUND.md targets); see DATA_AGE.md §4d.
 | `Space` | play / pause | `[` `]` | select previous / next vehicle |
 | `←` `→` | scrub / step (replay) | `F` | follow selected car / overview |
 | `↑` `↓` | playback speed | `wheel` | zoom |
+| `A` | freeze actuator command (live only) |  |  |
 | `,` `.` | error exaggeration | `H` | toggle help |
 
-The track shows the **gray centerline** (expected path), **yellow ±0.2 m** soft
+The track shows the **zone-colored centerline** (expected path), **yellow ±0.2 m** soft
 (comfort) bounds and **red ±0.8 m** hard (safety) bounds. The driven path is
 offset from the centerline by the lateral error, exaggerated (default ×25) so
 it's visible, and colored green→red by error magnitude. Hard breaches are marked
 red on the track and on the timeline so you can jump straight to them.
+
+The reference centerline is zone-colored from the curvature proxy `ff_ref_0`,
+and the selected vehicle's current zone is shown in the HUD. The provisional
+classification is shared by the visualizer and `--ttv-csv`: **Z0 straight** for
+`|ff_ref_0| <= 1e-6`, **Z1 slight turn** for
+`1e-6 < |ff_ref_0| < 0.0215`, and **Z2 sharp turn** for
+`|ff_ref_0| >= 0.0215`. The CSV columns are `zone` (`z0`/`z1`/`z2`) and
+`zone_name`.
 
 ## Add your own scheduling method
 

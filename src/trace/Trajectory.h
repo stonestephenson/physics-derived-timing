@@ -19,6 +19,18 @@ namespace cps {
 
 enum class Profile { V10, V12_5, V15 };
 
+// Initial curvature-based track partition used by analysis exports and the
+// visualizer. ff_ref_0 is treated as a curvature proxy; keep the thresholds
+// centralized here so later refinements (ff_ref_1, short-window changes) do
+// not require changes in every consumer.
+enum class TrackZone { Z0Straight = 0, Z1SlightTurn = 1, Z2SharpTurn = 2 };
+inline constexpr float kZoneZeroEpsilon = 1e-6f;
+inline constexpr float kZoneSharpThreshold = 0.0215f;
+
+TrackZone trackZoneFromFf0(float ff0);
+const char* trackZoneCode(TrackZone zone);
+const char* trackZoneName(TrackZone zone);
+
 struct ProfileInfo {
     const char* dirName;
     double      peakVelocity;  // m/s
@@ -52,6 +64,9 @@ public:
     }
     Vec2 pointAt(long step)  const { const long i = wrap(step); return {x_[i], y_[i]}; }
     Vec2 normalAt(long step) const { const long i = wrap(step); return {nx_[i], ny_[i]}; }
+    TrackZone zoneAt(long step) const {
+        return trackZoneFromFf0(ff0_[wrap(step)]);
+    }
 
     // AABB of one lap, for camera framing.
     Vec2 minBound() const { return min_; }

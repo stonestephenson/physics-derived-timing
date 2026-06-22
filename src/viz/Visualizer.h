@@ -73,6 +73,7 @@ private:
     // Downsampled track geometry: centerline point + unit normal.
     std::vector<Vec2> trackPos_;
     std::vector<Vec2> trackNrm_;
+    std::vector<TrackZone> trackZone_;
 
     // View / playback state.
     double cursor_       = 0.0;    // fractional frame index
@@ -83,6 +84,7 @@ private:
     float  exag_         = 25.0f;
     float  userZoom_     = 1.0f;   // mouse-wheel multiplier on the fit zoom
     bool   showHelp_     = true;
+    bool   freezeActuator_= false;  // live-only: suppress actuator latch triggers
 
     float  fitZoom_      = 1.0f;
     Vec2   trackCenter_{};

@@ -164,6 +164,12 @@ bool Simulation::step() {
 
     // 2. Scheduler decides the triggers for every vehicle.
     scheduler_->onTick(t, step_, views_, triggers_);
+    if (actuatorFrozen_) {
+        for (VehicleTriggers& tr : triggers_) {
+            tr.act_act = false;
+            tr.act_fin = false;
+        }
+    }
 
     // 3. Apply triggers, advance the FMUs, read outputs.
     for (size_t v = 0; v < vehicles_.size(); ++v) {
