@@ -6,7 +6,8 @@
 //
 // Dynamics, an LQR/pole-placed controller, and the trigger-driven
 // read-execute-write chain all live here (the plant is our own code, so the
-// predictor is trivially exact — no fidelity gate needed). The chain routing
+// predictor shares its dynamics — rolled at a coarser step for speed — and
+// needs no FMU-port fidelity gate; --validate-predictor is skipped here). The chain routing
 // mirrors TaskChainModel::endTick / the FMU's process_trigger_events so the age
 // metric and bound apply unchanged; only the physics differs.
 #pragma once

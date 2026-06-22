@@ -40,7 +40,10 @@ e_y over the upcoming ~30 ms hold and compare against what the FMU then
 actually does. Result on all three speed profiles (N=1, `--exec worst`, full
 120 s lap): **4000 holds, 1.2 M tick-level samples, max |deviation| =
 1.49e-08 m — the float32 storage floor.** The ported model is a tick-exact
-replica. Re-run this gate after ANY change to the predictor.
+replica. Re-run this gate after ANY change to the predictor. The gate is
+**lateral/FMU-port-specific**: it validates the hand-ported model against the
+black-box FMU, so `--plant cartpole` skips it (its predictor shares the plant's
+own integrator — nothing to validate against a black box; see GENERALIZATION.md).
 
 Production rollouts use two documented approximations the gate does *not*
 cover (it runs the exact path):

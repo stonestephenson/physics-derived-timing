@@ -35,9 +35,11 @@ struct SimParams {
     // regardless of execMode (which then governs task execution times only).
     // For the zone-tolerance delay sweeps (ZONE_TOLERANCE.md).
     double   netDelayMs    = -1.0;
-    // Predictor fidelity gate: at every actuator latch, predict e_y over the
-    // upcoming hold with the ported plant model and compare against the FMU's
-    // realized e_y. Prints max |deviation| at the end (PASS < 1e-6 m).
+    // Predictor fidelity gate (lateral / FMU-port only): at every actuator
+    // latch, predict e_y over the upcoming hold with the ported plant model and
+    // compare against the FMU's realized e_y. Prints max |deviation| at the end
+    // (PASS < 1e-6 m). Skipped for other plants, whose predictor shares the
+    // plant's own integrator (nothing to validate against a black box).
     bool     validatePredictor = false;
     // Assumed steering limit for recoverability predictions (rad);
     // <= 0 uses the calibrated per-profile default (defaultDeltaMax).

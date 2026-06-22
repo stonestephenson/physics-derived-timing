@@ -184,7 +184,10 @@ bool Simulation::step() {
         vehicles_[v].out = vehicles_[v].plant->readOutputs();
     }
 
-    if (params_.validatePredictor) validatePredictions();
+    // Fidelity gate is FMU-port-specific (lateral); other plants' predictors
+    // share the plant's own integrator, so there is nothing to validate.
+    if (params_.validatePredictor && params_.plant == PlantKind::Lateral)
+        validatePredictions();
 
     // 3b. Refresh held-command predictions and accumulate closest-call stats.
     if (step_ % kPredictRefreshTicks == 0)
@@ -271,8 +274,8 @@ void Simulation::validatePredictions() {
             p.vizStride = 1;
             p.computePnr = false;
             p.velQuantum = 0.0;  // exact model: the gate validates the true port
-            pv.pred = predictHold(o.phys, o.act_out, step_ + 1, *traj_,
-                                  offsets_[v], p);
+            pv.pred = vehicles_[v].plant->predictHeld(o, step_ + 1, *traj_,
+                                                      offsets_[v], p);
             pv.madeAtStep = step_;
             pv.active = true;
             ++valHolds_;
@@ -344,10 +347,15 @@ void Simulation::runToCompletion(bool verbose) {
             std::printf("  worst-case data age: %.2f ms (freshest) / %.2f ms (path)\n",
                         worstAgeMs, worstAgeOldMs);
         if (params_.validatePredictor) {
-            std::printf("  predictor validation: %ld holds, %ld samples, "
-                        "max |dev| = %.3e m -> %s   (max |act_out| = %.4f rad)\n",
-                        valHolds_, valSamples_, valMaxDev_,
-                        valMaxDev_ < 1e-6 ? "PASS" : "FAIL", valMaxAct_);
+            if (params_.plant != PlantKind::Lateral) {
+                std::printf("  predictor validation: skipped (FMU-port gate; this "
+                            "plant's predictor shares the plant's own integrator).\n");
+            } else {
+                std::printf("  predictor validation: %ld holds, %ld samples, "
+                            "max |dev| = %.3e m -> %s   (max |act_out| = %.4f rad)\n",
+                            valHolds_, valSamples_, valMaxDev_,
+                            valMaxDev_ < 1e-6 ? "PASS" : "FAIL", valMaxAct_);
+            }
         }
     }
 }

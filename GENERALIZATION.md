@@ -42,8 +42,9 @@ point-of-no-return is genuinely physical and its age tolerance is tight/sharp.
   hard, `0.05 rad` soft — the 0.8 m / 0.2 m analogues.
 - **Dynamics:** textbook nonlinear cart-pole (M=1, m=0.1, l=0.5, g=9.81),
   RK4-integrated at the 0.1 ms tick. Because the plant is our own code, the
-  predictor uses the same model (no fidelity gate needed; the rollout takes a
-  coarse 1 ms RK4 step, negligibly different).
+  predictor uses the same model (no fidelity gate needed — `--validate-predictor`
+  is skipped for cartpole; the rollout takes a coarse 1 ms RK4 step, negligibly
+  different).
 - **Controller:** LQR feedback `u = -K . [x,xdot,theta,thetadot]`, gain
   pole-placed at -2,-3,-4,-5 (`K = [-8.36, -10.73, -64.88, -16.72]`, computed
   offline, closed loop verified stable). Feedforward = 0 (regulation). Applied
