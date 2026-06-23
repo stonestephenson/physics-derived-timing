@@ -245,8 +245,12 @@ for Kurt:** (1) ~~does Sudvarg §IV already bound cross-loop simultaneity?~~
 utilization-based (fixed safe periods, Σu ≤ U_D) + CBF set-invariance; neither our
 simultaneity bound nor a PNR deadline appears. *Residual for Kurt:* is our delta big
 enough given their §VII future-work explicitly names "predictions / semi-clairvoyant
-MC for optimism" (positioning + scoop risk). (2) does our bound admit fleets that
-K–Q-style *optimal* rotation cannot — or is rotation already enough? **(reading next.)**
+MC for optimism" (positioning + scoop risk). (2) ~~does our bound admit fleets that K–Q-style *optimal* rotation cannot?~~
+**ANSWERED 2026-06-23 (read, PAPER_NOTES): rotation does NOT pre-empt** — K–Q
+guarantee *stability* (not safety), autonomous plants (no disturbance/criticality, so
+no simultaneity question), static offline cycle (not dynamic). *Residual for Kurt:*
+could a K–Q-style contractivity argument be *extended* to a safe-set/PNR Lyapunov
+function + disturbances and then subsume us? (field judgment).
 
 **Reprioritized around (A):** the (A)-serving core is now the **formal leg (item 2
 — prove the simultaneity bound)** + **honest predictor (item 3 — credibility)** +

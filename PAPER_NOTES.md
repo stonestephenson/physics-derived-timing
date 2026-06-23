@@ -10,6 +10,49 @@ Newest first.
 
 ---
 
+## 2026-06-23 — Kundu–Quevedo'19 close read: optimal rotation does not pre-empt (A) (Kurt-question 2)
+
+**What it is.** Full read of the second existential near-neighbor (Kundu & Quevedo,
+"Stabilizing Scheduling Policies for Networked Control Systems," arXiv 1901.08353,
+2019; `relatedPapers/DirectlyRelatedToYourSpecificProblem/Kundu_Quevedo_2019_...pdf`)
+— settling Kurt-question (2): does their *optimal rotation* already admit our fleets?
+
+**What they do.** N discrete-time *linear* plants, open-loop *unstable* / closed-loop
+stable; a shared channel serves M<N at a time, the rest run open-loop and drift. Goal
+= **asymptotic stability (GAS)** of every plant (converge to origin). Method = a
+**static, offline, periodic** schedule (a "T-contractive cycle" on a graph, via
+Lyapunov/LMI). Naive round-robin can fail (their Fig. 3); the optimal cycle fixes it.
+Expensive at scale (Table 4: N=700 → 21 h). Future work = network delays/dropouts —
+not safety/disturbances/simultaneity.
+
+**Verdict — rotation does NOT pre-empt (A); three fundamental differences:**
+- **Stability vs safety.** They guarantee long-run convergence to the origin; we
+  guarantee the state never crosses a hard bound / PNR (a transient hard constraint).
+  A plant can be GAS yet transiently overshoot a safety wall ⇒ rotation ≠ our guarantee.
+- **No disturbance / criticality.** Their plants are autonomous (decay from initial
+  conditions); there is no crisis, so "how many critical at once" isn't even a
+  question — rotation just ensures enough total access per period. Our staggered-crisis
+  bound k has no meaning in their world.
+- **Static vs dynamic.** Their schedule is a fixed offline cycle (hours to compute);
+  ours reacts online to which loop is near its PNR now (~10 µs/prediction).
+
+**Residual for Kurt:** shared *spirit* ("more loops than resources, keep all OK"), so
+position against K–Q in related work. The deeper "could a K–Q-style contractivity
+argument be *extended* to a safe-set/PNR Lyapunov function + disturbances and then
+subsume our fleets?" is a generalize-the-neighbor question (field judgment, not a
+read). My read: the gap is fundamental (different guarantee, no criticality notion,
+static), so not a trivial extension.
+
+**Combined with the Sudvarg read (below):** both make-or-break questions are now
+*factually* answered — neither prior pre-empts our cross-loop simultaneity bound +
+recoverability deadline. Existential risk drops to "positioning + whether neighbors
+could be extended" (Kurt's informed call).
+
+**Where it lands.** Related-work: contrast with K–Q (stability via static rotation of
+autonomous unstable plants) alongside Sudvarg (per-loop utilization-based co-design).
+
+---
+
 ## 2026-06-23 — Sudvarg RTAS'25 close read: both our differentiators survive; one future-work near-miss
 
 **What it is.** Full read of the closest prior (Sudvarg, Clark & Gill, "Integrated
