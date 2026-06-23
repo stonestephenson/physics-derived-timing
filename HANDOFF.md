@@ -108,7 +108,8 @@ fixed guard, `aguard` = guard that tunes itself.
   vehicles never actuate). `ttu` zero hard breaches through N≥14 but ~75% soft.
   `context` survives N=14 at **zero** PNR margin, collapses at N=16. **`aguard`
   carries 18 vehicles, zero hard, ~220 ms fleet floor — 50% past the classics.**
-- Prediction overhead **+17% wall** at 12 veh (13×→11× real-time).
+- Prediction compute **~10–17 µs/rollout, ≤4% of one core** (car, through N=18 +
+  honest); the old "+17% wall" was vs the free FMU sim (wrong denominator). §5f.
 - **RTA (BOUND §7) machine-verified** (`tools/rta_solve.py`, cross-checked sound
   vs sim): RM/worst certified capacity **5** (full carry-in) vs empirical **10**
   — a 2× gap that is full-carry-in pessimism, so the limited-carry-in
@@ -179,19 +180,18 @@ numbers (`PREDICTOR.md §5c` table) were produced by the inert ~max-guard θ and
 need a proper multi-N `--floor` sweep to re-derive (single runs are
 load-dependent / non-monotonic). Default `--floor` kept at 100 (provisional).
 
-**B. Prediction compute cost is never measured or charged — only assumed.**
-The predictor runs in zero sim-time, is not charged to the 3 cores, and uses
-a 10 ms refresh; we only have the aggregate "+17% wall" (wrong denominator —
-the FMU sim is "free" in reality). Indirect arithmetic suggests **~10 µs per
-prediction** (sub-core for the whole fleet, ~800× headroom vs the 10 ms
-refresh) ⇒ the method *is* computationally realistic — but we haven't shown
-it. *Fixes, all cheap:* (1) time `predictHold` directly and report µs +
-%-of-a-core; (2) state the "scheduler runs on separate orchestration
-infrastructure, not the N_c worker cores" assumption in `PREDICTOR.md`
-(justified by the challenge's "dedicated cloud scheduler" framing); (3)
-optionally model a prediction latency δ_pred and show results are insensitive.
-*Note:* compute speed is NOT the binding realism constraint — input freshness
-(the oracle problem, Finding C) is.
+**B. Prediction compute cost — RESOLVED 2026-06-23 (measured; `Simulation.cpp`).**
+`predictHeld` rollouts are now timed and reported per run (`prediction compute:
+us/prediction, %-of-one-core`). **Car (optimized matrix-cache predictor): ~10–17
+µs/prediction; ≤ 3.0 % of one core at N=18, 4.0 % for the honest variant (both
+rollouts).** Decisively negligible against the 3 worker cores — *measured*, not the
+old "+17 % wall (wrong denominator)" (that was wall slowdown vs the free FMU sim;
+against a CPU core it's ~0.1 %/vehicle). **Caveat:** the **cart-pole** predictor is
+a naive 1 ms RK4 rollout (no cache) — **344 µs/prediction, 27 % of one core at
+N=8** — ~30× heavier (fine for the demo, not paper-grade). Doc: `PREDICTOR.md §5f`.
+Assumption stated there: the dedicated cloud scheduler runs on separate
+orchestration infra, not the N_c worker cores. Input freshness (Finding C / honest
+predictor §5e), not compute, is the binding realism constraint.
 
 **C. Fairness-under-overload finding (publishable, not yet written down).**
 Under overload `ttu` produces an **ID-locked starvation caste**: at N=14/30 s,
@@ -288,7 +288,8 @@ task (0) below (**DONE 2026-06-22** — the empirical instrument). Cart-pole cal
    estimation error (no sensor noise / model error in this deterministic harness).
 4. **Generality breadth:** parameter sweeps (speed/δ_max/net-delay/WCET/cores) on
    *both* plants; the car's zone-tolerance A(zone) (`ZONE_TOLERANCE.md`).
-5. **Close Findings A & B** (per-vehicle θ; prediction-cost instrumentation).
+5. ~~Close Findings A & B~~ — DONE (A: per-vehicle θ, commit `3214880`; B:
+   prediction-cost instrumentation, 2026-06-23, §5f / Finding B above).
 6. Lower priority: clearance-ablation, triage A/B under overload, network-side
    scheduling, Q6 event-triggered.
 

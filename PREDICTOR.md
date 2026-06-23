@@ -360,6 +360,33 @@ model-based observer would just recover the truth). `--pred-staleness` /
 --scheduler aguard-honest --exec worst --duration 30 --pred-staleness $d; done`
 (margin: add `--pred-margin 60`; oracle ref: `--scheduler aguard`).
 
+## 5f. Predictor compute cost (Finding B, 2026-06-23)
+
+Every run times its `predictHeld` rollouts and prints `prediction compute:
+us/prediction, %-of-one-core (rollouts, wall, sim seconds)` — replacing the old
+"+17 % wall" (slowdown vs the *free* FMU sim; the right denominator is a CPU core).
+Numbers (worst exec):
+
+| run                   | µs/prediction | % of one core         |
+|-----------------------|---------------|-----------------------|
+| car ttu N=14          | ~14           | 2.0 %                 |
+| car aguard N=18       | ~17           | 3.0 %                 |
+| car ttu-honest N=14   | ~14           | 4.0 % (both rollouts) |
+| cart-pole aguard N=8  | ~344          | 27 %                  |
+
+The **car** predictor (velocity-quantized matrix cache + coarse affine stepping +
+warm-started search) is ~0.1 %/vehicle of a core — **decisively negligible**
+against the 3 worker cores, even honest (2×) at the fleet ceiling. The
+**cart-pole** predictor is a naive 1 ms RK4 rollout (no cache) — ~30× heavier
+(27 % of a core at N=8); fine for the generality demo, not optimized.
+
+**Assumption (challenge framing):** the dedicated cloud *scheduler/predictor* runs
+on separate orchestration infrastructure, not the N_c worker cores, so this compute
+does not subtract from the worker budget; even charged against a single core it is
+~2–4 % (car). **Compute is not the binding realism constraint — input freshness
+(§5e) is.** The printed cost is wall-time (non-deterministic) — a diagnostic, not a
+CSV metric.
+
 ## 6. Open items
 
 1. ~~Adaptive guard~~ — done (§5c). Remaining refinement: per-vehicle θ_v
@@ -371,9 +398,12 @@ model-based observer would just recover the truth). `--pred-staleness` /
 3. Recovery-policy refinement / monotonicity assumption (EE + Kurt).
 4. ~~Honest-information variant~~ — done (§5e): `ttu/hybrid/aguard-honest`
    predict from delayed state (`--pred-staleness`) + a safety margin
-   (`--pred-margin`). Remaining refinement: fold in the FMU's own `e_y_est`
-   estimation error (not just staleness), and a last-sent-command (vs delayed
-   applied) variant.
+   (`--pred-margin`). *Investigated 2026-06-23:* folding in the FMU's `e_y_est` is
+   **largely moot** — the FMU runs noise-free by default (`physical_noise=false`,
+   `LateralMotionControl.c:414`) and computes `e_y_est = E·(delayed sensors)`, so
+   it differs from truth essentially by the network staleness §5e already models
+   (no independent estimation error). Enabling the FMU's noise = *process* noise
+   that breaks determinism. Open only if a stochastic-plant study is wanted.
 5. Formalize the §5b composition with BOUND.md: bounded age ⇒ bounded
    guard-to-actuation lag ⇒ guaranteed floor (θ − bound). This is the Route
    B theorem shape: *a scheduler parameter with a physically provable

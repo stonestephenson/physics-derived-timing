@@ -10,6 +10,33 @@ Newest first.
 
 ---
 
+## 2026-06-23 — Predictor compute cost: ~10–17 µs/rollout, a few % of a core (Finding B)
+
+**What it is.** Direct timing of the `predictHeld` rollouts, printed per run
+(`prediction compute: us/prediction, %-of-one-core`), replacing the misleading
+"+17 % wall" aggregate. **Car (optimized matrix-cache predictor): ~10–17
+µs/prediction; ≤ 3 % of one core through N=18, ~4 % honest (both rollouts).** So the
+predictive scheduler's compute is **decisively negligible** against the 3 worker
+cores — shown, not assumed. **Cart-pole** (naive 1 ms RK4, no cache): ~344 µs, 27 %
+of a core at N=8 — ~30× heavier (a generality-demo caveat, not paper-grade).
+
+**Why it matters.** Closes "is the method computationally realistic?" with a number.
+Per-prediction cost is independent of fleet size; the fleet load scales linearly and
+stays ~2–4 % of a single core (car). The right denominator is a CPU core (vs the
+free FMU sim) — the "+17 % wall" was an artifact of the wrong one. Stated
+assumption: the dedicated cloud scheduler runs on separate orchestration infra, not
+the N_c worker cores. **Compute is not the binding realism constraint — input
+freshness (the honest predictor, 2026-06-22) is.**
+
+**Evidence / repro.** `./build/cps --headless --vehicles 18 --scheduler aguard
+--exec worst --duration 30` (read the `prediction compute:` line); honest ~2×;
+`--plant cartpole` ~30×. Details `PREDICTOR.md §5f`.
+
+**Where it lands.** The feasibility/realism paragraph: the predictor is real-time
+trivial on the car; the cart-pole predictor needs the same optimization to match.
+
+---
+
 ## 2026-06-22 — Honest predictor: oracle-vs-delayed-state A/B (the credibility leg)
 
 **What it is.** `HANDOFF §5 item 3`. Every predictive policy (ttu/hybrid/aguard)

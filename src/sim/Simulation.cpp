@@ -106,6 +106,8 @@ void Simulation::start() {
     maxSimCrit_ = 0;
     simCritHist_.assign(static_cast<size_t>(n) + 1, 0);
     simCritTicks_ = 0;
+    predWallSeconds_ = 0.0;
+    predCount_ = 0;
 
     step_ = 0;
     finalized_ = false;
@@ -115,6 +117,7 @@ void Simulation::start() {
 void Simulation::refreshPredictions(bool withPnr) {
     PredictParams p = predParams_;
     p.computePnr = withPnr;
+    const auto t0 = std::chrono::steady_clock::now();
     for (size_t v = 0; v < vehicles_.size(); ++v) {
         const VehicleOutputs& o = vehicles_[v].out;
         // Warm-start the PNR search from the aged previous answer (skip when
@@ -133,6 +136,9 @@ void Simulation::refreshPredictions(bool withPnr) {
             ttpnrBaseStep_[v] = step_;
         }
     }
+    predWallSeconds_ += std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - t0).count();
+    predCount_ += static_cast<long>(vehicles_.size());
 }
 
 void Simulation::refreshHonestPredictions(bool withPnr) {
@@ -140,6 +146,7 @@ void Simulation::refreshHonestPredictions(bool withPnr) {
     p.computePnr = withPnr;
     const long S = static_cast<long>(stateHist_[0].size());
     const long srcStep = std::max<long>(0, step_ - predStalenessTicks_);
+    const auto t0 = std::chrono::steady_clock::now();
     for (size_t v = 0; v < vehicles_.size(); ++v) {
         // The cloud's legitimate view: this vehicle's state as of its freshest
         // received sensor packet (delayed by predStalenessTicks_), held command
@@ -159,6 +166,9 @@ void Simulation::refreshHonestPredictions(bool withPnr) {
             ttpnrBaseStepEst_[v] = step_;
         }
     }
+    predWallSeconds_ += std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - t0).count();
+    predCount_ += static_cast<long>(vehicles_.size());
 }
 
 void Simulation::currentPredTicks(int v, long& ttv, long& ttpnr) const {
@@ -449,6 +459,14 @@ void Simulation::runToCompletion(bool verbose) {
                             "cores -- more critical loops than cores at some instant "
                             "(candidate (A) counterexample; investigate) **\n",
                             maxSimCrit_, params_.nCores);
+        }
+        if (predCount_ > 0) {
+            const double usPer  = predWallSeconds_ * 1e6 / static_cast<double>(predCount_);
+            const double simSec = rec_.duration();
+            const double pctCore = simSec > 0.0 ? 100.0 * predWallSeconds_ / simSec : 0.0;
+            std::printf("  prediction compute: %.1f us/prediction, %.3f%% of one core\n"
+                        "    (%ld rollouts, %.0f ms wall over %.1f s sim)\n",
+                        usPer, pctCore, predCount_, predWallSeconds_ * 1000.0, simSec);
         }
         if (params_.validatePredictor) {
             if (params_.plant != PlantKind::Lateral) {

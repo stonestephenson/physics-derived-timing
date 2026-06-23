@@ -135,6 +135,10 @@ private:
     std::vector<long>       predBaseStepEst_;
     std::vector<long>       ttpnrEstTicks_;
     std::vector<long>       ttpnrBaseStepEst_;
+    // Predictor compute cost (Finding B): summed wall time + call count across
+    // both refreshes -> us/prediction + %-of-one-core. Measurement only.
+    double                  predWallSeconds_ = 0.0;
+    long                    predCount_       = 0;
     std::vector<double>     minTtpnrMs_;     // run-min of finite aged TTPNR (-1 = none)
     std::vector<long>       pastPnrTicks_;   // ticks spent at aged TTPNR == 0
     // Fleet-wide simultaneous criticality (TTPNR < params_.tauCritMs), sampled
