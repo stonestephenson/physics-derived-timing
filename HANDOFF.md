@@ -1,6 +1,6 @@
 # Session Handoff — CPS Challenge Visualizer
 
-Resume point for a fresh agent. Last updated **2026-06-22**.
+Resume point for a fresh agent. Last updated **2026-06-23**.
 
 **Read order:** `CLAUDE.md` (stable bootstrap: invariants, reading map, rules) →
 this file (what's true *now*) → the owning design docs as your task needs them
@@ -73,12 +73,15 @@ Headline results (`PAPER_NOTES.md`, `tools/tolerance_sweep.py`):
 - **Age-tolerance is physics-derived & plant-dependent:** car ~245 ms (gradual)
   vs cart-pole ~110 ms (sharp ~5 ms cliff). Same chain, same delivered age per
   delay; only the physics differs.
-- **Age-criticality scheduling generalizes:** aguard carries ~14 cart-poles
-  crash-free vs RM's ~11 (N=16: 1 vs 9 crashed).
+- **Age-criticality scheduling generalizes:** aguard carries **17** cart-poles
+  crash-free vs RM's **10** (N=16: 0 vs 9 crashed; 20 s worst).
 - The two plants bind on *different legs*: car on scheduling (overrun ~N=11),
   cart-pole on physics (age-tolerance ~110 ms).
-- *Caveat:* cart-pole params (shoveForce/u_max/θ_max) are first-pass, not yet
-  calibrated like the car's δ_max — qualitative contrast solid, exact numbers TBD.
+- **Calibrated 2026-06-23** (was first-pass): cart-pole params derived by the car's
+  δ_max method — uMax = 1.5 × observed demand (7.70 N → **11.55 N**); thetaHard/Soft
+  (0.21/0.05) kept as the given safety spec; shove 8 N (≤ authority). The tolerance
+  cliff is **invariant** to it (physics-set); the 17-crash-free lift is the floor fix
+  `3214880`, not the calibration (GENERALIZATION §4 / PAPER_NOTES 2026-06-23).
 
 ### Policy lineage (`--scheduler NAME`)
 | name | rule | role |
@@ -120,7 +123,7 @@ fixed guard, `aguard` = guard that tunes itself.
   reaction-time of PNR at once (≫ 3 cores); ttu/aguard hold it to **0** at all N
   (worst car ≥115 ms from PNR, zero hard). The empirical (A)-shadow — but
   sim-crit=0 ≠ well-controlled (aguard N=18 holds 0 on 26 s-stale data). Cart-pole
-  differs: aguard N=16 max 10.
+  differs: aguard N=16 max 10 (but over cores only 0.18% of the run).
 
 ## 3. Key facts — do NOT re-derive or violate these
 
@@ -269,14 +272,20 @@ task (0) below (**DONE 2026-06-22** — the empirical instrument). Cart-pole cal
    for the predictive policies. **Caveat:** sim-crit=0 ≠ fine — aguard N=18 holds 0
    while feeding 26 s-stale data + 43–55 % soft viol; the metric is distance-to-PNR
    simultaneity, not control quality (margin thin: τ=150 → 1 critical). **Cart-pole
-   differs (different leg):** aguard N=16 max 10 (>cores 0.79 %), N=8 max 2 — sharp
-   physics, more loops critical at once (params uncalibrated). Full writeup
+   differs (different leg):** aguard N=16 max 10 (peak; >cores only 0.18 % of run),
+   N=8 max 1 — sharp physics, more loops critical at once (params calibrated
+   2026-06-23: peak unchanged, dwell 0.79 %→0.18 %, N=8 2→1). Full writeup
    `PREDICTOR.md §5d` + `PAPER_NOTES.md` 2026-06-22.
    *Still contingent on (A) surviving Kurt — the sim is its shadow, not the proof.*
 
-1. **Cart-pole → paper-grade:** calibrate its params (shoveForce/u_max/θ_max,
-   ×1.5-style like the car's δ_max) so the headline numbers are publishable; a
-   "reproduce-all-figures" orchestrator; optionally a 3rd plant.
+1. **Cart-pole → paper-grade — param calibration DONE 2026-06-23** (`uMax` = 1.5 ×
+   observed demand = 11.55 N; thetaHard/Soft kept as the given spec; shove 8 N ≤
+   authority; GENERALIZATION §4 / PAPER_NOTES 2026-06-23; CLI `--u-max`/`--shove-force`/
+   `--theta-max`). Headline re-derived: tolerance cliff invariant (~110 ms), aguard 17
+   vs RM 10 crash-free, sim-crit dwell 0.79→0.18 %. *Remaining (supports generality,
+   not novel):* the "reproduce-all-figures" orchestrator (Task 2); optionally a 3rd
+   plant; cart-pole predictor optimization (naive 1 ms RK4, ~333 µs/27 % at N=8 — the
+   one cart-pole caveat left, PREDICTOR §5f, optional).
 2. **Kurt — the formal leg** (neither user nor AI can own it): verify `BOUND.md`
    + re-derive the §7.2 workload bound (full carry-in is 2× pessimistic,
    certified 5 vs empirical 10; limited carry-in m−1 — `tools/rta_solve.py`
@@ -291,7 +300,7 @@ task (0) below (**DONE 2026-06-22** — the empirical instrument). Cart-pole cal
    safety). **Result (car, worst, 3 cores, 30 s):** `ttu` is robust (true sim-crit
    0 through d=100 ms, 1 at d=200); `aguard` is fragile (N=18: 0→**4** at d=16, 14
    at d=100 — its 15 ms margin can't absorb staleness); `--pred-margin 60` fully
-   restores aguard to 0. Plant-agnostic (cart-pole 2→4). *Remaining (PREDICTOR
+   restores aguard to 0. Plant-agnostic (cart-pole 2→3 post-calibration). *Remaining (PREDICTOR
    §6.4):* the honest gap is pure **staleness** — fold in the FMU's own `e_y_est`
    estimation error (no sensor noise / model error in this deterministic harness).
 4. **Generality breadth:** parameter sweeps (speed/δ_max/net-delay/WCET/cores) on
@@ -315,7 +324,7 @@ for s in rm context ttu aguard; do ./build/cps --headless --vehicles 14 --schedu
 Flags: `--scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard`, `--vehicles
 N`, `--cores N`, `--profile 10|12.5|15`, `--duration SEC`, `--exec
 avg|worst|best|pert`, `--overrun kill|skip`, `--guard MS` (hybrid), `--floor MS`
-(aguard), `--tau-crit MS` (sim-criticality, §5 item 0 / PREDICTOR §5d), `--pred-staleness MS`/`--pred-margin MS` (honest predictor, §5 item 3 / PREDICTOR §5e), `--triage`, `--delta-max RAD`, `--net-delay MS`, `--validate-predictor`,
+(aguard), `--tau-crit MS` (sim-criticality, §5 item 0 / PREDICTOR §5d), `--pred-staleness MS`/`--pred-margin MS` (honest predictor, §5 item 3 / PREDICTOR §5e), `--triage`, `--delta-max RAD`, `--u-max N`/`--shove-force N`/`--theta-max RAD` (cartpole calibration, GENERALIZATION §4), `--net-delay MS`, `--validate-predictor`,
 `--csv FILE`, `--save/--replay FILE`, `--select N`, `--speed X`, `--screenshot[-at]`.
 
 ## 7. Key files

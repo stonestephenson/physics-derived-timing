@@ -19,11 +19,21 @@
 
 namespace cps {
 
+// Calibrated 2026-06-23 (GENERALIZATION.md §4, the car's delta_max method):
+//   uMax = 1.5 x observed peak control demand. Measured max|pre-clamp force| over
+//   a clean N=1 --exec worst run (--validate-predictor "actuator calibration aid")
+//   = 7.7012 N -> uMax = 11.55 N. (The old round 10.0 was only 1.30x -> under the
+//   x1.5 standard.) Safety envelope thetaHard/thetaSoft is the GIVEN physical spec
+//   (the 0.8/0.2 m analogue), NOT x1.5-derived; nominal-fresh peak |theta| ~0.063
+//   rad sits at ~30% of thetaHard. shoveForce is the disturbance "track", fixed at
+//   <= the actuator authority (emergent shove/uMax = 8/11.55 = 0.69 <= 0.80); peak
+//   demand ~0.96x shove, so the operating point is pinned by fresh-safety, not by
+//   chasing the ratio. Overridable via --u-max / --shove-force / --theta-max.
 struct CartPoleParams {
     double M = 1.0, m = 0.1, l = 0.5, g = 9.81;  // cart / pole mass, half-length, gravity
-    double uMax      = 10.0;                      // actuator force limit (N) — the delta_max analogue
-    double thetaHard = 0.21;                      // |theta| crash bound (rad ~12 deg) — the 0.8 m analogue
-    double thetaSoft = 0.05;                      // |theta| comfort bound (rad ~3 deg) — the 0.2 m analogue
+    double uMax      = 11.55;                     // actuator force limit (N) = 1.5 x observed 7.7012 N demand
+    double thetaHard = 0.21;                      // |theta| crash bound (rad ~12 deg) — the 0.8 m analogue (given)
+    double thetaSoft = 0.05;                      // |theta| comfort bound (rad ~3 deg) — the 0.2 m analogue (given)
     // Feedback gain: u = -K . [x, xdot, theta, thetadot]. Pole-placed at
     // -2,-3,-4,-5 (computed offline; closed loop verified stable).
     std::array<double, 4> K = {-8.3588, -10.7271, -64.8802, -16.7181};
@@ -31,7 +41,7 @@ struct CartPoleParams {
     // priori (like the racetrack curvature) so the predictor can see them ahead.
     long   shovePeriodTicks = 20000;  // 2 s between shoves
     long   shoveDurTicks    = 500;    // 50 ms shove
-    double shoveForce       = 8.0;    // N
+    double shoveForce       = 8.0;    // N  (<= uMax: disturbance within actuator authority)
 };
 
 class CartPolePlant : public Plant {

@@ -147,6 +147,10 @@ void usage() {
         "                               for the networks; for delay-tolerance sweeps)\n"
         "  --delta-max RAD              assumed steering limit for recoverability\n"
         "                               predictions (default: calibrated per profile)\n"
+        "  --u-max N                    cart-pole actuator force limit (N) = the delta-max\n"
+        "                               analogue (default: calibrated CartPoleParams)\n"
+        "  --shove-force N              cart-pole disturbance shove magnitude (N)\n"
+        "  --theta-max RAD              cart-pole hard (crash) angle bound (rad)\n"
         "  --triage                     ttu/hybrid: drop past-PNR cars to lowest priority\n"
         "                               instead of boosting them\n"
         "  --guard MS                   hybrid only: TTPNR threshold below which a car\n"
@@ -211,6 +215,9 @@ int main(int argc, char** argv) {
         params.netDelayMs    = std::atof(argValue(argc, argv, "--net-delay", "-1"));
         params.validatePredictor = hasFlag(argc, argv, "--validate-predictor");
         params.deltaMax      = std::atof(argValue(argc, argv, "--delta-max", "-1"));
+        params.cpUMax        = std::atof(argValue(argc, argv, "--u-max", "-1"));
+        params.cpShoveForce  = std::atof(argValue(argc, argv, "--shove-force", "-1"));
+        params.cpThetaHard   = std::atof(argValue(argc, argv, "--theta-max", "-1"));
         params.tauCritMs     = std::atof(argValue(argc, argv, "--tau-crit", "100"));
         params.predStalenessMs = std::atof(argValue(argc, argv, "--pred-staleness", "16"));
         params.predMarginMs  = std::atof(argValue(argc, argv, "--pred-margin", "0"));

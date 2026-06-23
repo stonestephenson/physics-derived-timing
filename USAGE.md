@@ -47,7 +47,11 @@ lateral|cartpole` (controlled system: lateral = Bosch FMU car, cartpole = invert
 pendulum — see `GENERALIZATION.md`), `--vehicles N`,
 `--cores N`, `--profile 10|12.5|15`, `--duration SEC`,
 `--exec avg|worst|best|pert`, `--overrun kill|skip`, `--net-delay MS` (fix
-both network delays, for delay-tolerance sweeps), `--delta-max RAD` +
+both network delays, for delay-tolerance sweeps), `--delta-max RAD`,
+`--u-max N`/`--shove-force N`/`--theta-max RAD` (cart-pole actuator limit /
+disturbance / hard-angle overrides; defaults are the calibrated `CartPoleParams`,
+see `GENERALIZATION.md §4`; the `--validate-predictor` summary prints an "actuator
+calibration aid" with the observed demand for re-deriving `--u-max`) +
 `--triage` + `--guard MS` + `--floor MS` + `--tau-crit MS` + `--pred-staleness MS`
 + `--pred-margin MS` + `--validate-predictor` (prediction system, see PREDICTOR.md;
 `--tau-crit` = simultaneous-criticality threshold §5d; `--pred-staleness`/

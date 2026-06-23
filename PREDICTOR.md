@@ -296,11 +296,14 @@ freshness.** The margin is thin and quantified — `--tau-crit 150` already make
 car critical at aguard N=18 (worst car 115 ms, 15 ms above the line).
 
 **Generality — a different leg (cart-pole).** On the unstable plant aguard does
-**not** contain it: N=16 → max **10** (>cores 0.79 %), even N=8 → max **2** (vs
-the car's 0). The razor cliff (`PAPER_NOTES.md` 2026-06-18) pushes more loops
-critical at once — confirming the two plants bind on different legs (car on
-scheduling, cart-pole on physics). *Caveat:* cart-pole params are first-pass /
-uncalibrated; the contrast is qualitative.
+**not** contain it: N=16 → max **10** (peak), even N=8 → max **1** (vs the car's 0).
+The razor cliff (`PAPER_NOTES.md` 2026-06-18) pushes more loops critical at once —
+confirming the two plants bind on different legs (car on scheduling, cart-pole on
+physics). *Nuance:* the dwell matters — at N=16 aguard is over cores only **0.18 %**
+of the run (vs RM's 99.42 %), so the peak max-10 momentarily touches the wall while
+the fleet is almost always inside it. (Params calibrated 2026-06-23, GENERALIZATION
+§4; the calibrated recovery authority cut the dwell from 0.79 %→0.18 % and N=8 from
+2→1, but the peak max-10 — the leg-(A) point for the cart-pole — stands.)
 
 **Repro.** `for s in rm ttu aguard; do for n in 6 14 18; do ./build/cps --headless
 --vehicles $n --scheduler $s --exec worst --duration 30; done; done` (τ_crit knob:
@@ -348,7 +351,9 @@ families split:**
 the principled fix: predict pessimistically to absorb the staleness you can't see.
 
 **Generality:** plant-agnostic (the honest rollout is just `predictHeld` fed a
-delayed `VehicleOutputs`); cart-pole `aguard-honest` N=8 sim-crit 2 → 4 at d=16.
+delayed `VehicleOutputs`); cart-pole `aguard-honest` N=8 sim-crit 2 → 3 at d=16
+(post 2026-06-23 calibration; was 2 → 4 — the calibrated authority softens the
+honest gap too). d=100 also 3; pure-oracle aguard N=8 is 1.
 
 *Honesty note:* this harness is deterministic with an exact plant port, so the
 honest gap is pure information **staleness** — no sensor noise / model error (a
@@ -372,13 +377,16 @@ Numbers (worst exec):
 | car ttu N=14          | ~14           | 2.0 %                 |
 | car aguard N=18       | ~17           | 3.0 %                 |
 | car ttu-honest N=14   | ~14           | 4.0 % (both rollouts) |
-| cart-pole aguard N=8  | ~344          | 27 %                  |
+| cart-pole aguard N=8  | ~333          | 27 %                  |
 
 The **car** predictor (velocity-quantized matrix cache + coarse affine stepping +
 warm-started search) is ~0.1 %/vehicle of a core — **decisively negligible**
 against the 3 worker cores, even honest (2×) at the fleet ceiling. The
 **cart-pole** predictor is a naive 1 ms RK4 rollout (no cache) — ~30× heavier
-(27 % of a core at N=8); fine for the generality demo, not optimized.
+(27 % of a core at N=8); fine for the generality demo, not optimized. (Invariant to
+the 2026-06-23 param calibration — `uMax` changes the recovery *force*, not the
+rollout's RK4 step count. Matching the car's matrix cache + warm-started search is the
+optional follow-up; it does not affect any safety result.)
 
 **Assumption (challenge framing):** the dedicated cloud *scheduler/predictor* runs
 on separate orchestration infrastructure, not the N_c worker cores, so this compute

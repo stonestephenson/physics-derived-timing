@@ -58,6 +58,11 @@ struct VehicleOutputs {
     double e_y_real      = 0.0;  // ground-truth lateral error  (VR 1004, == phys[4])
     double e_y_est       = 0.0;  // estimated lateral error     (VR 1015)
     double act_out       = 0.0;  // applied steering command    (VR 1022)
+    double act_demand    = 0.0;  // pre-clamp commanded actuation; == act_out when
+                                 // the actuator is unclamped (lateral/FMU). For
+                                 // the cart-pole it is the force before the +-uMax
+                                 // clamp -> the uMax calibration aid (the car's
+                                 // delta_max analogue; see CartPolePlant).
     double rolling_real  = 0.0;  // real rolling performance    (VR 1030)
     double rolling_remote= 0.0;  // remote rolling performance  (VR 1029)
     double average_real  = 0.0;  // real average performance    (VR 1033)

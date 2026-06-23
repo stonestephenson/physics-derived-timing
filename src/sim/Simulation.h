@@ -44,6 +44,13 @@ struct SimParams {
     // Assumed steering limit for recoverability predictions (rad);
     // <= 0 uses the calibrated per-profile default (defaultDeltaMax).
     double   deltaMax      = -1.0;
+    // Cart-pole control-parameter overrides (--u-max N / --shove-force N /
+    // --theta-max RAD); < 0 keeps the calibrated CartPoleParams default. uMax is
+    // the cart-pole's delta_max analogue (actuator force limit + recovery
+    // authority). Ignored by the lateral plant.
+    double   cpUMax        = -1.0;
+    double   cpShoveForce  = -1.0;
+    double   cpThetaHard   = -1.0;
     // TimeToUnsafe policy behavior for past-PNR cars: false (default) =
     // maximum urgency (never give up); true = triage (drop to lowest).
     bool     triage        = false;
@@ -158,7 +165,8 @@ private:
     double valMaxDev_   = 0.0;
     long   valHolds_    = 0;
     long   valSamples_  = 0;
-    double valMaxAct_   = 0.0;  // max |act_out| seen (delta-max calibration aid)
+    double valMaxAct_    = 0.0;  // max |act_out| seen (delta-max calibration aid)
+    double valMaxDemand_ = 0.0;  // max |pre-clamp demand| (cart-pole uMax calibration aid)
 };
 
 }  // namespace cps

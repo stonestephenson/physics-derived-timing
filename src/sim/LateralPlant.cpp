@@ -21,7 +21,11 @@ bool LateralPlant::doStep(double currentTime, double stepSize) {
     return fmu_->doStep(currentTime, stepSize);
 }
 
-VehicleOutputs LateralPlant::readOutputs() const { return fmu_->readOutputs(); }
+VehicleOutputs LateralPlant::readOutputs() const {
+    VehicleOutputs o = fmu_->readOutputs();
+    o.act_demand = o.act_out;  // FMU steering is amplitude-unbounded -> applied == demanded
+    return o;
+}
 
 Prediction LateralPlant::predictHeld(const VehicleOutputs& cur, long fromStep,
                                      const Trajectory& ref, long trajOffset,

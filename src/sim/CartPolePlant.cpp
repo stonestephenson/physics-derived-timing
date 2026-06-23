@@ -104,7 +104,8 @@ VehicleOutputs CartPolePlant::readOutputs() const {
     o.phys[4] = st_[2]; o.phys[5] = st_[3];   // theta in the e_y slot for recording
     o.e_y_real = st_[2];                       // safety error = pole angle
     o.e_y_est  = estOut_[2];                    // estimated angle
-    o.act_out  = actOut_;                       // applied force
+    o.act_out  = actOut_;                       // applied force (post +-uMax clamp)
+    o.act_demand = actIn_;                       // pre-clamp commanded force (uMax calibration aid)
     o.rolling_real   = rolling_;
     o.rolling_remote = rolling_;
     o.average_real   = sumN_ > 0 ? sumSq_ / static_cast<double>(sumN_) : 0.0;

@@ -10,6 +10,58 @@ Newest first.
 
 ---
 
+## 2026-06-23 — Cart-pole calibration to paper-grade: the tolerance cliff is invariant to it
+
+**What it is.** `HANDOFF §5 item 1`. The cart-pole's control params were first-pass
+round numbers; now derived by the car's `delta_max` method (×1.5 of observed
+actuation) so the generality headline is publishable. Procedure (GENERALIZATION §4):
+**uMax = 1.5 × observed peak control demand** — measured `max|pre-clamp force|` over a
+clean N=1 `--exec worst` run (new `--validate-predictor` "actuator calibration aid")
+= **7.7012 N → uMax 11.55 N** (the old 10.0 was only 1.30×, *under* the standard).
+Safety envelope `thetaHard`/`thetaSoft` (0.21/0.05 rad) kept as the *given* physical
+spec (the 0.8/0.2 m analogue; nominal-fresh peak |θ| ≈ 30 % of `thetaHard`).
+`shoveForce` 8 N kept, fixed ≤ authority (emergent `shove/uMax` = 0.69 ≤ 0.80).
+
+**The load-bearing finding: the age-tolerance cliff boundary is invariant to the
+calibration.** Car (245.5, 345.5] ms and cart-pole (105.5, 110.5] ms are **identical
+pre/post** at the sweep resolution (`tolerance_sweep.csv`). *Not* because the clamp
+is free — under the sweep's injected staleness the held command grows and the demand
+does reach the clamp, so the near-cliff peak |θ| (0.18→0.20 rad, still safe) and the
+post-crash breach counts shift (the CSV caught this; the first "clamp-free" story was
+wrong). It holds because the exponential cliff is so sharp that the ~15 % authority
+change can't move the recoverability boundary by a full sweep step. A clean robustness
+result for the physics-derived-tolerance thesis: the headline ~2.5× sharper cart-pole
+tolerance is a property of the *dynamics* (the instability timescale), not a tuning
+artifact of the actuator limit.
+
+**What did move (predictor-driven metrics, which use uMax as recovery authority):**
+N=1 `min_pnr` 100→110 ms; cart-pole sim-crit N=8 **2→1**, N=16 max still 10 but
+**dwell-over-cores 0.79 %→0.18 %**; honest aguard-honest N=8 gap milder (**2→3** at
+d=16, was 2→4). Capacity: aguard now **17 crash-free** vs RM's **10** (N=16: 0 vs 9;
+20 s worst) — but a controlled `--u-max 10` run shows aguard already reaches 0/17 at
+the old authority, so **the ~14→17 gain is the per-vehicle-θ floor fix (`3214880`),
+NOT this calibration**; calibration only trims N=18 from 3→1 crashes. RM unaffected by
+uMax (no predictor; the plant clamp rarely binds even under overload).
+
+**Why it matters.** Moves the cart-pole numbers from "first-pass, exact values TBD" to
+"derived by a stated, reproducible method" — the paper-grade bar for the generality
+leg. And the invariance result is a *positive*: it isolates the tolerance contrast as
+pure physics. Honesty note: the qualitative story (sharp ~110 ms cliff vs gradual
+~245 ms; aguard protects the unstable plant; the two plants bind on different legs)
+**survived and sharpened** under a principled calibration — it was not tuned in.
+
+**Evidence / repro.** Demand: `./build/cps --headless --plant cartpole --vehicles 1
+--scheduler rm --exec worst --duration 30 --validate-predictor` (read "actuator
+calibration aid"). Cliff: `python3 tools/tolerance_sweep.py`. Capacity/sim-crit/honest:
+`--plant cartpole` with `--scheduler {rm,ttu,aguard,aguard-honest}`, `--u-max` to
+isolate calibration. Details: GENERALIZATION §4.
+
+**Where it lands.** The generality/method section: the cart-pole's control params are
+calibrated by the same principle as the car; the physics-derived age-tolerance is
+shown invariant to that calibration.
+
+---
+
 ## 2026-06-23 — Kundu–Quevedo'19 close read: optimal rotation does not pre-empt (A) (Kurt-question 2)
 
 **What it is.** Full read of the second existential near-neighbor (Kundu & Quevedo,
@@ -145,7 +197,7 @@ under honest decisions.
   car 15 ms over the line, §5d) can't absorb the staleness.
 - **A margin buys it back:** aguard-honest N=18 d=16, `--pred-margin` 0/30/60/100
   → sim-crit 4/3/**0**/0. ~60 ms conservatism fully restores oracle safety.
-- Plant-agnostic: cart-pole aguard-honest N=8 sim-crit 2 → 4.
+- Plant-agnostic: cart-pole aguard-honest N=8 sim-crit 2 → 3 (post-calibration; was 2 → 4).
 
 **Why it matters.** Closes "every predictive policy reads ground truth today" — the
 biggest credibility gap — with a *quantified* cost and a principled recovery. The
@@ -196,16 +248,19 @@ N=18. RM > cores is the physics-blind baseline contrast, **not** an (A)
 counterexample (a better policy gets k = 0).
 
 **Generality (different leg).** Cart-pole: aguard does NOT contain it — N=16 max
-**10** (>cores 0.79 %), N=8 max **2**; RM N=16 max 10 (99 %). The unstable plant's
-sharp cliff makes more loops critical at once ⇒ car binds on scheduling, cart-pole
-on physics. (Cart-pole params uncalibrated — qualitative.)
+**10** but only **0.18 %** of the run over cores, N=8 max **1**; RM N=16 max 10
+(99.42 %). The unstable plant's sharp cliff makes more loops critical at once ⇒ car
+binds on scheduling, cart-pole on physics. (Numbers re-derived under the 2026-06-23
+param calibration; the peak max-10 is unchanged but the dwell-over-cores fell
+0.79 %→0.18 % with the calibrated recovery authority.)
 
 **Open / contingent.** This is the empirical shadow, **not** the theorem — still
 contingent on (A) surviving Kurt (does the physics actually bound k? is k < m
 achievable where a naive "all-critical-at-once" test fails?). The real (A) test is
 whether the *best* predictive policy can be forced past cores while loops are
-still recoverable: on the car it cannot through N=18; on the (uncalibrated)
-cart-pole it can at N=16.
+still recoverable: on the car it cannot through N=18; on the cart-pole it can at
+N=16 (peak max 10 > 3 cores — still true post-calibration, though only 0.18 % of
+the run is actually over cores).
 
 **Evidence / repro.** `for s in rm ttu aguard; do for n in 6 14 18; do ./build/cps
 --headless --vehicles $n --scheduler $s --exec worst --duration 30; done; done`
@@ -323,6 +378,14 @@ At any delivered age ≥ 110 ms the pole has crashed while the car is fine to
 dynamics. Clean controlled comparison: same chain, same delivered age per delay;
 only the physics changes.
 
+**Update 2026-06-23 (calibration):** the cliff *boundary* is **unchanged** under the
+paper-grade param calibration (uMax 10→11.55 N; see the 2026-06-23 entry) — safe
+≤105.5 ms, breach ≥110.5 ms, both pre/post. (The near-cliff peak |θ| and post-crash
+breach counts do shift — the clamp binds under the sweep's staleness — but a ~15 %
+authority change can't move the sharp recoverability boundary a full sweep step.) The
+tolerance contrast is confirmed governed by the instability timescale, not a tuning
+artifact of the actuator limit.
+
 **Why it matters.** The thesis on two plants: timing requirements should be
 *derived from the physics* because they are plant-dependent, and instability
 makes the point-of-no-return genuinely physical / the deadline tight. This is the
@@ -343,12 +406,22 @@ RM vs aguard:
 |---|---|---|
 | 12 | 3/12 | **0/12** |
 | 14 | 5/14 | **0/14** |
-| 16 | 9/16 | **1/16** |
+| 16 | 9/16 | **0/16** |
+| 18 | 13/18 | **1/18** |
 
-aguard carries **~14 cart-poles crash-free vs RM's ~11**, and crashes far fewer
+aguard carries **17 cart-poles crash-free vs RM's 10**, and crashes far fewer
 at every overload — by feeding the freshest command to whichever pole is nearest
 its (physics-derived) PNR. (It takes more overruns from reordering but converts
 them into zero crashes.)
+
+**Update 2026-06-23 (re-derived, calibrated + floor-fixed).** Table above is the
+current code (per-vehicle-θ floor fix `3214880` + the 2026-06-23 param calibration),
+20 s worst. The lift from the original ~14→17 crash-free is **the floor fix, not the
+calibration**: a controlled `--u-max 10` run already gives aguard 0/17 at the old
+authority; calibration only trims N=18 from 3→1 crashes. RM is identical at both uMax
+(no predictor; the plant clamp rarely binds even under overload). The qualitative
+contrast (aguard protects the tight-tolerance unstable plant where RM fails) holds
+and is sharper.
 
 **Why it matters.** The *same* age-criticality scheduler that carries 18 cars
 (vs classics' 10–12) also protects the tight-tolerance *unstable* plant where RM

@@ -60,7 +60,11 @@ void Simulation::start() {
             p->initialize(0.0, stopTime, v0);
             veh.plant = std::move(p);
         } else {
-            auto p = std::make_unique<CartPolePlant>();
+            CartPoleParams cp;  // calibrated defaults (CartPolePlant.h), overridable
+            if (params_.cpUMax       > 0.0) cp.uMax       = params_.cpUMax;
+            if (params_.cpShoveForce >= 0.0) cp.shoveForce = params_.cpShoveForce;
+            if (params_.cpThetaHard  > 0.0) cp.thetaHard  = params_.cpThetaHard;
+            auto p = std::make_unique<CartPolePlant>(cp);
             p->initialize(0.0, stopTime, v0);
             veh.plant = std::move(p);
         }
@@ -260,6 +264,17 @@ bool Simulation::step() {
         vehicles_[v].out = vehicles_[v].plant->readOutputs();
     }
 
+    // Actuator-authority calibration aid (the car's delta_max / the cart-pole's
+    // uMax): track peak commanded actuation under --validate-predictor (mirrors
+    // how delta_max was measured). act_demand is the pre-clamp force; act_out is
+    // post-clamp. All plants (the lateral gate below reports valMaxAct_).
+    if (params_.validatePredictor) {
+        for (size_t v = 0; v < vehicles_.size(); ++v) {
+            valMaxAct_    = std::max(valMaxAct_,    std::fabs(vehicles_[v].out.act_out));
+            valMaxDemand_ = std::max(valMaxDemand_, std::fabs(vehicles_[v].out.act_demand));
+        }
+    }
+
     // Fidelity gate is FMU-port-specific (lateral); other plants' predictors
     // share the plant's own integrator, so there is nothing to validate.
     if (params_.validatePredictor && params_.plant == PlantKind::Lateral)
@@ -344,7 +359,6 @@ void Simulation::validatePredictions() {
 
     for (size_t v = 0; v < vehicles_.size(); ++v) {
         const VehicleOutputs& o = vehicles_[v].out;
-        valMaxAct_ = std::max(valMaxAct_, std::fabs(o.act_out));
 
         // Compare this tick's realized e_y against the active prediction.
         PendingValidation& pv = pendingVal_[v];
@@ -472,6 +486,11 @@ void Simulation::runToCompletion(bool verbose) {
             if (params_.plant != PlantKind::Lateral) {
                 std::printf("  predictor validation: skipped (FMU-port gate; this "
                             "plant's predictor shares the plant's own integrator).\n");
+                std::printf("  actuator calibration aid: max|demand| = %.4f N, "
+                            "max|act_out| = %.4f N (%s); uMax = 1.5x|demand| = %.4f N\n",
+                            valMaxDemand_, valMaxAct_,
+                            valMaxDemand_ > valMaxAct_ + 1e-9 ? "CLAMP BOUND" : "clamp free",
+                            1.5 * valMaxDemand_);
             } else {
                 std::printf("  predictor validation: %ld holds, %ld samples, "
                             "max |dev| = %.3e m -> %s   (max |act_out| = %.4f rad)\n",
