@@ -159,9 +159,12 @@ change in `AdaptiveGuard.cpp`), then re-sweep floor to confirm it comes alive.
 *Doc:* `PREDICTOR.md §5c` presents aguard without noting this — correct it.
 (Note: the *fixed* hybrid guard IS a real dial — `§5b` is correct; only the
 adaptive coupling swallows the knob.)
-**Verified 2026-06-22 (read-only):** still inert — `AdaptiveGuard.cpp:46-49`
-builds one θ from the **fleet-max** `age_recent_ms` (applied to all jobs at
-`:57`); the per-vehicle fix is unapplied.
+**RESOLVED 2026-06-22 (commit `3214880`):** θ is now per-vehicle
+(`AdaptiveGuard.cpp`), so `--floor` is a live knob (floor 0→300: byte-identical →
+distinct schedules at N=14). *Caveat — re-baselines aguard:* the pre-fix headline
+numbers (`PREDICTOR.md §5c` table) were produced by the inert ~max-guard θ and
+need a proper multi-N `--floor` sweep to re-derive (single runs are
+load-dependent / non-monotonic). Default `--floor` kept at 100 (provisional).
 
 **B. Prediction compute cost is never measured or charged — only assumed.**
 The predictor runs in zero sim-time, is not charged to the 3 cores, and uses
@@ -189,6 +192,21 @@ via the two-tier structure is the known fix — a crisp result for the paper.
 *Action:* add a "fairness under overload" paragraph to `PREDICTOR.md §5c`,
 backed by the runs in this finding. Reproduce: `ttu` at N=14 30 s vs 120 s vs
 `--cores 6`, and `aguard` N=14.
+
+### Review triage (2026-06-22, ultrareview cloud review of the branch)
+The ultrareview surfaced 3 findings:
+- **#3 — fidelity gate ran the lateral predictor for cart-pole** (false FAIL):
+  FIXED (commit `f4f1699`) — routed through the `Plant` seam and skipped for
+  non-lateral plants (the gate is FMU-port-specific). Lateral stays 1.490e-08 m.
+- **#2 / Finding A — aguard `--floor` inert:** FIXED (commit `3214880`, above).
+- **#1 — visualizer replay bypasses the `Plant` seam** (a cart-pole `.cpsr`
+  renders lateral dynamics + hardcoded 0.8/0.2 m bounds): **OPEN, low-priority
+  nit** — viz-only, cart-pole is headless-documented. Fix = guard the overlay for
+  non-lateral replays, or bump the recording format (v4→v5: store PlantKind+bounds).
+- **Follow-ups:** (a) proper multi-N `--floor` sweep to re-derive aguard's
+  post-fix headline (supports §5 item 4); (b) **verify the `Li et al. RTSS'24`
+  citation** in `BOUND.md §5` — flagged unconfirmed by the 2026-06-22 survey;
+  chase before any submission (Kurt / formal leg).
 
 ## 5. Prioritized next steps
 
