@@ -243,6 +243,38 @@ The ultrareview surfaced 3 findings:
 
 Reframed (post-Guo 2026-06-18) around the main-track generalization paper:
 
+**ACTIVE TASK (new, 2026-06-23): a cart-pole visualizer.** The visualizer
+(`src/viz/Visualizer.cpp`) is built entirely around the car — track geometry,
+lateral error, 0.8/0.2 m lane rings — and the replay path bypasses the `Plant`
+seam (a cart-pole `.cpsr` currently renders as the car; review-nit #1 below).
+Decision (lead): build a **separate cart-pole view**, NOT a generalization of the
+car's spatial renderer. Seed/scope:
+- **Render:** a cart on a horizontal rail + a pole hinged at angle θ; draw the
+  ±`thetaSoft` (0.05) / ±`thetaHard` (0.21 rad) angle bounds; adapt the existing
+  prediction overlay to angle-space (predicted-θ polyline, TTV-crossing marker, PNR
+  marker, rescue trajectory — all from the plant-agnostic `Prediction`); a θ-vs-time
+  error strip; optionally mark the periodic shove events. Reuse the live + replay +
+  select/speed/screenshot controls.
+- **The data is already recorded:** `Simulation::recordFrame` stores the cart-pole
+  state — `Frame.phys[0]` = cart x, `phys[2]` = θ (also `e_y_real`), plus per-frame
+  `ttv_ms`/`ttpnr_ms`. The gap is the *renderer* + telling replay which plant it is.
+- **First design call (bring to the lead):** a new render path keyed on `PlantKind`
+  *inside the same app* (reuse the window/loop/input/replay/recording shell, swap
+  drawing+overlay) vs a fuller fork. The plant-agnostic overlay logic (prediction
+  polyline, TTV/PNR markers, error strip) is worth sharing/mirroring, not blindly
+  duplicating, so the two views don't drift.
+- **Recording format:** a cart-pole `.cpsr` replays as the car today (nit #1).
+  Likely needs v4→v5 — store `PlantKind` + bounds so replay renders the right plant;
+  keep the back-compat loaders (v2/v3/v4 still replay), per the versioning practice.
+- **Files:** `src/viz/Visualizer.cpp` (`drawPrediction`, live+replay), `src/sim/
+  Recording.h` (frame/format, currently v4), `src/sim/CartPolePlant.{h,cpp}` (state
+  `[x, ẋ, θ, θ̇]`, bounds, `predictHeld`→`Prediction`, disturbance schedule),
+  `src/sim/Plant.h` (`hardBound`/`softBound`/`predictHeld` are plant-agnostic).
+  Record with `--save FILE`, view with `--replay FILE`.
+- **Discipline:** viz-only — read recordings/outputs, never touch the plant/FMU or
+  scheduling; **do not regress the car view**; the §6 headless baselines must stay
+  byte-identical. Lower stakes than the formal leg, but a real demo/figure deliverable.
+
 **Existential gate — DONE (survey complete 2026-06-22; full map + citations:
 `PAPER_NOTES.md` 2026-06-22).** Outcome: the thesis isn't novel (Wilson F1Tenth
 RTAS'25 + MEMOCODE'24 own "derive timing from physics"); **(B)** age-tolerance
