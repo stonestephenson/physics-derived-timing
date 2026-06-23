@@ -62,6 +62,15 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
 - Working tree clean after this handoff commit.
 - Builds clean: `cmake --build build -j`. Fidelity gate passes
   (1.49e-08 m, all 3 profiles). All policy baselines reproduce.
+- **Reproducibility (Guo's directive) — `tools/reproduce.py` (2026-06-23).** One
+  command regenerates every scheduling results CSV + prints the table:
+  `capacity` / `simcrit` / `honest` / `floor` (§5c) / `tolerance`, all `--exec worst`.
+  Committed CSVs: `capacity_sweep.csv`, `simcrit_sweep.csv`, `honest_sweep.csv`,
+  `aguard_sweep.csv`, `tolerance_sweep.csv` (self-describing: plant/floor/staleness/
+  margin columns the sim's own `--csv` omits). The reconciliation re-derived §5c
+  (Finding-A floor table, was stale) and confirmed §5 / §5d / §5e / cart-pole
+  capacity all reproduce. (§5b hybrid/frontier CSVs are regenerable via the same
+  framework but were left as-is; BOUND RTA stays `tools/rta_solve.py`.)
 
 ### Generalization — `Plant` seam + cart-pole (2026-06-18, on the branch)
 The FMU is now one implementation of a `Plant` interface (`src/sim/Plant.h`); the
@@ -314,6 +323,8 @@ task (0) below (**DONE 2026-06-22** — the empirical instrument). Cart-pole cal
 
 ```sh
 cmake --build build -j
+python3 tools/reproduce.py              # regenerate ALL scheduling CSVs + print tables (one command)
+python3 tools/reproduce.py --list       # experiments (capacity/simcrit/honest/floor/tolerance) + which doc table each backs
 ./build/cps --headless --vehicles 14 --scheduler aguard --exec worst --duration 30
 # the tournament (read hard / worst soft% / min_pnr per row):
 for s in rm context ttu aguard; do ./build/cps --headless --vehicles 14 --scheduler $s --exec worst --duration 30; done

@@ -11,3 +11,4 @@
 # Run artifacts
 *.cpsr
 cps_shot*.png
+tools/.reproduce_scratch.csv

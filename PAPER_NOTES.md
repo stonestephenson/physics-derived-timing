@@ -212,9 +212,10 @@ expected; the *fragility* (aguard) and *margin-recovery* findings are load-beari
 Folding in the FMU's own `e_y_est` estimation error is the open refinement
 (PREDICTOR §6.4).
 
-**Evidence / repro.** `for d in 0 16 100 200; do ./build/cps --headless --vehicles
-18 --scheduler aguard-honest --exec worst --duration 30 --pred-staleness $d; done`
-(+ `--pred-margin`, `--scheduler ttu-honest`, `--plant cartpole`). Details
+**Evidence / repro.** `python3 tools/reproduce.py honest` (one command →
+`honest_sweep.csv`), or by hand: `for d in 0 16 100 200; do ./build/cps --headless
+--vehicles 18 --scheduler aguard-honest --exec worst --duration 30 --pred-staleness
+$d; done` (+ `--pred-margin`, `--scheduler ttu-honest`, `--plant cartpole`). Details
 `PREDICTOR.md §5e`.
 
 **Where it lands.** The credibility section / "honest information" experiment:
@@ -262,9 +263,10 @@ still recoverable: on the car it cannot through N=18; on the cart-pole it can at
 N=16 (peak max 10 > 3 cores — still true post-calibration, though only 0.18 % of
 the run is actually over cores).
 
-**Evidence / repro.** `for s in rm ttu aguard; do for n in 6 14 18; do ./build/cps
---headless --vehicles $n --scheduler $s --exec worst --duration 30; done; done`
-(+ `--tau-crit`, `--plant cartpole`, `--csv`). Details: `PREDICTOR.md §5d`.
+**Evidence / repro.** `python3 tools/reproduce.py simcrit` (one command →
+`simcrit_sweep.csv`), or by hand: `for s in rm ttu aguard; do for n in 6 14 18; do
+./build/cps --headless --vehicles $n --scheduler $s --exec worst --duration 30; done;
+done` (+ `--tau-crit`, `--plant cartpole`, `--csv`). Details: `PREDICTOR.md §5d`.
 
 **Where it lands.** The lead-contribution experiment for (A): "N loops, m cores,
 never more than k critical at once" — the headline scheduling figure, paired with
@@ -428,8 +430,9 @@ and is sharper.
 fails — the TTPNR-guided guard is plant-agnostic because TTPNR is computed from
 each plant's own physics. Route-B generality, on a second plant.
 
-**Evidence / repro.** `for n in 12 14 16; do for s in rm aguard; do ./build/cps
---headless --plant cartpole --vehicles $n --scheduler $s --exec worst
+**Evidence / repro.** `python3 tools/reproduce.py capacity` (one command →
+`capacity_sweep.csv`), or by hand: `for n in 12 14 16; do for s in rm aguard; do
+./build/cps --headless --plant cartpole --vehicles $n --scheduler $s --exec worst
 --duration 20; done; done` (count vehicle rows with hard>0).
 
 **Where it lands.** Route B (age-criticality scheduling) generality section.

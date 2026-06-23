@@ -142,6 +142,23 @@ For full control over the 16 FMU triggers (e.g. data-driven, aperiodic triggerin
 [`src/sched/Scheduler.h`](src/sched/Scheduler.h)) and pass it to the `Simulation`
 instead of a `PolicyScheduler`.
 
+## Reproducing the results
+
+One command regenerates every scheduling results CSV and prints the table it backs:
+
+```sh
+python3 tools/reproduce.py            # all experiments (--exec worst)
+python3 tools/reproduce.py --list     # capacity / simcrit / honest / floor / tolerance
+python3 tools/reproduce.py floor      # just one (e.g. re-derives PREDICTOR.md §5c)
+python3 tools/reproduce.py --quick    # small grids (fast smoke)
+```
+
+Committed CSVs (`capacity_sweep.csv`, `simcrit_sweep.csv`, `honest_sweep.csv`,
+`aguard_sweep.csv`, `tolerance_sweep.csv`) are the data behind the PREDICTOR.md /
+PAPER_NOTES.md tables. Two companion tools stay separate: `tools/tolerance_sweep.py`
+(the per-plant cliff, which `reproduce.py tolerance` delegates to) and
+`tools/rta_solve.py` (machine-verifies the BOUND.md §7 RTA).
+
 ## Layout
 
 ```
