@@ -240,9 +240,13 @@ physics-derived period × multiprocessor schedulability — but NO cross-loop
 simultaneity bound, NO PNR/recoverability notion). Also Kundu–Quevedo'19 (N
 open-loop-unstable plants on M<N channels, keep all *stable* by optimal rotation —
 no simultaneity bound). 5 must-cite PDFs now in `relatedPapers/`. **Make-or-break
-for Kurt:** (1) does Sudvarg §IV (pp.316–322, unread) already bound cross-loop
-simultaneity? (2) does our bound admit fleets that K–Q-style *optimal* rotation
-cannot — or is rotation already enough?
+for Kurt:** (1) ~~does Sudvarg §IV already bound cross-loop simultaneity?~~
+**ANSWERED 2026-06-23 (full read, PAPER_NOTES): NO** — their scheduling is classical
+utilization-based (fixed safe periods, Σu ≤ U_D) + CBF set-invariance; neither our
+simultaneity bound nor a PNR deadline appears. *Residual for Kurt:* is our delta big
+enough given their §VII future-work explicitly names "predictions / semi-clairvoyant
+MC for optimism" (positioning + scoop risk). (2) does our bound admit fleets that
+K–Q-style *optimal* rotation cannot — or is rotation already enough? **(reading next.)**
 
 **Reprioritized around (A):** the (A)-serving core is now the **formal leg (item 2
 — prove the simultaneity bound)** + **honest predictor (item 3 — credibility)** +

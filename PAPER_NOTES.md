@@ -10,6 +10,50 @@ Newest first.
 
 ---
 
+## 2026-06-23 — Sudvarg RTAS'25 close read: both our differentiators survive; one future-work near-miss
+
+**What it is.** Full read of the closest prior (Sudvarg, Clark & Gill, "Integrated
+Real-Time Control and Scheduling for Safety-Critical CPS," RTAS 2025;
+`relatedPapers/DirectlyRelatedToYourSpecificProblem/Sudvarg_...pdf`) — settling
+Kurt-question (1) on the *factual* level: does it already bound cross-loop
+simultaneity?
+
+**Verdict — our two claimed differentiators are genuinely absent:**
+- **Cross-loop simultaneity bound — NOT present.** Their scheduling is classical
+  **utilization-based**: each controller gets a *fixed* safe period `T_i ≤ T_i^max`
+  (physics-derived via CBF + sum-of-squares) and runs at that rate always;
+  schedulability = aggregate utilization fits (`Σ C_iω_i ≤ U_D`; partitioned-EDF
+  bin-packing ≤ (m+1)/2). They never bound *how many loops are simultaneously
+  near-unsafe* to admit more than the utilization test allows — i.e. exactly the
+  pessimistic aggregate-demand view our (A) aims to beat.
+- **PNR / recoverability deadline — NOT present.** Safety = CBF **positive
+  invariance** (stay in safe set `W_i`) + a margin-triggered switch to a
+  conservative backup controller near the boundary. No time-until-recovery-
+  impossible countdown; set-membership, not a dynamic recoverability deadline.
+
+**The risk I did find (positioning + scoop).** Their §VII future-work closes,
+verbatim: *"can we leverage predictions or semi-clairvoyant mixed-criticality theory
+to be more optimistic in our assignment of execution times across transitions?"* —
+the same beyond-worst-case *spirit* (prediction → less pessimism), named as THEIR
+next direction. It is **not** our simultaneity bound (they mean execution-time
+optimism across mode transitions), but (a) we must position sharply against it, and
+(b) it's a **scoop risk** — this group is best placed to take the next step.
+Neighbors to check for the same reason: [31] semi-clairvoyant MC
+(Agrawal–Baruah–Burns RTSS'19), [54] "Good-spread: criticality-aware static
+scheduling" (Roy et al. RTSS'20).
+
+**So Kurt-question (1) is answered factually: NO, Sudvarg does not pre-empt our
+device.** What remains for Kurt is the narrower, *informed* judgment: is
+"simultaneity bound + recoverability" a big-enough delta given the future-work
+bullet above? (Field-perception call, his.) Kurt-question (2) — vs Kundu–Quevedo
+optimal rotation — still open.
+
+**Where it lands.** Related-work: position our cross-loop simultaneity + PNR
+contribution explicitly against Sudvarg's per-loop utilization-based co-design *and*
+against their "predictions for optimism" future-work bullet.
+
+---
+
 ## 2026-06-23 — Predictor compute cost: ~10–17 µs/rollout, a few % of a core (Finding B)
 
 **What it is.** Direct timing of the `predictHeld` rollouts, printed per run
