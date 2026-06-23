@@ -10,6 +10,53 @@ Newest first.
 
 ---
 
+## 2026-06-22 — Honest predictor: oracle-vs-delayed-state A/B (the credibility leg)
+
+**What it is.** `HANDOFF §5 item 3`. Every predictive policy (ttu/hybrid/aguard)
+ranked TTPNR seeded from TRUE state (an oracle). Added `-honest` twins that seed
+the *same* rollout from the cloud's legitimate **delayed** state
+(`--pred-staleness`, default 16 ms = worst sensor delay) + a safety margin
+(`--pred-margin`); shared `InfoSet` flag, oracle variants kept for the A/B. Off by
+default (baselines byte-identical; `--pred-staleness 0` ≡ oracle). **The sim-crit
+metric stays on the oracle (true-state) rollout** — it measures ground-truth safety
+under honest decisions.
+
+**Headline — the two predictive families split (car, worst, 3 cores, 30 s,
+τ=100 ms), by true sim-crit max:**
+- **`ttu` (pure safety) is robust to honesty:** sim-crit stays **0** through d=16
+  *and* d=100 ms staleness; only d=200 lets 1 car slip. A stale estimate still
+  fingers the nearest-PNR car.
+- **`aguard` (comfort-optimizing) is fragile:** N=18, even **16 ms** staleness
+  takes sim-crit **0 → 4** (>cores 1.08 %); d=100 → 14. Its razor margin (worst
+  car 15 ms over the line, §5d) can't absorb the staleness.
+- **A margin buys it back:** aguard-honest N=18 d=16, `--pred-margin` 0/30/60/100
+  → sim-crit 4/3/**0**/0. ~60 ms conservatism fully restores oracle safety.
+- Plant-agnostic: cart-pole aguard-honest N=8 sim-crit 2 → 4.
+
+**Why it matters.** Closes "every predictive policy reads ground truth today" — the
+biggest credibility gap — with a *quantified* cost and a principled recovery. The
+nuance IS the result: **the safety-only scheduler is robust to imperfect
+information; the comfort-optimizing one trades safety margin for comfort and must
+pay it back with a conservatism margin.** A design lesson, not just a robustness check.
+
+**Caveat (honesty boundary).** Deterministic harness + exact plant port ⇒ the
+honest gap is pure information **staleness**, NOT sensor noise / model error (a
+model-based observer would recover the truth). So `honest ≈ oracle` at small d is
+expected; the *fragility* (aguard) and *margin-recovery* findings are load-bearing.
+Folding in the FMU's own `e_y_est` estimation error is the open refinement
+(PREDICTOR §6.4).
+
+**Evidence / repro.** `for d in 0 16 100 200; do ./build/cps --headless --vehicles
+18 --scheduler aguard-honest --exec worst --duration 30 --pred-staleness $d; done`
+(+ `--pred-margin`, `--scheduler ttu-honest`, `--plant cartpole`). Details
+`PREDICTOR.md §5e`.
+
+**Where it lands.** The credibility section / "honest information" experiment:
+oracle is an upper bound, honest is achievable, the gap is small for safety-ranked
+scheduling and recoverable with a physically-motivated margin.
+
+---
+
 ## 2026-06-22 — Simultaneous-criticality metric: the empirical (A)-shadow (implemented)
 
 **What it is.** `HANDOFF §5 item 0` built: a per-base-tick count of vehicles with

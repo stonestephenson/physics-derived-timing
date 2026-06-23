@@ -41,10 +41,16 @@ std::unique_ptr<CorePolicy> makePolicy(const std::string& name, bool triage,
                            return makePartitionedRMPolicy();
     if (name == "ttu" || name == "predictive")
                            return makeTimeToUnsafePolicy(triage);
+    if (name == "ttu-honest" || name == "httu")
+                           return makeTimeToUnsafePolicy(triage, InfoSet::Remote);
     if (name == "hybrid" || name == "guarded")
                            return makeHybridPolicy(guardMs, triage);
+    if (name == "hybrid-honest" || name == "hhybrid")
+                           return makeHybridPolicy(guardMs, triage, InfoSet::Remote);
     if (name == "aguard" || name == "adaptive-guard")
                            return makeAdaptiveGuardPolicy(floorMs, triage);
+    if (name == "aguard-honest" || name == "haguard")
+                           return makeAdaptiveGuardPolicy(floorMs, triage, InfoSet::Remote);
     return makeRateMonotonicPolicy();  // "rm" / default
 }
 
@@ -127,7 +133,8 @@ void usage() {
         "                               policy (default rm; context = oracle, honest =\n"
         "                               remote metrics only, ttu = predictive\n"
         "                               time-to-unsafe, hybrid = fixed TTPNR guard +\n"
-        "                               comfort tier, aguard = self-tuning guard)\n"
+        "                               comfort tier, aguard = self-tuning guard;\n"
+        "                               *-honest = predict from delayed state not truth)\n"
         "  --vehicles N                 number of vehicles (default 1)\n"
         "  --cores N                    shared cloud cores (default 3)\n"
         "  --profile 10|12.5|15         speed profile (default 10)\n"
@@ -149,6 +156,11 @@ void usage() {
         "  --tau-crit MS                simultaneous-criticality threshold: a car is\n"
         "                               'critical' when TTPNR < MS (~1 round-trip; default\n"
         "                               100). Reports max # critical at once vs cores.\n"
+        "  --pred-staleness MS          honest predictor (ttu/hybrid/aguard-honest): age\n"
+        "                               of the cloud's delayed state estimate (default 16\n"
+        "                               = worst sensor delay)\n"
+        "  --pred-margin MS             honest predictor: safety margin subtracted from\n"
+        "                               estimated TTPNR (default 0)\n"
         "  --validate-predictor         predictor fidelity gate (see PREDICTOR.md)\n"
         "  --seed N                     RNG seed for pert mode (default 0)\n"
         "  --headless                   run without the GUI, print metrics\n"
@@ -200,6 +212,8 @@ int main(int argc, char** argv) {
         params.validatePredictor = hasFlag(argc, argv, "--validate-predictor");
         params.deltaMax      = std::atof(argValue(argc, argv, "--delta-max", "-1"));
         params.tauCritMs     = std::atof(argValue(argc, argv, "--tau-crit", "100"));
+        params.predStalenessMs = std::atof(argValue(argc, argv, "--pred-staleness", "16"));
+        params.predMarginMs  = std::atof(argValue(argc, argv, "--pred-margin", "0"));
         params.triage        = hasFlag(argc, argv, "--triage");
         const double guardMs = std::atof(argValue(argc, argv, "--guard", "150"));
         const double floorMs = std::atof(argValue(argc, argv, "--floor", "100"));
@@ -209,6 +223,10 @@ int main(int argc, char** argv) {
             static_cast<long>(durSec / vr::kBaseStepSeconds);
 
         const std::string schedName = argValue(argc, argv, "--scheduler", "rm");
+        params.honestPredictor =
+            schedName == "ttu-honest"    || schedName == "httu"    ||
+            schedName == "hybrid-honest" || schedName == "hhybrid" ||
+            schedName == "aguard-honest" || schedName == "haguard";
         const std::string csvFile   = argValue(argc, argv, "--csv", "");
         auto scheduler = std::make_unique<PolicyScheduler>(
             makePolicy(schedName, params.triage, guardMs, floorMs));

@@ -29,10 +29,10 @@ namespace {
 
 class HybridPolicy : public CorePolicy {
 public:
-    HybridPolicy(double guardMs, bool triage)
-        : guardMs_(guardMs), triage_(triage) {
+    HybridPolicy(double guardMs, bool triage, InfoSet info)
+        : guardMs_(guardMs), triage_(triage), info_(info) {
         name_ = "Hybrid[guard=" + std::to_string(static_cast<int>(guardMs)) + "ms" +
-                (triage ? ",triage]" : "]");
+                (info == InfoSet::Remote ? ",honest" : "") + (triage ? ",triage]" : "]");
     }
 
     void assign(const std::vector<ReadyJob>& ready, int nCores,
@@ -48,9 +48,10 @@ public:
             if (j.vehicle < 0 || j.vehicle >= static_cast<int>(ctx.size()))
                 return {1, 0.0, 0.0};
             const VehicleView& v = ctx[j.vehicle];
-            if (triage_ && v.ttpnr_ms <= 0.0) return {2, 0.0, 0.0};
-            if (v.ttpnr_ms < guardMs_) return {0, v.ttpnr_ms, v.ttv_ms};
-            return {1, -comfortUrgencyOracle(v), 0.0};
+            const double ttpnr = predTtpnrMs(v, info_);
+            if (triage_ && ttpnr <= 0.0) return {2, 0.0, 0.0};
+            if (ttpnr < guardMs_) return {0, ttpnr, predTtvMs(v, info_)};
+            return {1, -comfortUrgency(v, info_), 0.0};
         };
 
         order_.resize(ready.size());
@@ -78,14 +79,15 @@ public:
 private:
     double guardMs_;
     bool triage_;
+    InfoSet info_;
     std::string name_;
     std::vector<int> order_;
 };
 
 }  // namespace
 
-std::unique_ptr<CorePolicy> makeHybridPolicy(double guardMs, bool triage) {
-    return std::unique_ptr<CorePolicy>(new HybridPolicy(guardMs, triage));
+std::unique_ptr<CorePolicy> makeHybridPolicy(double guardMs, bool triage, InfoSet info) {
+    return std::unique_ptr<CorePolicy>(new HybridPolicy(guardMs, triage, info));
 }
 
 }  // namespace cps

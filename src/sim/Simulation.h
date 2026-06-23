@@ -52,6 +52,15 @@ struct SimParams {
     // when its TTPNR < tauCritMs (~ one command round-trip). Set by --tau-crit.
     // Measurement only (no scheduler reads it); see HANDOFF §5 item 0 / PREDICTOR.md.
     double   tauCritMs     = 100.0;
+    // Honest predictor (HANDOFF §5 item 3): when set, the predictive policies
+    // rank on a SECOND rollout seeded from the cloud's legitimate DELAYED state
+    // (the *_est_ms VehicleView twins) instead of true state. Set automatically
+    // for the *-honest scheduler names. predStalenessMs = how stale the cloud's
+    // freshest sensor data is (one-way sensor delay, bounded); predMarginMs =
+    // safety margin subtracted from honest TTPNR (conservatism knob).
+    bool     honestPredictor = false;
+    double   predStalenessMs = 16.0;   // worst-case sensor->cloud delay (TaskModel.cpp)
+    double   predMarginMs    = 0.0;
 };
 
 class Simulation {
@@ -115,6 +124,17 @@ private:
     std::vector<long>       predBaseStep_;   // step_ at which each cache entry was made
     std::vector<long>       ttpnrTicks_;     // latest PNR result (separate cadence)
     std::vector<long>       ttpnrBaseStep_;
+    // --- Honest predictor (params_.honestPredictor): a parallel prediction
+    //     seeded from the cloud's delayed state, feeding the *_est_ms view
+    //     twins. Mirrors the oracle arrays above; idle when honest is off. ---
+    void refreshHonestPredictions(bool withPnr);
+    void currentHonestPredTicks(int vehicle, long& ttv, long& ttpnr) const;
+    long predStalenessTicks_ = 0;
+    std::vector<std::vector<VehicleOutputs>> stateHist_;  // [v][ring], delayed state+cmd
+    std::vector<Prediction> predCacheEst_;
+    std::vector<long>       predBaseStepEst_;
+    std::vector<long>       ttpnrEstTicks_;
+    std::vector<long>       ttpnrBaseStepEst_;
     std::vector<double>     minTtpnrMs_;     // run-min of finite aged TTPNR (-1 = none)
     std::vector<long>       pastPnrTicks_;   // ticks spent at aged TTPNR == 0
     // Fleet-wide simultaneous criticality (TTPNR < params_.tauCritMs), sampled

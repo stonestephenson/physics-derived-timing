@@ -36,10 +36,10 @@ namespace {
 
 class AdaptiveGuardPolicy : public CorePolicy {
 public:
-    AdaptiveGuardPolicy(double floorMs, bool triage)
-        : floorMs_(floorMs), triage_(triage) {
+    AdaptiveGuardPolicy(double floorMs, bool triage, InfoSet info)
+        : floorMs_(floorMs), triage_(triage), info_(info) {
         name_ = "AdaptiveGuard[floor=" + std::to_string(static_cast<int>(floorMs)) +
-                "ms" + (triage ? ",triage]" : "]");
+                "ms" + (info == InfoSet::Remote ? ",honest" : "") + (triage ? ",triage]" : "]");
     }
 
     void assign(const std::vector<ReadyJob>& ready, int nCores,
@@ -50,13 +50,15 @@ public:
             if (j.vehicle < 0 || j.vehicle >= static_cast<int>(ctx.size()))
                 return {1, 0.0, 0.0, 0.0};
             const VehicleView& v = ctx[j.vehicle];
-            // Per-vehicle guard from this car's own live round-trip estimate.
+            // Per-vehicle guard from this car's own live round-trip estimate
+            // (age_recent_ms is legitimately measured -- same under either InfoSet).
             const double theta_v =
                 std::min(450.0, floorMs_ + std::max(60.0, v.age_recent_ms));
-            if (triage_ && v.ttpnr_ms <= 0.0) return {2, 0.0, 0.0, 0.0};
-            if (v.ttpnr_ms < theta_v)
-                return {0, v.ttpnr_ms, v.rescue_clearance_m, v.ttv_ms};
-            return {1, -comfortUrgencyOracle(v), 0.0, 0.0};
+            const double ttpnr = predTtpnrMs(v, info_);
+            if (triage_ && ttpnr <= 0.0) return {2, 0.0, 0.0, 0.0};
+            if (ttpnr < theta_v)
+                return {0, ttpnr, predClearanceM(v, info_), predTtvMs(v, info_)};
+            return {1, -comfortUrgency(v, info_), 0.0, 0.0};
         };
 
         order_.resize(ready.size());
@@ -84,14 +86,15 @@ public:
 private:
     double floorMs_;
     bool triage_;
+    InfoSet info_;
     std::string name_;
     std::vector<int> order_;
 };
 
 }  // namespace
 
-std::unique_ptr<CorePolicy> makeAdaptiveGuardPolicy(double floorMs, bool triage) {
-    return std::unique_ptr<CorePolicy>(new AdaptiveGuardPolicy(floorMs, triage));
+std::unique_ptr<CorePolicy> makeAdaptiveGuardPolicy(double floorMs, bool triage, InfoSet info) {
+    return std::unique_ptr<CorePolicy>(new AdaptiveGuardPolicy(floorMs, triage, info));
 }
 
 }  // namespace cps

@@ -307,6 +307,59 @@ uncalibrated; the contrast is qualitative.
 add `--tau-crit 50|150`; cart-pole: `--plant cartpole`; CSV cols
 `tau_crit_ms,max_sim_crit,sim_crit_over_cores_pct` via `--csv`).
 
+## 5e. Honest predictor: oracle vs delayed-state information (2026-06-22)
+
+Every predictive policy above ranks on TTPNR/TTV seeded from the **true** plant
+state — an **oracle** the cloud can never have. The `-honest` twins
+(`ttu-honest`/`hybrid-honest`/`aguard-honest`) instead seed the *same* rollout
+from the cloud's legitimate **delayed** state — this vehicle's outputs as of its
+freshest received sensor packet (`--pred-staleness MS`, default 16 = the
+worst-case sensor→cloud delay), held command included — then optionally subtract a
+**safety margin** (`--pred-margin MS`, default 0) from the estimated TTPNR. One
+class per policy with an `InfoSet` flag (shared with `context`/`honest`) so the
+A/B isolates the information set, never the rule; the oracle variants are kept as
+the upper-bound reference. **Off by default ⇒ all baselines byte-identical**; at
+`--pred-staleness 0` the honest run is byte-identical to its oracle (sanity).
+
+**Crucial invariant:** the **sim-crit metric and `min_pnr` stay on the ORACLE
+(true-state) rollout** — they measure *ground-truth* safety regardless of what the
+scheduler believes. So an honest run reports the **true** fleet criticality
+produced by honest decisions — exactly the credibility question.
+
+**Result (car, worst exec, 3 cores, 30 s, τ_crit = 100 ms). The two predictive
+families split:**
+
+| sim-crit max vs staleness d   | oracle | d=16  | d=100 | d=200 |
+|-------------------------------|--------|-------|-------|-------|
+| `ttu`,    N=14                | 0      | **0** | **0** | 1     |
+| `aguard`, N=18                | 0      | **4** | 14    | —     |
+
+- **`ttu` (pure safety ranking) is robust:** a 16–100 ms-stale estimate still
+  identifies the nearest-PNR car, so true sim-crit stays **0**; only 200 ms
+  staleness lets one car slip. Honesty is nearly free here.
+- **`aguard` (comfort-optimizing) is fragile:** at N=18 it ran on a razor margin
+  (worst car 115 ms, 15 ms over the line, §5d), so even **16 ms** of staleness
+  perturbs its prioritization enough to push **4** loops simultaneously inside
+  τ_crit (> 3 cores, 1.08 % of the run); d=100 → 14.
+
+**The margin buys it back.** aguard-honest, N=18, d=16: `--pred-margin` 0 → 30 →
+60 → 100 gives sim-crit **4 → 3 → 0 → 0** at ~unchanged miss count. A modest
+**60 ms** conservatism on the honest TTPNR fully restores oracle-level safety —
+the principled fix: predict pessimistically to absorb the staleness you can't see.
+
+**Generality:** plant-agnostic (the honest rollout is just `predictHeld` fed a
+delayed `VehicleOutputs`); cart-pole `aguard-honest` N=8 sim-crit 2 → 4 at d=16.
+
+*Honesty note:* this harness is deterministic with an exact plant port, so the
+honest gap is pure information **staleness** — no sensor noise / model error (a
+model-based observer would just recover the truth). `--pred-staleness` /
+`--pred-margin` are the stress + recovery knobs; folding in the FMU's own
+`e_y_est` estimation error is the open refinement (§6.4).
+
+**Repro.** `for d in 0 16 100 200; do ./build/cps --headless --vehicles 18
+--scheduler aguard-honest --exec worst --duration 30 --pred-staleness $d; done`
+(margin: add `--pred-margin 60`; oracle ref: `--scheduler aguard`).
+
 ## 6. Open items
 
 1. ~~Adaptive guard~~ — done (§5c). Remaining refinement: per-vehicle θ_v
@@ -316,8 +369,11 @@ add `--tau-crit 50|150`; cart-pole: `--plant cartpole`; CSV cols
    never engages at N≤14 under ttu/hybrid — needs higher load or
    `--net-delay` injection).
 3. Recovery-policy refinement / monotonicity assumption (EE + Kurt).
-4. Honest-information variant: predict from estimated state + last-sent
-   command via the InfoSet pattern (`ContextAware.cpp`) — phase 2.
+4. ~~Honest-information variant~~ — done (§5e): `ttu/hybrid/aguard-honest`
+   predict from delayed state (`--pred-staleness`) + a safety margin
+   (`--pred-margin`). Remaining refinement: fold in the FMU's own `e_y_est`
+   estimation error (not just staleness), and a last-sent-command (vs delayed
+   applied) variant.
 5. Formalize the §5b composition with BOUND.md: bounded age ⇒ bounded
    guard-to-actuation lag ⇒ guaranteed floor (θ − bound). This is the Route
    B theorem shape: *a scheduler parameter with a physically provable

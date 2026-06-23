@@ -21,8 +21,8 @@
 namespace cps {
 namespace {
 
-enum class InfoSet { Oracle, Remote };
-
+// InfoSet{Oracle,Remote} is shared in Policies.h so the predictive policies
+// reuse the same oracle-vs-honest switch.
 class ContextAwarePolicy : public CorePolicy {
 public:
     explicit ContextAwarePolicy(InfoSet info) : info_(info) {}

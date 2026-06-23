@@ -107,8 +107,9 @@ Then by task:
     ./build/cps --headless --vehicles 6 --scheduler rm --exec worst --duration 30
     ./build/cps --headless --plant cartpole --vehicles 8 --scheduler aguard --exec worst
     # schedulers: rm | prm | edf | context(oracle) | honest | ttu | hybrid | aguard
+    #   (+ ttu/hybrid/aguard-honest: predict from delayed state, not ground truth)
     # plants: lateral (FMU car) | cartpole    other: --overrun, --net-delay MS,
-    #   --guard/--floor MS, --tau-crit MS, --delta-max RAD, --validate-predictor, --csv FILE, --seed N
+    #   --guard/--floor MS, --tau-crit MS, --pred-staleness/--pred-margin MS, --delta-max RAD, --validate-predictor, --csv FILE, --seed N
 
 ## Before you end a session (this keeps the system alive)
 

@@ -91,6 +91,16 @@ void Simulation::start() {
     predBaseStep_.assign(n, -1);
     ttpnrTicks_.assign(n, predParams_.horizonTicks);
     ttpnrBaseStep_.assign(n, -1);
+    if (params_.honestPredictor) {
+        predStalenessTicks_ =
+            static_cast<long>(params_.predStalenessMs / 1000.0 / dt_ + 0.5);
+        predCacheEst_.assign(n, Prediction{});
+        predBaseStepEst_.assign(n, -1);
+        ttpnrEstTicks_.assign(n, predParams_.horizonTicks);
+        ttpnrBaseStepEst_.assign(n, -1);
+        stateHist_.assign(n, std::vector<VehicleOutputs>(
+            static_cast<size_t>(predStalenessTicks_) + 1));
+    }
     minTtpnrMs_.assign(n, -1.0);
     pastPnrTicks_.assign(n, 0);
     maxSimCrit_ = 0;
@@ -125,6 +135,32 @@ void Simulation::refreshPredictions(bool withPnr) {
     }
 }
 
+void Simulation::refreshHonestPredictions(bool withPnr) {
+    PredictParams p = predParams_;
+    p.computePnr = withPnr;
+    const long S = static_cast<long>(stateHist_[0].size());
+    const long srcStep = std::max<long>(0, step_ - predStalenessTicks_);
+    for (size_t v = 0; v < vehicles_.size(); ++v) {
+        // The cloud's legitimate view: this vehicle's state as of its freshest
+        // received sensor packet (delayed by predStalenessTicks_), held command
+        // included. Same rollout, stale STATE only -- time/reference are current.
+        const VehicleOutputs& delayed = stateHist_[v][srcStep % S];
+        p.warmStartTtpnrTicks = -1;
+        if (withPnr && ttpnrBaseStepEst_[v] >= 0 &&
+            ttpnrEstTicks_[v] < predParams_.horizonTicks) {
+            p.warmStartTtpnrTicks =
+                std::max<long>(0, ttpnrEstTicks_[v] - (step_ - ttpnrBaseStepEst_[v]));
+        }
+        predCacheEst_[v] = vehicles_[v].plant->predictHeld(delayed, step_ + 1, *traj_,
+                                                           offsets_[v], p);
+        predBaseStepEst_[v] = step_;
+        if (withPnr) {
+            ttpnrEstTicks_[v] = predCacheEst_[v].ttpnrTicks;
+            ttpnrBaseStepEst_[v] = step_;
+        }
+    }
+}
+
 void Simulation::currentPredTicks(int v, long& ttv, long& ttpnr) const {
     const long H = predParams_.horizonTicks;
     const size_t i = static_cast<size_t>(v);
@@ -144,6 +180,25 @@ void Simulation::currentPredTicks(int v, long& ttv, long& ttpnr) const {
     if (ttpnr > ttv) ttpnr = ttv;
 }
 
+void Simulation::currentHonestPredTicks(int v, long& ttv, long& ttpnr) const {
+    const long H = predParams_.horizonTicks;
+    const size_t i = static_cast<size_t>(v);
+    if (predBaseStepEst_[i] < 0) {
+        ttv = H;
+    } else {
+        const long e = step_ - predBaseStepEst_[i];
+        ttv = predCacheEst_[i].ttvTicks >= H ? H
+            : std::max<long>(0, predCacheEst_[i].ttvTicks - e);
+    }
+    if (ttpnrBaseStepEst_[i] < 0) {
+        ttpnr = H;
+    } else {
+        const long e = step_ - ttpnrBaseStepEst_[i];
+        ttpnr = ttpnrEstTicks_[i] >= H ? H : std::max<long>(0, ttpnrEstTicks_[i] - e);
+    }
+    if (ttpnr > ttv) ttpnr = ttv;
+}
+
 void Simulation::buildViews() {
     for (size_t v = 0; v < vehicles_.size(); ++v) {
         const VehicleOutputs& o = vehicles_[v].out;
@@ -158,6 +213,14 @@ void Simulation::buildViews() {
                                 ttv * dt_ * 1000.0, ttpnr * dt_ * 1000.0,
                                 predCache_[v].rescueClearanceM,
                                 recent < 0 ? -1.0 : recent * dt_ * 1000.0};
+        if (params_.honestPredictor) {
+            long ttvE, ttpnrE;
+            currentHonestPredTicks(static_cast<int>(v), ttvE, ttpnrE);
+            const double ttpnrEms = ttpnrE * dt_ * 1000.0 - params_.predMarginMs;
+            views_[v].ttpnr_est_ms = ttpnrEms < 0.0 ? 0.0 : ttpnrEms;
+            views_[v].ttv_est_ms   = ttvE * dt_ * 1000.0;
+            views_[v].rescue_clearance_est_m = predCacheEst_[v].rescueClearanceM;
+        }
     }
 }
 
@@ -195,6 +258,13 @@ bool Simulation::step() {
     // 3b. Refresh held-command predictions and accumulate closest-call stats.
     if (step_ % kPredictRefreshTicks == 0)
         refreshPredictions(/*withPnr=*/step_ % kPnrRefreshTicks == 0);
+    // 3b'. Honest predictor: log delayed state, refresh the parallel rollout.
+    if (params_.honestPredictor) {
+        for (size_t v = 0; v < vehicles_.size(); ++v)
+            stateHist_[v][step_ % stateHist_[v].size()] = vehicles_[v].out;
+        if (step_ % kPredictRefreshTicks == 0)
+            refreshHonestPredictions(/*withPnr=*/step_ % kPnrRefreshTicks == 0);
+    }
     int simCrit = 0;
     for (size_t v = 0; v < vehicles_.size(); ++v) {
         if (predBaseStep_[v] < 0) continue;

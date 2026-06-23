@@ -92,6 +92,11 @@ Headline results (`PAPER_NOTES.md`, `tools/tolerance_sweep.py`):
 | `hybrid` | TTPNR<`--guard` ⇒ emergency tier (ttu rule); else comfort tier (context rule) | fixed guarded triage |
 | `aguard` | hybrid with self-tuning guard θ=`--floor`+live round-trip | adaptive guarded triage |
 
+Each predictive policy has an **`-honest`** twin (`ttu-honest`/`hybrid-honest`/
+`aguard-honest`) that ranks on a rollout from the cloud's *delayed* state
+(`--pred-staleness`, +`--pred-margin`) instead of true state — the oracle-vs-honest
+A/B (§5 item 3 / PREDICTOR §5e).
+
 Mental model: emergency tier = ttu; comfort tier = context; the **guard** is
 the TTPNR line dividing them. `context` = guard 0, `ttu` = guard ∞, `hybrid` =
 fixed guard, `aguard` = guard that tunes itself.
@@ -133,8 +138,10 @@ fixed guard, `aguard` = guard that tunes itself.
   Vehicle-major matches the Q1 exemplar; stage-major (kind-first) starves the
   whole Merger class under overload (`BOUND.md §7.1`).
 - **`context` is an ORACLE** (reads ground-truth `*_real`); `honest` is the
-  legitimate variant (estimator-derived). All predictive policies (ttu/hybrid/
-  aguard) likewise read ground-truth state today — see Finding C.
+  legitimate variant (estimator-derived). The predictive policies (ttu/hybrid/
+  aguard) read ground-truth state by default, but each now has an `-honest` twin
+  that predicts from delayed state (§5 item 3 / PREDICTOR §5e); the oracle ones
+  are kept as the upper-bound A/B reference.
 - **Predictor:** verbatim FMU port (`Predictor.cpp` matrices = `LateralMotion
   Control.c:793-880`). The steering limit (δ_max) exists **only in the
   predictor** (the FMU's steering is amplitude-unbounded), calibrated ×1.5 of
@@ -266,16 +273,19 @@ task (0) below (**DONE 2026-06-22** — the empirical instrument). Cart-pole cal
    + re-derive the §7.2 workload bound (full carry-in is 2× pessimistic,
    certified 5 vs empirical 10; limited carry-in m−1 — `tools/rta_solve.py`
    ready), and the theorem `floor ≥ θ − age_bound` ⇒ no crossing.
-3. **Honest predictor** (biggest credibility gap): predict from estimated state +
-   last-sent command (InfoSet pattern, `ContextAware.cpp`). Every predictive
-   policy reads ground truth today. **Verified 2026-06-22 (read-only):** TTPNR/TTV
-   are seeded from the true plant state (`predictHeld(o,…)`, `Simulation.cpp:115`,
-   `o = readOutputs()`), so ttu/hybrid/aguard all rank on an oracle; aguard's
-   comfort tier also uses `comfortUrgencyOracle`. The estimated-info plumbing
-   already exists for *context* metrics (`comfortUrgencyRemote`,
-   `makeContextAwareHonestPolicy`, `e_y_est`/`*_remote` in `VehicleView`) — the
-   task is to extend that pattern to an estimated-state *prediction* (no
-   `ttpnr_est` today) + a safety margin.
+3. **Honest predictor — DONE 2026-06-22 (`*-honest`; PREDICTOR §5e).** Each
+   predictive policy now has an `-honest` twin (`ttu-honest`/`hybrid-honest`/
+   `aguard-honest`) ranking on a rollout seeded from the cloud's **delayed** state
+   (`--pred-staleness MS`, default 16 = worst sensor delay) + a safety margin
+   (`--pred-margin MS`, default 0), via a shared `InfoSet` flag (oracle variants
+   kept for the A/B). Off by default ⇒ baselines byte-identical; `--pred-staleness
+   0` ≡ oracle. **sim-crit/min_pnr stay on the ORACLE rollout** (ground-truth
+   safety). **Result (car, worst, 3 cores, 30 s):** `ttu` is robust (true sim-crit
+   0 through d=100 ms, 1 at d=200); `aguard` is fragile (N=18: 0→**4** at d=16, 14
+   at d=100 — its 15 ms margin can't absorb staleness); `--pred-margin 60` fully
+   restores aguard to 0. Plant-agnostic (cart-pole 2→4). *Remaining (PREDICTOR
+   §6.4):* the honest gap is pure **staleness** — fold in the FMU's own `e_y_est`
+   estimation error (no sensor noise / model error in this deterministic harness).
 4. **Generality breadth:** parameter sweeps (speed/δ_max/net-delay/WCET/cores) on
    *both* plants; the car's zone-tolerance A(zone) (`ZONE_TOLERANCE.md`).
 5. **Close Findings A & B** (per-vehicle θ; prediction-cost instrumentation).
@@ -296,7 +306,7 @@ for s in rm context ttu aguard; do ./build/cps --headless --vehicles 14 --schedu
 Flags: `--scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard`, `--vehicles
 N`, `--cores N`, `--profile 10|12.5|15`, `--duration SEC`, `--exec
 avg|worst|best|pert`, `--overrun kill|skip`, `--guard MS` (hybrid), `--floor MS`
-(aguard), `--tau-crit MS` (sim-criticality, §5 item 0 / PREDICTOR §5d), `--triage`, `--delta-max RAD`, `--net-delay MS`, `--validate-predictor`,
+(aguard), `--tau-crit MS` (sim-criticality, §5 item 0 / PREDICTOR §5d), `--pred-staleness MS`/`--pred-margin MS` (honest predictor, §5 item 3 / PREDICTOR §5e), `--triage`, `--delta-max RAD`, `--net-delay MS`, `--validate-predictor`,
 `--csv FILE`, `--save/--replay FILE`, `--select N`, `--speed X`, `--screenshot[-at]`.
 
 ## 7. Key files

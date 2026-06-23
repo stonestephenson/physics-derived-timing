@@ -28,7 +28,8 @@ struct SimConfig {
 // Information sets: `*_real` fields are ground truth -- a cloud scheduler that
 // reads them is an ORACLE (upper bound only). The information legitimately
 // available in-cloud is the estimator-derived set: e_y_est, rolling_remote,
-// critical_remote, violated_remote.
+// critical_remote, violated_remote -- plus, for the predictive policies, the
+// `*_est_ms` prediction twins (rollouts seeded from delayed state, below).
 struct VehicleView {
     int    id              = 0;
     double velocity        = 0.0;
@@ -56,6 +57,14 @@ struct VehicleView {
     // Recent latch-time command round-trip (ms, ~2 s window; -1 = none yet).
     // Drives the adaptive guard threshold.
     double age_recent_ms   = -1.0;
+    // Honest (delayed-InfoSet) twins of the three prediction fields above: the
+    // same plant rollout seeded from the state the cloud legitimately has
+    // (delayed by the sensor staleness, --pred-staleness) instead of true state.
+    // Filled only when an honest predictive policy is active; left at the
+    // oracle-style sentinels otherwise (no reader). See PREDICTOR.md.
+    double ttv_est_ms      = 500.0;
+    double ttpnr_est_ms    = 500.0;
+    double rescue_clearance_est_m = 1e9;
 };
 
 class Scheduler {
