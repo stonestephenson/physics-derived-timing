@@ -10,6 +10,64 @@ Newest first.
 
 ---
 
+## 2026-06-22 — Related-work / novelty survey: novelty narrows to (A); B/C demoted; a must-cite was missing
+
+**What it is.** Preliminary SOTA/novelty survey of the three candidates (A/B/C,
+see 2026-06-21 entry) — scaffolding for Kurt's verdict, NOT a verdict. Outcome:
+
+- **Thesis ("derive timing from physics") is NOT novel.** The group's own Wilson
+  et al., *Physics-Informed MC Scheduling for F1Tenth Cars*, RTAS 2025 (+ Wilson
+  et al. MEMOCODE'24) already own physics-derived timing + physics-informed
+  criticality (single car, uniprocessor, UPPAAL-checked).
+- **(B) age-tolerance ~1/λ law → established prior; demote to background.**
+  Sudvarg–Clark–Gill RTAS'25 *derive* a certified safe sample-to-actuation delay
+  from the physics (CBF + sum-of-squares); the AoI-control line states the same
+  relationship independently (Etcibasi–Koksal–Ekici 2026, *When Freshness Is Not
+  Enough*: LQR cost ~ `E[a^{2Δ}]`, exponential in staleness for unstable plants),
+  as do MATI (Nešić–Teel) and classical delay-margin. Two independent fields ⇒
+  known. Our only edge is *applicability* (sim-based predictor handles a black-box
+  FMU where CBF/SOS needs a polynomial model) — a method-reach point, not a new idea.
+- **(C) scheduling from estimated state → fold into (A).** Estimation + triggering
+  is mature (observer-based / robust self-triggered ETC); best framed as "(A) still
+  holds under estimated state + a margin," not a standalone leg.
+- **(A) fleet-safety theorem → the ONLY surviving leg.** Claim: *bound from the
+  physics how many of N loops are within reaction-time of their PNR simultaneously
+  (≤ k), compose with a multicore RTA ⇒ m cores keep all N safe — admitting more
+  loops than an "all-critical-at-once" test.*
+
+**Closest prior (a must-cite that was NOT in our collection).** Sudvarg, Clark &
+Gill, *Integrated Real-Time Control and Scheduling for Safety-Critical CPS*, RTAS
+2025 (DOI 10.1109/RTAS65571.2025.00037; free: par.nsf.gov/servlets/purl/10627676).
+Multi-loop control on a shared (multi)processor, **safe-set (CBF) safety not just
+stability**, per-loop max safe period/delay derived from physics, composed with
+multiprocessor schedulability, + Simplex backup — i.e. most of our program, one
+year early. What it does NOT do (room for (A)): a **cross-loop bound on how many
+loops are simultaneously critical**, and a **PNR/recoverability** safety notion.
+Second-closest: Kundu–Quevedo 2019 (arXiv 1901.08353) — N open-loop-unstable plants,
+only M<N served, keep all **stable** by *optimal rotation tuned to each plant's
+instability rate*; no simultaneity bound, and no disturbance/environment structure
+(so "how many critical at once" isn't even a question in their world).
+
+**The single biggest novelty risk.** (A)'s defensibility rests on two questions
+only Kurt can settle: (1) does Sudvarg §IV (pp.316–322, unread) already exploit a
+cross-loop demand/simultaneity bound? (2) does our simultaneity bound admit fleets
+that K–Q-style *optimal* rotation cannot — or does good rotation already get there?
+If either fails, (A) may have no novel leg left.
+
+**Honesty notes.** Survey is AI-scaffolded; Kurt renders the verdict (missed-scoop
+risk is real — "found nothing closer" is weak evidence). `Li et al. RTSS'24` (cited
+in `BOUND.md §5`) could NOT be independently confirmed to exist as described —
+verify the handle. The 5 must-cite PDFs (Sudvarg, Kundu–Quevedo, Etcibasi,
+Wilson-F1Tenth, Wilson-MEMOCODE) are now in `relatedPapers/`.
+
+**Where it lands.** Related-work section (position vs Sudvarg / Kundu–Quevedo /
+AoI-control, plus the context cluster: self-triggered/MATI/mixed-criticality/
+weakly-hard). Motivates the "measure simultaneous criticality" experiment
+(`HANDOFF.md §5` item 0) and frames the paper's lead contribution as the
+simultaneous-criticality device.
+
+---
+
 ## 2026-06-21 — Where the novelty must live (candidate contributions + honesty boundary)
 
 The high-level thesis ("derive timing from physics / more context → better timing

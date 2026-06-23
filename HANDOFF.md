@@ -1,6 +1,6 @@
 # Session Handoff — CPS Challenge Visualizer
 
-Resume point for a fresh agent. Last updated **2026-06-18**.
+Resume point for a fresh agent. Last updated **2026-06-22**.
 
 **Read order:** `CLAUDE.md` (stable bootstrap: invariants, reading map, rules) →
 this file (what's true *now*) → the owning design docs as your task needs them
@@ -159,6 +159,9 @@ change in `AdaptiveGuard.cpp`), then re-sweep floor to confirm it comes alive.
 *Doc:* `PREDICTOR.md §5c` presents aguard without noting this — correct it.
 (Note: the *fixed* hybrid guard IS a real dial — `§5b` is correct; only the
 adaptive coupling swallows the knob.)
+**Verified 2026-06-22 (read-only):** still inert — `AdaptiveGuard.cpp:46-49`
+builds one θ from the **fleet-max** `age_recent_ms` (applied to all jobs at
+`:57`); the per-vehicle fix is unapplied.
 
 **B. Prediction compute cost is never measured or charged — only assumed.**
 The predictor runs in zero sim-time, is not charged to the 3 cores, and uses
@@ -191,11 +194,43 @@ backed by the runs in this finding. Reproduce: `ttu` at N=14 30 s vs 120 s vs
 
 Reframed (post-Guo 2026-06-18) around the main-track generalization paper:
 
-**Existential gate — do before over-investing in experiments: the related-work /
-novelty survey.** Whether there is a paper hinges on whether the candidate
-contributions (A/B/C, see `PAPER_NOTES.md` 2026-06-21) are actually unclaimed vs.
-already done (self-triggered control is the sharpest threat). An AI can *scaffold*
-it; Kurt renders the verdict. A survey prompt was prepared 2026-06-21.
+**Existential gate — DONE (survey complete 2026-06-22; full map + citations:
+`PAPER_NOTES.md` 2026-06-22).** Outcome: the thesis isn't novel (Wilson F1Tenth
+RTAS'25 + MEMOCODE'24 own "derive timing from physics"); **(B)** age-tolerance
+~1/λ is **established prior** (Sudvarg RTAS'25 *proves* it via CBF+SOS; AoI-control
+[Etcibasi'26: cost ~`E[a^{2Δ}]`] + MATI/delay-margin restate it) → demote to
+background; **(C)** folds into (A); **(A)** is the **only surviving leg** — *bound
+from the physics how many of N loops are simultaneously within reaction-time of
+their PNR (≤ k), compose with a multicore RTA ⇒ m cores keep all N safe, admitting
+more loops than an "all-critical-at-once" test.* **Must-cite that was MISSING from
+`relatedPapers/`: Sudvarg–Clark–Gill, "Integrated Real-Time Control and Scheduling
+for Safety-Critical CPS," RTAS 2025** (multi-loop + CBF safe-set safety +
+physics-derived period × multiprocessor schedulability — but NO cross-loop
+simultaneity bound, NO PNR/recoverability notion). Also Kundu–Quevedo'19 (N
+open-loop-unstable plants on M<N channels, keep all *stable* by optimal rotation —
+no simultaneity bound). 5 must-cite PDFs now in `relatedPapers/`. **Make-or-break
+for Kurt:** (1) does Sudvarg §IV (pp.316–322, unread) already bound cross-loop
+simultaneity? (2) does our bound admit fleets that K–Q-style *optimal* rotation
+cannot — or is rotation already enough?
+
+**Reprioritized around (A):** the (A)-serving core is now the **formal leg (item 2
+— prove the simultaneity bound)** + **honest predictor (item 3 — credibility)** +
+the **new task (0) below**. Cart-pole calibration (item 1) and generality breadth
+(item 4) support the *generality* leg (meaningful, not novel) and drop below these.
+
+0. **Measure simultaneous criticality (NEW 2026-06-22 — the empirical core of (A)).**
+   The (A) claim above is currently **unmeasured**. Add a per-base-tick count of
+   vehicles with `ttpnr_ms < τ_crit` (`τ_crit` ≈ one command round-trip, the
+   "must-be-served-now" line), reporting **max + distribution** per run (summary
+   line + `--csv` column). *Why:* empirical shadow of the (A) theorem — support if
+   the count stays ≤ k, **a counterexample (most valuable result) if it exceeds
+   k**; also quantifies headroom ("18 cars, never >3 critical at once ⇒ 3 cores
+   suffice"). *Where:* per-vehicle TTPNR is already computed each tick
+   (`Simulation.cpp::currentPredTicks`) and aggregated per-vehicle (`minTtpnrMs_`,
+   `pastPnrTicks_`, ~`Simulation.cpp:194-199`); add a fleet-wide per-tick counter
+   alongside. Does NOT replace Kurt's proof (sim can refute or fail-to-refute,
+   never guarantee). *Caveat:* **contingent on (A) surviving Kurt's review**; if
+   (A) is scooped/non-viable, deprioritize.
 
 1. **Cart-pole → paper-grade:** calibrate its params (shoveForce/u_max/θ_max,
    ×1.5-style like the car's δ_max) so the headline numbers are publishable; a
@@ -206,7 +241,14 @@ it; Kurt renders the verdict. A survey prompt was prepared 2026-06-21.
    ready), and the theorem `floor ≥ θ − age_bound` ⇒ no crossing.
 3. **Honest predictor** (biggest credibility gap): predict from estimated state +
    last-sent command (InfoSet pattern, `ContextAware.cpp`). Every predictive
-   policy reads ground truth today.
+   policy reads ground truth today. **Verified 2026-06-22 (read-only):** TTPNR/TTV
+   are seeded from the true plant state (`predictHeld(o,…)`, `Simulation.cpp:115`,
+   `o = readOutputs()`), so ttu/hybrid/aguard all rank on an oracle; aguard's
+   comfort tier also uses `comfortUrgencyOracle`. The estimated-info plumbing
+   already exists for *context* metrics (`comfortUrgencyRemote`,
+   `makeContextAwareHonestPolicy`, `e_y_est`/`*_remote` in `VehicleView`) — the
+   task is to extend that pattern to an estimated-state *prediction* (no
+   `ttpnr_est` today) + a safety margin.
 4. **Generality breadth:** parameter sweeps (speed/δ_max/net-delay/WCET/cores) on
    *both* plants; the car's zone-tolerance A(zone) (`ZONE_TOLERANCE.md`).
 5. **Close Findings A & B** (per-vehicle θ; prediction-cost instrumentation).
