@@ -60,8 +60,11 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   Phase-3 evidence, 4 commits) lives on the branch. **Push only to `tempbosch`.
   NEVER push to `origin`** (the Bosch upstream). `relatedPapers/` untracked.
 - Working tree clean after this handoff commit.
-- Builds clean: `cmake --build build -j`. Fidelity gate passes
-  (1.49e-08 m, all 3 profiles). All policy baselines reproduce.
+- Builds clean: `cmake --build build -j`. Fidelity gate passes — `max |dev| =
+  1.490e-08 m` on the trust anchor (`--vehicles 1 rm --exec worst --duration 120
+  --validate-predictor`); the value **scales with lap coverage**, so use that exact
+  command (a shorter run reads smaller — e.g. ~3.7e-09 m at 30 s — still PASS).
+  All 3 profiles PASS; all policy baselines reproduce.
 - **Reproducibility (Guo's directive) — `tools/reproduce.py` (2026-06-23).** One
   command regenerates every scheduling results CSV + prints the table:
   `capacity` / `simcrit` / `honest` / `floor` (§5c) / `tolerance`, all `--exec worst`.
@@ -187,10 +190,11 @@ change in `AdaptiveGuard.cpp`), then re-sweep floor to confirm it comes alive.
 adaptive coupling swallows the knob.)
 **RESOLVED 2026-06-22 (commit `3214880`):** θ is now per-vehicle
 (`AdaptiveGuard.cpp`), so `--floor` is a live knob (floor 0→300: byte-identical →
-distinct schedules at N=14). *Caveat — re-baselines aguard:* the pre-fix headline
-numbers (`PREDICTOR.md §5c` table) were produced by the inert ~max-guard θ and
-need a proper multi-N `--floor` sweep to re-derive (single runs are
-load-dependent / non-monotonic). Default `--floor` kept at 100 (provisional).
+distinct schedules at N=14). **Re-derived 2026-06-23:** the proper multi-N `--floor`
+sweep is done (`tools/reproduce.py floor` → `aguard_sweep.csv`; `PREDICTOR.md §5c`
+table updated) — `--floor` is a confirmed live knob (at N=18 the achieved floor
+tracks it ~1:1). Default `--floor` **settled at 100** (≈115 ms floor at N=18, ≡
+context at light load).
 
 **B. Prediction compute cost — RESOLVED 2026-06-23 (measured; `Simulation.cpp`).**
 `predictHeld` rollouts are now timed and reported per run (`prediction compute:
@@ -214,9 +218,11 @@ geography: over a full lap (120 s, geography averaged out) the contiguous split
 ranked = max-min "serve worst-off") equalizes the fleet (~25% across all). This
 is the classic EDF-overload unfairness/domino effect, and graceful degradation
 via the two-tier structure is the known fix — a crisp result for the paper.
-*Action:* add a "fairness under overload" paragraph to `PREDICTOR.md §5c`,
-backed by the runs in this finding. Reproduce: `ttu` at N=14 30 s vs 120 s vs
-`--cores 6`, and `aguard` N=14.
+*Status (2026-06-23): DE-SCOPED from the doc set* — kept here as a recorded
+finding, deliberately NOT integrated into `PREDICTOR.md §5c`. It is a secondary
+(fairness) result off the critical path; write it up only if the paper needs the
+fairness angle. Repro if/when needed: `ttu` at N=14 30 s vs 120 s vs `--cores 6`,
+and `aguard` N=14.
 
 ### Review triage (2026-06-22, ultrareview cloud review of the branch)
 The ultrareview surfaced 3 findings:

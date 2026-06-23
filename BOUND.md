@@ -161,7 +161,10 @@ matters more than sharpening R.
    solve the fixed points and re-derive the workload bound for this model.
 2. **Offset/harmonic-aware sampling terms**: replace the (T + R − C) gaps with
    exact phase analysis under synchronous release (Li et al. RTSS'24's Δ = k·gcd
-   quantization applies directly; T_A = 30 vs T_M = 20 gives gcd 10).
+   quantization applies directly; T_A = 30 vs T_M = 20 gives gcd 10). **NOTE: the
+   "Li et al. RTSS'24" handle is UNVERIFIED** — not in `relatedPapers/`, flagged
+   by the 2026-06-22 survey; confirm or replace it before citing anywhere (Kurt /
+   formal leg; HANDOFF §4 follow-ups).
 3. **Hold-term sharpening**: the actuator re-latches the *same* stamp if no
    fresher packet arrived; the + T_A term composes with the netCA arrival gap —
    check for double counting (I believe the composition is correct but it is

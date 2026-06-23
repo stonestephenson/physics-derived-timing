@@ -106,6 +106,8 @@ Then by task:
     cmake -B build -S . -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
     ./build/cps --headless --vehicles 6 --scheduler rm --exec worst --duration 30
     ./build/cps --headless --plant cartpole --vehicles 8 --scheduler aguard --exec worst
+    ./build/cps --headless --vehicles 1 --scheduler rm --exec worst --duration 120 --validate-predictor  # gate: 1.490e-08 m (scales w/ run length -> use 120 s)
+    python3 tools/reproduce.py            # regenerate all scheduling CSVs + tables (one command)
     # schedulers: rm | prm | edf | context(oracle) | honest | ttu | hybrid | aguard
     #   (+ ttu/hybrid/aguard-honest: predict from delayed state, not ground truth)
     # plants: lateral (FMU car) | cartpole    other: --overrun, --net-delay MS,
