@@ -54,6 +54,13 @@ struct RunRecording {
     long   durationSteps  = 0;
     int    decimation     = 100;
     long   missedJobs     = 0;
+    // Fleet-wide simultaneous-criticality stats (HANDOFF §5 item 0). Live-only:
+    // set in Simulation::finalizeSummary for the summary line + appendCsv;
+    // intentionally NOT serialized (not needed for replay; no format-version bump).
+    double tauCritMs      = -1.0;
+    long   maxSimCrit     = 0;
+    std::vector<long> simCritHist;   // simCritHist[c] = base-ticks with exactly c critical
+    long   simCritTicks   = 0;
     std::string schedulerName;
     std::vector<long> startOffsets;        // per vehicle
     // Format version this recording was loaded from (current version when

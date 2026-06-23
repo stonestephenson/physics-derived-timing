@@ -48,6 +48,10 @@ struct SimParams {
     // maximum urgency (never give up); true = triage (drop to lowest).
     bool     triage        = false;
     uint64_t seed          = 0;
+    // Simultaneous-criticality threshold (ms): a vehicle is "critical" this tick
+    // when its TTPNR < tauCritMs (~ one command round-trip). Set by --tau-crit.
+    // Measurement only (no scheduler reads it); see HANDOFF §5 item 0 / PREDICTOR.md.
+    double   tauCritMs     = 100.0;
 };
 
 class Simulation {
@@ -113,6 +117,11 @@ private:
     std::vector<long>       ttpnrBaseStep_;
     std::vector<double>     minTtpnrMs_;     // run-min of finite aged TTPNR (-1 = none)
     std::vector<long>       pastPnrTicks_;   // ticks spent at aged TTPNR == 0
+    // Fleet-wide simultaneous criticality (TTPNR < params_.tauCritMs), sampled
+    // every base tick: run-max + dwell-time histogram. Measurement only.
+    long                    maxSimCrit_   = 0;
+    std::vector<long>       simCritHist_;    // simCritHist_[c] = ticks with exactly c critical
+    long                    simCritTicks_ = 0;
 
     // --- Predictor fidelity gate state (params_.validatePredictor) ---
     void validatePredictions();

@@ -47,8 +47,9 @@ pendulum — see `GENERALIZATION.md`), `--vehicles N`,
 `--cores N`, `--profile 10|12.5|15`, `--duration SEC`,
 `--exec avg|worst|best|pert`, `--overrun kill|skip`, `--net-delay MS` (fix
 both network delays, for delay-tolerance sweeps), `--delta-max RAD` +
-`--triage` + `--guard MS` + `--floor MS` + `--validate-predictor` (prediction system, see
-PREDICTOR.md)
+`--triage` + `--guard MS` + `--floor MS` + `--tau-crit MS` + `--validate-predictor`
+(prediction system, see PREDICTOR.md; `--tau-crit` = simultaneous-criticality
+threshold, default 100 ms ≈ one command round-trip — §5d)
 `--seed N`, `--headless`, `--csv FILE` (append per-vehicle summary rows for
 sweeps), `--save FILE`, `--replay FILE`, `--screenshot FILE` with
 `--screenshot-at N`, `--select N`, `--speed X` (aim scripted screenshots).

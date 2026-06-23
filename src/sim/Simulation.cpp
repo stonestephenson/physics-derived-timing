@@ -93,6 +93,9 @@ void Simulation::start() {
     ttpnrBaseStep_.assign(n, -1);
     minTtpnrMs_.assign(n, -1.0);
     pastPnrTicks_.assign(n, 0);
+    maxSimCrit_ = 0;
+    simCritHist_.assign(static_cast<size_t>(n) + 1, 0);
+    simCritTicks_ = 0;
 
     step_ = 0;
     finalized_ = false;
@@ -192,16 +195,23 @@ bool Simulation::step() {
     // 3b. Refresh held-command predictions and accumulate closest-call stats.
     if (step_ % kPredictRefreshTicks == 0)
         refreshPredictions(/*withPnr=*/step_ % kPnrRefreshTicks == 0);
+    int simCrit = 0;
     for (size_t v = 0; v < vehicles_.size(); ++v) {
         if (predBaseStep_[v] < 0) continue;
         long ttv, ttpnr;
         currentPredTicks(static_cast<int>(v), ttv, ttpnr);
+        const double ms = ttpnr * dt_ * 1000.0;
         if (ttpnr < predParams_.horizonTicks) {
-            const double ms = ttpnr * dt_ * 1000.0;
             if (minTtpnrMs_[v] < 0.0 || ms < minTtpnrMs_[v]) minTtpnrMs_[v] = ms;
             if (ttpnr == 0) ++pastPnrTicks_[v];
         }
+        // Simultaneous criticality: within one command round-trip of PNR (incl.
+        // past-PNR, ttpnr==0). Horizon-sentinel cars have ms = horizon > tau_crit.
+        if (ms < params_.tauCritMs) ++simCrit;
     }
+    ++simCritTicks_;
+    if (simCrit < static_cast<int>(simCritHist_.size())) ++simCritHist_[simCrit];
+    if (simCrit > maxSimCrit_) maxSimCrit_ = simCrit;
 
     // 4. Record a decimated frame.
     if (step_ % params_.decimation == 0) recordFrame(t);
@@ -303,6 +313,10 @@ void Simulation::finalizeSummary() {
         s.past_pnr_ticks = pastPnrTicks_[v];
     }
     rec_.missedJobs = scheduler_->missedJobs();
+    rec_.tauCritMs    = params_.tauCritMs;
+    rec_.maxSimCrit   = maxSimCrit_;
+    rec_.simCritHist  = simCritHist_;
+    rec_.simCritTicks = simCritTicks_;
     finalized_ = true;
 }
 
@@ -346,6 +360,26 @@ void Simulation::runToCompletion(bool verbose) {
         if (worstAgeMs >= 0.0)
             std::printf("  worst-case data age: %.2f ms (freshest) / %.2f ms (path)\n",
                         worstAgeMs, worstAgeOldMs);
+        // Simultaneous criticality (HANDOFF §5 item 0): empirical shadow of leg (A).
+        {
+            long over = 0;
+            for (int c = params_.nCores + 1; c < static_cast<int>(simCritHist_.size()); ++c)
+                over += simCritHist_[c];
+            const double fracOver = simCritTicks_ > 0
+                ? 100.0 * static_cast<double>(over) / static_cast<double>(simCritTicks_) : 0.0;
+            std::printf("  simultaneous criticality (tau_crit=%.0f ms): max %ld of %d | "
+                        "cores=%d | >cores for %.2f%% of run\n",
+                        params_.tauCritMs, maxSimCrit_, rec_.nVehicles, params_.nCores, fracOver);
+            std::printf("    sim-crit dist (ticks):");
+            for (int c = 0; c <= maxSimCrit_ && c < static_cast<int>(simCritHist_.size()); ++c)
+                std::printf(" %d:%ld", c, simCritHist_[c]);
+            std::printf("\n");
+            if (maxSimCrit_ > params_.nCores)
+                std::printf("  ** %ld loops simultaneously within tau_crit of PNR exceeds %d "
+                            "cores -- more critical loops than cores at some instant "
+                            "(candidate (A) counterexample; investigate) **\n",
+                            maxSimCrit_, params_.nCores);
+        }
         if (params_.validatePredictor) {
             if (params_.plant != PlantKind::Lateral) {
                 std::printf("  predictor validation: skipped (FMU-port gate; this "

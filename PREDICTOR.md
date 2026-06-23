@@ -251,6 +251,62 @@ than the best classic policy — on a single untouched default.** The
 two-cars-one-core stress scenario (N=2, 1 core, `--net-delay 60`) stays
 breach-free with a 180 ms floor. Data: `aguard_sweep.csv`.
 
+## 5d. Simultaneous criticality: the empirical (A)-shadow (2026-06-22)
+
+The fleet-safety thesis (leg **A**, `PAPER_NOTES.md` 2026-06-22) claims the
+physics bounds **how many of N loops are within reaction-time of their PNR at
+once** (≤ k); compose with a multicore RTA ⇒ m cores keep all N safe. This is the
+empirical instrument for that claim. It does **not** prove it — a sim refutes or
+fails-to-refute; the bound is Kurt's — but it measures the realized count.
+
+**Definition.** Every base tick (0.1 ms) a vehicle is **critical** iff its aged
+`ttpnr_ms < τ_crit`, where τ_crit ≈ **one command round-trip** = the time to
+compute + deliver a *fresh* command (the "must-be-served-now" line: below it,
+acting later cannot help). Default **100 ms** (≈ the uncontended `age_path`),
+overridable/sweepable via `--tau-crit MS`. We report the run-**max** simultaneous
+count, a dwell-time histogram (`sim-crit dist`), and the `>cores` %, plus a loud
+line when max > cores (more loops need serving *now* than cores exist). Modeling
+choices (measurement only — no scheduler reads it): τ_crit is a **fixed system
+constant**, not each car's live round-trip (circular — a starved car's RTT is
+huge *because* unserved); the count is the literal `ttpnr<τ_crit` **including
+past-PNR** (ttpnr=0), which in the no-crash regime equals "a-core-now-saves-it";
+plant-agnostic (reads `currentPredTicks` → `plant->predictHeld`).
+
+**Result (car, worst exec, 3 cores, 30 s, τ_crit = 100 ms):**
+
+| N  | rm (TTPNR-blind)      | ttu   | aguard |
+|----|-----------------------|-------|--------|
+| 6  | 0                     | 0     | 0      |
+| 14 | **7** (>cores 73.6 %) | **0** | **0**  |
+| 18 | **12** (>cores 98 %)  | **0** | **0**  |
+
+Physics-blind RM lets 7–12 loops pile within 100 ms of PNR simultaneously — far
+past 3 cores. The TTPNR-aware schedulers hold the whole fleet at **0**: at N=18
+aguard's *worst* car stays ≥ 115 ms from PNR (ttu N=14: ≥ 185 ms), zero hard
+breaches. So 3 cores suffice to keep every car out of the must-serve-now zone —
+the (A) claim's empirical shadow, **unrefuted here** for the predictive policies.
+(RM > cores is the physics-blind baseline contrast, **not** a refutation of A: a
+better scheduler achieves k = 0.)
+
+**Honesty caveat — `sim-crit = 0` ≠ well-controlled.** aguard holds 0 critical at
+N=18 while delivering up to **26 s-stale** data and 43–55 % soft violations: the
+cars sit in a high-error-but-still-recoverable band, far from PNR but badly
+tracked. This metric is **distance-to-PNR simultaneity, not control quality or
+freshness.** The margin is thin and quantified — `--tau-crit 150` already makes 1
+car critical at aguard N=18 (worst car 115 ms, 15 ms above the line).
+
+**Generality — a different leg (cart-pole).** On the unstable plant aguard does
+**not** contain it: N=16 → max **10** (>cores 0.79 %), even N=8 → max **2** (vs
+the car's 0). The razor cliff (`PAPER_NOTES.md` 2026-06-18) pushes more loops
+critical at once — confirming the two plants bind on different legs (car on
+scheduling, cart-pole on physics). *Caveat:* cart-pole params are first-pass /
+uncalibrated; the contrast is qualitative.
+
+**Repro.** `for s in rm ttu aguard; do for n in 6 14 18; do ./build/cps --headless
+--vehicles $n --scheduler $s --exec worst --duration 30; done; done` (τ_crit knob:
+add `--tau-crit 50|150`; cart-pole: `--plant cartpole`; CSV cols
+`tau_crit_ms,max_sim_crit,sim_crit_over_cores_pct` via `--csv`).
+
 ## 6. Open items
 
 1. ~~Adaptive guard~~ — done (§5c). Remaining refinement: per-vehicle θ_v

@@ -10,6 +10,52 @@ Newest first.
 
 ---
 
+## 2026-06-22 — Simultaneous-criticality metric: the empirical (A)-shadow (implemented)
+
+**What it is.** `HANDOFF §5 item 0` built: a per-base-tick count of vehicles with
+`ttpnr_ms < τ_crit` (τ_crit ≈ one command round-trip; `--tau-crit`, default
+100 ms), reporting run-max + dwell-histogram (summary line + 3 CSV columns). The
+empirical instrument for leg **(A)** — measures the realized count of loops
+simultaneously within reaction-time of their PNR. Measurement-only (no scheduler
+reads it; all baselines byte-identical, fidelity gate still 1.490e-08 m).
+
+**Headline (car, worst exec, 3 cores, 30 s, τ_crit = 100 ms).** TTPNR-blind RM
+lets **7 loops (N=14) / 12 (N=18)** sit within 100 ms of PNR at once — far past 3
+cores. TTPNR-aware **ttu and aguard hold it to 0 at every N** (worst car ≥ 115 ms
+from PNR at aguard N=18, ≥ 185 ms at ttu N=14; zero hard breaches) ⇒ 3 cores
+suffice to keep the whole fleet out of the must-serve-now zone under the
+physics-derived schedulers; the physics-blind one drowns. Fails to refute (A) for
+the predictive policies.
+
+**Caveat (do NOT oversell).** `sim-crit = 0` ≠ fleet fine: aguard N=18 keeps 0
+critical while feeding cars **26 s-stale data + 43–55 % soft violations** — a
+high-error-but-recoverable band. The metric is **distance-to-PNR simultaneity,
+not control quality.** Margin is thin: `--tau-crit 150` → 1 critical at aguard
+N=18. RM > cores is the physics-blind baseline contrast, **not** an (A)
+counterexample (a better policy gets k = 0).
+
+**Generality (different leg).** Cart-pole: aguard does NOT contain it — N=16 max
+**10** (>cores 0.79 %), N=8 max **2**; RM N=16 max 10 (99 %). The unstable plant's
+sharp cliff makes more loops critical at once ⇒ car binds on scheduling, cart-pole
+on physics. (Cart-pole params uncalibrated — qualitative.)
+
+**Open / contingent.** This is the empirical shadow, **not** the theorem — still
+contingent on (A) surviving Kurt (does the physics actually bound k? is k < m
+achievable where a naive "all-critical-at-once" test fails?). The real (A) test is
+whether the *best* predictive policy can be forced past cores while loops are
+still recoverable: on the car it cannot through N=18; on the (uncalibrated)
+cart-pole it can at N=16.
+
+**Evidence / repro.** `for s in rm ttu aguard; do for n in 6 14 18; do ./build/cps
+--headless --vehicles $n --scheduler $s --exec worst --duration 30; done; done`
+(+ `--tau-crit`, `--plant cartpole`, `--csv`). Details: `PREDICTOR.md §5d`.
+
+**Where it lands.** The lead-contribution experiment for (A): "N loops, m cores,
+never more than k critical at once" — the headline scheduling figure, paired with
+the honest "distance-to-PNR ≠ control-quality" caveat.
+
+---
+
 ## 2026-06-22 — Related-work / novelty survey: novelty narrows to (A); B/C demoted; a must-cite was missing
 
 **What it is.** Preliminary SOTA/novelty survey of the three candidates (A/B/C,

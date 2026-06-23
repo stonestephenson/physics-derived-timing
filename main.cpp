@@ -85,17 +85,26 @@ void appendCsv(const std::string& path, const RunRecording& rec,
     if (std::ftell(f) == 0)
         std::fprintf(f, "scheduler,profile,vehicles,cores,exec,overrun,net_delay_ms,seed,"
                         "duration_s,missed_jobs,veh,avg_perf,max_roll,soft_pct,hard,"
-                        "max_age_fresh_ms,max_age_path_ms,min_ttpnr_ms,past_pnr_ms\n");
+                        "max_age_fresh_ms,max_age_path_ms,min_ttpnr_ms,past_pnr_ms,"
+                        "tau_crit_ms,max_sim_crit,sim_crit_over_cores_pct\n");
+    // Per-run simultaneous-criticality scalars, repeated on each vehicle row
+    // (like missed_jobs / duration_s). fracOver = % of ticks with > nCores critical.
+    long simOver = 0;
+    for (int c = rec.nCores + 1; c < static_cast<int>(rec.simCritHist.size()); ++c)
+        simOver += rec.simCritHist[c];
+    const double fracOver = rec.simCritTicks > 0
+        ? 100.0 * static_cast<double>(simOver) / static_cast<double>(rec.simCritTicks) : 0.0;
     for (int v = 0; v < rec.nVehicles; ++v) {
         const VehicleSummary& s = rec.summary[v];
-        std::fprintf(f, "%s,%s,%d,%d,%s,%s,%.2f,%llu,%.3f,%ld,%d,%.6f,%.6f,%.4f,%d,%.2f,%.2f,%.2f,%.1f\n",
+        std::fprintf(f, "%s,%s,%d,%d,%s,%s,%.2f,%llu,%.3f,%ld,%d,%.6f,%.6f,%.4f,%d,%.2f,%.2f,%.2f,%.1f,%.0f,%ld,%.2f\n",
                      scheduler.c_str(), profileName(static_cast<Profile>(rec.profile)),
                      rec.nVehicles, rec.nCores, exec.c_str(), overrun.c_str(),
                      netDelayMs, static_cast<unsigned long long>(seed), rec.duration(),
                      rec.missedJobs, v, s.average_real, s.max_rolling_real,
                      s.soft_violation_pct, s.hard_violations,
                      s.max_data_age_ms, s.max_data_age_oldest_ms,
-                     s.min_ttpnr_ms, s.past_pnr_ticks * rec.baseStep * 1000.0);
+                     s.min_ttpnr_ms, s.past_pnr_ticks * rec.baseStep * 1000.0,
+                     rec.tauCritMs, rec.maxSimCrit, fracOver);
     }
     std::fclose(f);
 }
@@ -137,6 +146,9 @@ void usage() {
         "                               enters the emergency tier (default 150)\n"
         "  --floor MS                   aguard only: target safety floor; the guard\n"
         "                               self-tunes to floor + live round-trip (default 100)\n"
+        "  --tau-crit MS                simultaneous-criticality threshold: a car is\n"
+        "                               'critical' when TTPNR < MS (~1 round-trip; default\n"
+        "                               100). Reports max # critical at once vs cores.\n"
         "  --validate-predictor         predictor fidelity gate (see PREDICTOR.md)\n"
         "  --seed N                     RNG seed for pert mode (default 0)\n"
         "  --headless                   run without the GUI, print metrics\n"
@@ -187,6 +199,7 @@ int main(int argc, char** argv) {
         params.netDelayMs    = std::atof(argValue(argc, argv, "--net-delay", "-1"));
         params.validatePredictor = hasFlag(argc, argv, "--validate-predictor");
         params.deltaMax      = std::atof(argValue(argc, argv, "--delta-max", "-1"));
+        params.tauCritMs     = std::atof(argValue(argc, argv, "--tau-crit", "100"));
         params.triage        = hasFlag(argc, argv, "--triage");
         const double guardMs = std::atof(argValue(argc, argv, "--guard", "150"));
         const double floorMs = std::atof(argValue(argc, argv, "--floor", "100"));

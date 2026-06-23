@@ -109,6 +109,12 @@ fixed guard, `aguard` = guard that tunes itself.
   — a 2× gap that is full-carry-in pessimism, so the limited-carry-in
   re-derivation (§7.4 item 2) is the critical path. The solver corrected §7.3's
   wrong v5 R's (107/129/117 → 117/203/152) and the false "P1 certified at N=6".
+- **Simultaneous criticality (`--tau-crit`, §5 item 0 / PREDICTOR §5d):** at
+  τ_crit=100 ms, TTPNR-blind RM puts **7 (N=14) / 12 (N=18)** loops within
+  reaction-time of PNR at once (≫ 3 cores); ttu/aguard hold it to **0** at all N
+  (worst car ≥115 ms from PNR, zero hard). The empirical (A)-shadow — but
+  sim-crit=0 ≠ well-controlled (aguard N=18 holds 0 on 26 s-stale data). Cart-pole
+  differs: aguard N=16 max 10.
 
 ## 3. Key facts — do NOT re-derive or violate these
 
@@ -233,22 +239,25 @@ cannot — or is rotation already enough?
 
 **Reprioritized around (A):** the (A)-serving core is now the **formal leg (item 2
 — prove the simultaneity bound)** + **honest predictor (item 3 — credibility)** +
-the **new task (0) below**. Cart-pole calibration (item 1) and generality breadth
+task (0) below (**DONE 2026-06-22** — the empirical instrument). Cart-pole calibration (item 1) and generality breadth
 (item 4) support the *generality* leg (meaningful, not novel) and drop below these.
 
-0. **Measure simultaneous criticality (NEW 2026-06-22 — the empirical core of (A)).**
-   The (A) claim above is currently **unmeasured**. Add a per-base-tick count of
-   vehicles with `ttpnr_ms < τ_crit` (`τ_crit` ≈ one command round-trip, the
-   "must-be-served-now" line), reporting **max + distribution** per run (summary
-   line + `--csv` column). *Why:* empirical shadow of the (A) theorem — support if
-   the count stays ≤ k, **a counterexample (most valuable result) if it exceeds
-   k**; also quantifies headroom ("18 cars, never >3 critical at once ⇒ 3 cores
-   suffice"). *Where:* per-vehicle TTPNR is already computed each tick
-   (`Simulation.cpp::currentPredTicks`) and aggregated per-vehicle (`minTtpnrMs_`,
-   `pastPnrTicks_`, ~`Simulation.cpp:194-199`); add a fleet-wide per-tick counter
-   alongside. Does NOT replace Kurt's proof (sim can refute or fail-to-refute,
-   never guarantee). *Caveat:* **contingent on (A) surviving Kurt's review**; if
-   (A) is scooped/non-viable, deprioritize.
+0. **Measure simultaneous criticality — DONE 2026-06-22 (`--tau-crit`; PREDICTOR §5d).**
+   Per-base-tick count of vehicles with `ttpnr_ms < τ_crit` (τ_crit ≈ one command
+   round-trip; `--tau-crit MS`, default 100); reports run-max + dwell-histogram
+   (summary line + CSV cols `tau_crit_ms,max_sim_crit,sim_crit_over_cores_pct`) and
+   a loud flag when max > cores. Measurement-only (baselines byte-identical, gate
+   1.490e-08 m). **Result (car, worst, 3 cores, 30 s, τ=100):** TTPNR-blind RM lets
+   **7 (N=14) / 12 (N=18)** loops within 100 ms of PNR at once (≫ 3 cores); **ttu &
+   aguard hold it to 0 at all N** (worst car ≥115 ms aguard N=18 / ≥185 ms ttu N=14,
+   zero hard) ⇒ 3 cores keep the fleet out of the critical zone; fails to refute (A)
+   for the predictive policies. **Caveat:** sim-crit=0 ≠ fine — aguard N=18 holds 0
+   while feeding 26 s-stale data + 43–55 % soft viol; the metric is distance-to-PNR
+   simultaneity, not control quality (margin thin: τ=150 → 1 critical). **Cart-pole
+   differs (different leg):** aguard N=16 max 10 (>cores 0.79 %), N=8 max 2 — sharp
+   physics, more loops critical at once (params uncalibrated). Full writeup
+   `PREDICTOR.md §5d` + `PAPER_NOTES.md` 2026-06-22.
+   *Still contingent on (A) surviving Kurt — the sim is its shadow, not the proof.*
 
 1. **Cart-pole → paper-grade:** calibrate its params (shoveForce/u_max/θ_max,
    ×1.5-style like the car's δ_max) so the headline numbers are publishable; a
@@ -287,7 +296,7 @@ for s in rm context ttu aguard; do ./build/cps --headless --vehicles 14 --schedu
 Flags: `--scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard`, `--vehicles
 N`, `--cores N`, `--profile 10|12.5|15`, `--duration SEC`, `--exec
 avg|worst|best|pert`, `--overrun kill|skip`, `--guard MS` (hybrid), `--floor MS`
-(aguard), `--triage`, `--delta-max RAD`, `--net-delay MS`, `--validate-predictor`,
+(aguard), `--tau-crit MS` (sim-criticality, §5 item 0 / PREDICTOR §5d), `--triage`, `--delta-max RAD`, `--net-delay MS`, `--validate-predictor`,
 `--csv FILE`, `--save/--replay FILE`, `--select N`, `--speed X`, `--screenshot[-at]`.
 
 ## 7. Key files
