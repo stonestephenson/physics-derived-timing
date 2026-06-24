@@ -6,6 +6,8 @@
 
 #include "raylib.h"
 #include "fmu/FmuVariables.h"
+#include "sim/CartPolePlant.h"
+#include "sim/Plant.h"
 #include "sim/Simulation.h"
 
 namespace cps {
@@ -23,15 +25,56 @@ inline Color lerpC(Color a, Color b, float u) {
 }
 
 // Green within comfort, ramping to red at the hard safety bound, dark beyond.
-inline Color errorColor(float absEy) {
-    if (absEy <= (float)vr::kSoftBound)
+// Bounds are passed in so the same ramp serves the car (0.8/0.2 m) and the
+// cart-pole (theta_hard/theta_soft rad).
+inline Color errorColor(float absErr, float soft, float hard) {
+    if (absErr <= soft)
         return lerpC(Color{60, 200, 90, 255}, Color{235, 200, 60, 255},
-                     absEy / (float)vr::kSoftBound);
-    if (absEy <= (float)vr::kHardBound)
+                     soft > 0 ? absErr / soft : 0.0f);
+    if (absErr <= hard)
         return lerpC(Color{235, 200, 60, 255}, Color{230, 60, 50, 255},
-                     (absEy - (float)vr::kSoftBound) /
-                         (float)(vr::kHardBound - vr::kSoftBound));
+                     hard > soft ? (absErr - soft) / (hard - soft) : 0.0f);
     return Color{150, 30, 30, 255};
+}
+
+// Shared prediction-overlay renderer — single-sourced across the car and
+// cart-pole views so the two cannot drift. Walks the plant-agnostic Prediction
+// and draws the dashed predicted-error polyline, the TTV crossing ring, the PNR
+// diamond, and the rescue trajectory. place(k) maps sample k of pred.e_y to its
+// final draw-space point (raylib Vector2, already y-flipped/projected by the
+// caller); placeRescue(k) maps rescue sample k. Bounds/widths/horizon come from st.
+struct OverlayStyle {
+    float lineW = 2.0f, markerR = 6.0f, rescueW = 1.6f, fade = 0.9f;
+    float soft = (float)vr::kSoftBound, hard = (float)vr::kHardBound;
+    long  horizonTicks = 5000;
+};
+// place(k)/placeRescue(k) map sample k to a draw-space Vector2; drawTtv(iv)/
+// drawPnr(ip) render the crossing / PNR markers in each view's own idiom (the car:
+// ring + diamond; the cart-pole: ghost poles). The walk itself -- dash cadence,
+// sample->marker index math, horizon gate, rescue dashes -- is single-sourced.
+template <class PlaceFn, class RescueFn, class TtvFn, class PnrFn>
+void drawPredictionOverlay(const Prediction& pred, const OverlayStyle& st,
+                           PlaceFn place, RescueFn placeRescue,
+                           TtvFn drawTtv, PnrFn drawPnr) {
+    if (pred.e_y.size() < 2) return;
+    const long stride = std::max<long>(1, pred.strideTicks);
+    constexpr size_t kDash = 3, kGap = 2;      // dashed predicted-error line
+    for (size_t k = 0; k + 1 < pred.e_y.size(); ++k) {
+        if (k % (kDash + kGap) >= kDash) continue;
+        const Color c = Fade(errorColor(std::fabs(pred.e_y[k]), st.soft, st.hard), st.fade);
+        DrawLineEx(place(k), place(k + 1), st.lineW, c);
+    }
+    if (pred.ttvTicks < st.horizonTicks)       // predicted hard-bound crossing
+        drawTtv(std::min(pred.e_y.size() - 1, static_cast<size_t>(pred.ttvTicks / stride)));
+    if (pred.ttpnrTicks < st.horizonTicks)     // point of no return
+        drawPnr(std::min(pred.e_y.size() - 1, static_cast<size_t>(pred.ttpnrTicks / stride)));
+    if (!pred.rescue_e_y.empty() && pred.rescueFromTick >= 0) {
+        for (size_t k = 0; k + 1 < pred.rescue_e_y.size(); ++k) {
+            if (k % 5 >= 3) continue;          // 3-on / 2-off dash, distinct cadence
+            DrawLineEx(placeRescue(k), placeRescue(k + 1), st.rescueW,
+                       Color{90, 220, 220, 220});
+        }
+    }
 }
 
 const Color kBg{18, 18, 24, 255};
@@ -47,6 +90,7 @@ Visualizer::Visualizer(std::shared_ptr<Trajectory> traj, const VizConfig& cfg)
 void Visualizer::replay(const RunRecording& rec) {
     rec_ = &rec;
     sim_ = nullptr;
+    cartPole_ = (rec_->plantKind == static_cast<int>(PlantKind::CartPole));
     cursor_ = 0.0;
     loop();
 }
@@ -54,6 +98,7 @@ void Visualizer::replay(const RunRecording& rec) {
 void Visualizer::live(Simulation& sim) {
     sim_ = &sim;
     rec_ = &sim.recording();
+    cartPole_ = (rec_->plantKind == static_cast<int>(PlantKind::CartPole));
     cursor_ = 0.0;
     loop();
 }
@@ -82,19 +127,22 @@ void Visualizer::loop() {
     InitWindow(cfg_.screenW, cfg_.screenH, "CPS Challenge Visualizer");
     SetTargetFPS(cfg_.targetFps);
 
-    // Downsample the lap into a centerline + normal polyline for the track.
-    const long n = traj_->lapSteps();
-    const long step = std::max<long>(1, n / 4000);
-    for (long i = 0; i < n; i += step) {
-        trackPos_.push_back(traj_->pointAt(i));
-        trackNrm_.push_back(traj_->normalAt(i));
-    }
-    trackPos_.push_back(traj_->pointAt(0));   // close the loop
-    trackNrm_.push_back(traj_->normalAt(0));
+    // Downsample the lap into a centerline + normal polyline for the track
+    // (car view only; the cart-pole view has no track geometry).
+    if (!cartPole_) {
+        const long n = traj_->lapSteps();
+        const long step = std::max<long>(1, n / 4000);
+        for (long i = 0; i < n; i += step) {
+            trackPos_.push_back(traj_->pointAt(i));
+            trackNrm_.push_back(traj_->normalAt(i));
+        }
+        trackPos_.push_back(traj_->pointAt(0));   // close the loop
+        trackNrm_.push_back(traj_->normalAt(0));
 
-    const Vec2 mn = traj_->minBound();
-    const Vec2 mx = traj_->maxBound();
-    trackCenter_ = {(mn.x + mx.x) * 0.5f, (mn.y + mx.y) * 0.5f};
+        const Vec2 mn = traj_->minBound();
+        const Vec2 mx = traj_->maxBound();
+        trackCenter_ = {(mn.x + mx.x) * 0.5f, (mn.y + mx.y) * 0.5f};
+    }
 
     long frameCount = 0;
     while (!WindowShouldClose()) {
@@ -167,6 +215,12 @@ void Visualizer::updateCursor() {
 }
 
 void Visualizer::drawScene() {
+    if (cartPole_) drawCartPoleScene();
+    else           drawCarScene();
+}
+
+// The car / lateral world view: top-down track + vehicles + spatial prediction.
+void Visualizer::drawCarScene() {
     const int sw = GetScreenWidth(), sh = GetScreenHeight();
     const float availH = std::max(100, sh - 150);
 
@@ -196,6 +250,120 @@ void Visualizer::drawScene() {
     EndMode2D();
 }
 
+// The cart-pole world view: a cart on a horizontal rail with a pole hinged at
+// angle theta, the +-theta_soft / +-theta_hard bound rays (the lane-ring
+// analogue), and a fleet row of per-vehicle theta indicators. Angles are drawn
+// true-to-physics (theta_hard ~= 12 deg is directly visible, unlike the car's
+// cm-scale lateral error, so no exaggeration). The prediction overlay (ghost
+// poles + rescue + strip) is layered on in drawCartPolePrediction().
+void Visualizer::drawCartPoleScene() {
+    const int sw = GetScreenWidth(), sh = GetScreenHeight();
+    const float sceneH = std::max(120.0f, (float)sh - 150.0f);
+    const int nVeh = rec_->nVehicles;
+    if (availableFrames() <= 0 || rec_->frames[selected_].empty()) return;
+
+    const float thHard = (float)rec_->hardBoundVal;   // theta crash bound (rad)
+    const float thSoft = (float)rec_->softBoundVal;   // theta comfort bound (rad)
+
+    const Frame& f = rec_->frames[selected_][gFrame];
+    const float theta = f.e_y_real;        // pole angle from vertical (rad)
+    const float cartX = f.phys[0];         // cart position on the rail (m)
+
+    const float cx = sw * 0.5f;
+    const float railY = sceneH * 0.66f;
+    const float Lpx = sceneH * 0.46f;      // pole length (px)
+    const float railHalf = sw * 0.34f;
+    const float hx = cx + std::clamp(cartX / 2.0f, -1.0f, 1.0f) * railHalf;  // +-2 m
+    const float hy = railY - 12.0f;        // hinge at the cart top
+    const Vector2 hinge{hx, hy};
+    auto poleTip = [&](float a, float len) {
+        return Vector2{hx + len * std::sin(a), hy - len * std::cos(a)};
+    };
+
+    // Rail + vertical (theta = 0) reference.
+    DrawLineEx(Vector2{cx - railHalf - 30, railY}, Vector2{cx + railHalf + 30, railY},
+               3.0f, Color{90, 90, 110, 255});
+    DrawLineEx(hinge, Vector2{hx, hy - Lpx}, 1.0f, Color{80, 80, 95, 110});
+
+    // Bound rays: +-theta_soft (faint) and +-theta_hard (stronger) -- the analogue
+    // of the car's 0.2/0.8 m lane rings.
+    const Color cSoftRay{220, 195, 70, 90}, cHardRay{210, 70, 60, 160};
+    DrawLineEx(hinge, poleTip(+thSoft, Lpx), 1.5f, cSoftRay);
+    DrawLineEx(hinge, poleTip(-thSoft, Lpx), 1.5f, cSoftRay);
+    DrawLineEx(hinge, poleTip(+thHard, Lpx), 2.0f, cHardRay);
+    DrawLineEx(hinge, poleTip(-thHard, Lpx), 2.0f, cHardRay);
+    {
+        const Vector2 tR = poleTip(+thHard, Lpx + 4), tL = poleTip(-thHard, Lpx + 4);
+        DrawText("+th_hard", (int)tR.x + 4, (int)tR.y - 6, 14, Color{210, 90, 80, 220});
+        DrawText("-th_hard", (int)tL.x - 70, (int)tL.y - 6, 14, Color{210, 90, 80, 180});
+    }
+
+    // Held-command prediction (ghost poles + rescue), drawn behind the live pole.
+    drawCartPolePrediction(hx, hy, Lpx, thSoft, thHard);
+
+    // The live pole, colored by |theta| proximity to the hard bound.
+    const Color poleC = errorColor(std::fabs(theta), thSoft, thHard);
+    DrawLineEx(hinge, poleTip(theta, Lpx), 5.0f, poleC);
+    DrawCircleV(poleTip(theta, Lpx), 7.0f, poleC);
+
+    // The cart + hinge pin.
+    DrawRectangleRec(Rectangle{hx - 28, railY - 12, 56, 24}, Color{90, 200, 255, 230});
+    DrawCircleV(hinge, 4.0f, Color{20, 20, 28, 255});
+
+    // Fleet row: one small tilted tick per vehicle, selected highlighted.
+    const float rowY = sceneH - 22.0f, fl = 24.0f;
+    for (int v = 0; v < nVeh; ++v) {
+        if (rec_->frames[v].empty()) continue;
+        const float th = rec_->frames[v][gFrame].e_y_real;
+        const float fx = sw * (v + 1.0f) / (nVeh + 1.0f);
+        const bool sel = (v == selected_);
+        const Vector2 base{fx, rowY};
+        DrawLineEx(base, Vector2{fx + fl * std::sin(th), rowY - fl * std::cos(th)},
+                   sel ? 3.0f : 2.0f, errorColor(std::fabs(th), thSoft, thHard));
+        DrawCircleV(base, 2.5f, Color{90, 90, 110, 255});
+        char lbl[8];
+        std::snprintf(lbl, sizeof lbl, "%d", v);
+        DrawText(lbl, (int)fx - 4, (int)rowY + 6, 12,
+                 sel ? Color{255, 255, 255, 230} : Color{150, 150, 165, 200});
+    }
+}
+
+// Held-command prediction in pole-angle space (shares the plant-agnostic
+// Prediction with the car). The held-theta tip trajectory traces where the pole
+// would tip if the command froze (the angle analogue of the car's dotted path);
+// a red ghost pole marks the predicted hard-bound crossing (TTV), an orange
+// ghost pole the point of no return (PNR) -- typically INSIDE theta_hard, the
+// razor-thin deadline -- and a cyan arc sweeps the latest successful rescue.
+void Visualizer::drawCartPolePrediction(float hx, float hy, float Lpx,
+                                        float thSoft, float thHard) {
+    const Prediction* pred = currentPrediction();
+    if (!pred || pred->e_y.size() < 2) return;
+    const Vector2 hinge{hx, hy};
+    auto tip = [&](float a) { return Vector2{hx + Lpx * std::sin(a), hy - Lpx * std::cos(a)}; };
+
+    OverlayStyle st;                       // screen-space widths (no zoom divide)
+    st.lineW = 2.0f; st.rescueW = 1.8f; st.fade = 0.6f;
+    st.soft = thSoft; st.hard = thHard;
+    st.horizonTicks = PredictParams{}.horizonTicks;
+    // The SAME shared walk as the car; only the placement (pole tips, not track
+    // points) and the markers (ghost poles, not ring/diamond) differ. The held-theta
+    // tip trajectory is the angle analogue of the car's dotted predicted path.
+    drawPredictionOverlay(*pred, st,
+        [&](size_t k) { return tip(pred->e_y[k]); },
+        [&](size_t k) { return tip(pred->rescue_e_y[k]); },   // sweep (if the plant emits it)
+        [&](size_t iv) {                   // TTV ghost pole (red): predicted crossing
+            DrawLineEx(hinge, tip(pred->e_y[iv]), 2.5f, Color{255, 60, 50, 150});
+            DrawCircleV(tip(pred->e_y[iv]), 5.0f, Color{255, 60, 50, 200});
+        },
+        [&](size_t ip) {                   // PNR ghost pole (orange): the deadline
+            const Vector2 pt = tip(pred->e_y[ip]);
+            DrawLineEx(hinge, pt, 3.0f, Color{255, 160, 40, 220});
+            DrawCircleV(pt, 6.0f, Color{255, 160, 40, 240});
+            // Below-right of the tip so it clears the +-th_hard ray labels.
+            DrawText("PNR", (int)pt.x + 8, (int)pt.y + 8, 14, Color{255, 160, 40, 240});
+        });
+}
+
 const Prediction* Visualizer::currentPrediction() {
     if (rec_->frames[selected_].empty()) return nullptr;
     if (sim_ && !sim_->finished())
@@ -206,11 +374,29 @@ const Prediction* Visualizer::currentPrediction() {
     if (rec_->loadedVersion < 4) return nullptr;
     if (replayPredVeh_ != selected_ || replayPredFrame_ != gFrame) {
         const Frame& f = rec_->frames[selected_][gFrame];
-        double x0[6];
-        for (int i = 0; i < 6; ++i) x0[i] = f.phys[i];
-        // f.refStep is already the wrapped trajectory index (offset included),
-        // so it serves directly as the rollout's input index base.
-        replayPred_ = predictHold(x0, f.act, f.refStep, *traj_, 0, PredictParams{});
+        if (cartPole_) {
+            // Re-roll the CART-POLE's own dynamics (the lateral predictHold would
+            // be the wrong physics). Default CartPoleParams + the recording's theta
+            // bounds; the absolute step = frameIdx * decimation aligns the known
+            // shove schedule. uMax/shove overrides are not serialized (documented
+            // caveat, like the car's delta-max default) -- exact for default runs.
+            CartPoleParams cp;
+            cp.thetaHard = rec_->hardBoundVal;
+            cp.thetaSoft = rec_->softBoundVal;
+            CartPolePlant plant(cp);
+            VehicleOutputs o{};
+            for (int i = 0; i < 6; ++i) o.phys[i] = f.phys[i];
+            o.e_y_real = f.phys[2];
+            o.act_out  = f.act;
+            const long absStep = static_cast<long>(gFrame) * rec_->decimation;
+            replayPred_ = plant.predictHeld(o, absStep, *traj_, 0, PredictParams{});
+        } else {
+            double x0[6];
+            for (int i = 0; i < 6; ++i) x0[i] = f.phys[i];
+            // f.refStep is already the wrapped trajectory index (offset included),
+            // so it serves directly as the rollout's input index base.
+            replayPred_ = predictHold(x0, f.act, f.refStep, *traj_, 0, PredictParams{});
+        }
         replayPredVeh_ = selected_;
         replayPredFrame_ = gFrame;
     }
@@ -223,53 +409,36 @@ void Visualizer::drawPrediction() {
     const Frame& f = rec_->frames[selected_][gFrame];
     const long stride = std::max<long>(1, pred->strideTicks);
 
+    // Place a predicted sample on the track: reference point at f.refStep +
+    // k*stride, offset along the normal by the (exaggerated) predicted e_y.
     auto worldAt = [&](size_t k) {
         const long ref = static_cast<long>(f.refStep) + static_cast<long>(k) * stride;
         return traj_->pointAt(ref) + traj_->normalAt(ref) * (pred->e_y[k] * exag_);
     };
+    auto rescueWorldAt = [&](size_t k) {
+        const long ref = static_cast<long>(f.refStep) + pred->rescueFromTick +
+                         static_cast<long>(k) * stride;
+        return traj_->pointAt(ref) +
+               traj_->normalAt(ref) * (pred->rescue_e_y[k] * exag_);
+    };
 
-    // Dotted line: groups of drawn segments separated by gaps.
-    const float w = 2.0f / gZoom;
-    constexpr size_t kDash = 3, kGap = 2;
-    for (size_t k = 0; k + 1 < pred->e_y.size(); ++k) {
-        if (k % (kDash + kGap) >= kDash) continue;
-        const Color c = Fade(errorColor(std::fabs(pred->e_y[k])), 0.9f);
-        DrawLineEx(rl(worldAt(k)), rl(worldAt(k + 1)), w, c);
-    }
-
-    // Marker at the predicted 0.8 m crossing (red ring), if within horizon.
-    const long H = PredictParams{}.horizonTicks;
-    if (pred->ttvTicks < H) {
-        const size_t iv = std::min(pred->e_y.size() - 1,
-                                   static_cast<size_t>(pred->ttvTicks / stride));
-        const Vec2 p = worldAt(iv);
-        DrawCircleLinesV(rl(p), 6.0f / gZoom, Color{255, 60, 50, 255});
-        DrawCircleLinesV(rl(p), 7.5f / gZoom, Color{255, 60, 50, 180});
-    }
-    // Marker at the point of no return (orange diamond).
-    if (pred->ttpnrTicks < H) {
-        const size_t ip = std::min(pred->e_y.size() - 1,
-                                   static_cast<size_t>(pred->ttpnrTicks / stride));
-        DrawPoly(rl(worldAt(ip)), 4, 6.0f / gZoom, 45.0f, Color{255, 160, 40, 230});
-    }
-
-    // The escape route: the latest-possible successful rescue trajectory,
-    // branching off at rescueFromTick (≈ the PNR diamond). Dashed cyan so it
-    // reads as "the alternative future the guard is protecting".
-    if (!pred->rescue_e_y.empty() && pred->rescueFromTick >= 0) {
-        auto rescueWorldAt = [&](size_t k) {
-            const long ref = static_cast<long>(f.refStep) + pred->rescueFromTick +
-                             static_cast<long>(k) * stride;
-            return traj_->pointAt(ref) +
-                   traj_->normalAt(ref) * (pred->rescue_e_y[k] * exag_);
-        };
-        const Color cRescue{90, 220, 220, 220};
-        for (size_t k = 0; k + 1 < pred->rescue_e_y.size(); ++k) {
-            if (k % 5 >= 3) continue;  // 3-on / 2-off dash, distinct cadence
-            DrawLineEx(rl(rescueWorldAt(k)), rl(rescueWorldAt(k + 1)),
-                       1.6f / gZoom, cRescue);
-        }
-    }
+    OverlayStyle st;                       // world-space widths -> divide by zoom
+    st.lineW   = 2.0f / gZoom;
+    st.markerR = 6.0f / gZoom;
+    st.rescueW = 1.6f / gZoom;
+    st.soft = (float)vr::kSoftBound;
+    st.hard = (float)vr::kHardBound;
+    st.horizonTicks = PredictParams{}.horizonTicks;
+    drawPredictionOverlay(*pred, st,
+        [&](size_t k) { return rl(worldAt(k)); },
+        [&](size_t k) { return rl(rescueWorldAt(k)); },
+        [&](size_t iv) {                   // predicted 0.8 m crossing: red ring
+            DrawCircleLinesV(rl(worldAt(iv)), st.markerR,         Color{255, 60, 50, 255});
+            DrawCircleLinesV(rl(worldAt(iv)), st.markerR * 1.25f, Color{255, 60, 50, 180});
+        },
+        [&](size_t ip) {                   // point of no return: orange diamond
+            DrawPoly(rl(worldAt(ip)), 4, st.markerR, 45.0f, Color{255, 160, 40, 230});
+        });
 }
 
 void Visualizer::drawTrack() {
@@ -301,7 +470,7 @@ void Visualizer::drawVehiclePaths() {
         const float w = (sel ? 2.2f : 1.2f) / gZoom;
         for (int i = start; i < gFrame; ++i) {
             const float a = std::fabs(rec_->frames[v][i].e_y_real);
-            Color c = errorColor(a);
+            Color c = errorColor(a, (float)vr::kSoftBound, (float)vr::kHardBound);
             if (!sel) c = Fade(c, 0.35f);
             DrawLineEx(rl(frameActualPos(v, i)), rl(frameActualPos(v, i + 1)), w, c);
         }
@@ -343,7 +512,7 @@ void Visualizer::drawHud() {
 
     std::snprintf(line, sizeof line, "%s   cores:%d  vehicles:%d  %s",
                   rec_->schedulerName.c_str(), rec_->nCores, rec_->nVehicles,
-                  profileName((Profile)rec_->profile));
+                  cartPole_ ? "cartpole" : profileName((Profile)rec_->profile));
     put(line, Color{180, 220, 255, 255});
 
     const double total = rec_->duration();
@@ -353,20 +522,34 @@ void Visualizer::drawHud() {
         std::snprintf(line, sizeof line, "t=%.2f/%.1fs  x%.1f  %s%s", f.t, total,
                       playbackSpeed_, playing_ ? "PLAY" : "PAUSE", live ? " LIVE" : "");
         put(line);
-        std::snprintf(line, sizeof line, "vehicle %d   v=%.1f m/s", selected_, f.vel);
+        const float softB = (float)rec_->softBoundVal, hardB = (float)rec_->hardBoundVal;
+        if (cartPole_)
+            std::snprintf(line, sizeof line, "vehicle %d   cart x=%+.2f m", selected_, f.phys[0]);
+        else
+            std::snprintf(line, sizeof line, "vehicle %d   v=%.1f m/s", selected_, f.vel);
         put(line, Color{90, 200, 255, 255});
         const float a = std::fabs(f.e_y_real);
-        std::snprintf(line, sizeof line, "e_y=%+.3f m (est %+.3f)", f.e_y_real, f.e_y_est);
-        put(line, errorColor(a));
+        if (cartPole_)
+            std::snprintf(line, sizeof line, "theta=%+.3f rad (est %+.3f)", f.e_y_real, f.e_y_est);
+        else
+            std::snprintf(line, sizeof line, "e_y=%+.3f m (est %+.3f)", f.e_y_real, f.e_y_est);
+        put(line, errorColor(a, softB, hardB));
         std::snprintf(line, sizeof line, "rolling=%.4f  avg=%.4f", f.rolling_real, f.average_real);
         put(line);
-        const char* state = (f.flags & Frame::kHard) ? "HARD BREACH (>0.8m)"
-                          : (f.flags & Frame::kSoft) ? "over soft bound (>0.2m)"
-                                                     : "within bounds";
+        char state[40];
+        if (f.flags & Frame::kHard)
+            std::snprintf(state, sizeof state,
+                          cartPole_ ? "CRASH (|theta|>%.2f)" : "HARD BREACH (>%.1fm)", hardB);
+        else if (f.flags & Frame::kSoft)
+            std::snprintf(state, sizeof state,
+                          cartPole_ ? "over soft (|theta|>%.2f)" : "over soft bound (>%.1fm)", softB);
+        else
+            std::snprintf(state, sizeof state, "within bounds");
         const Color sc = (f.flags & Frame::kHard) ? Color{255, 60, 50, 255}
                        : (f.flags & Frame::kSoft) ? Color{235, 200, 60, 255}
                                                   : Color{60, 200, 90, 255};
-        std::snprintf(line, sizeof line, "%s%s", state, (f.flags & Frame::kCritical) ? "  [curve]" : "");
+        const char* crit = (f.flags & Frame::kCritical) ? (cartPole_ ? "  [shove]" : "  [curve]") : "";
+        std::snprintf(line, sizeof line, "%s%s", state, crit);
         put(line, sc);
         // Held-command predictions (>= horizon shown as ">=500"; -1 = no data).
         if (f.ttpnr_ms >= 0.0f) {
@@ -379,17 +562,23 @@ void Visualizer::drawHud() {
             if (f.ttpnr_ms <= 0.0f) {
                 put("pred: PAST POINT OF NO RETURN", Color{255, 60, 50, 255});
             } else {
-                std::snprintf(line, sizeof line, "pred: hits 0.8m in %s ms   PNR in %s ms",
-                              ttvBuf, pnrBuf);
+                if (cartPole_)
+                    std::snprintf(line, sizeof line,
+                                  "pred: |theta| hits %.2f in %s ms   PNR in %s ms",
+                                  hardB, ttvBuf, pnrBuf);
+                else
+                    std::snprintf(line, sizeof line, "pred: hits 0.8m in %s ms   PNR in %s ms",
+                                  ttvBuf, pnrBuf);
                 const Color pc = f.ttpnr_ms < 100.0f ? Color{255, 160, 40, 255}
                                                      : Color{200, 200, 215, 255};
                 put(line, pc);
             }
-            // Rescue clearance (live or recomputed in replay).
+            // Rescue clearance (live or recomputed in replay). The field is named
+            // ...M but holds the plant's error unit (m for the car, rad for theta).
             const Prediction* pr = currentPrediction();
             if (pr && pr->rescueClearanceM < 1e8) {
-                std::snprintf(line, sizeof line, "rescue margin %.2f m%s",
-                              pr->rescueClearanceM,
+                std::snprintf(line, sizeof line, "rescue margin %.2f %s%s",
+                              pr->rescueClearanceM, cartPole_ ? "rad" : "m",
                               pr->rescueClearanceM < 0.0 ? "  (rescue fails)" : "");
                 put(line, pr->rescueClearanceM < 0.1 ? Color{255, 160, 40, 255}
                                                      : Color{160, 220, 220, 255});
@@ -417,21 +606,32 @@ void Visualizer::drawErrorStrip() {
     const Rectangle r{0, (float)sh - 26 - 96, (float)sw, 96};
     DrawRectangle((int)r.x, (int)r.y, (int)r.width, (int)r.height, Color{0, 0, 0, 140});
 
-    const float maxE = 1.0f;  // m, vertical scale (clamped)
+    const float softB = (float)rec_->softBoundVal, hardB = (float)rec_->hardBoundVal;
+    // Vertical scale: car fixed at 1 m; cart-pole autoscales to ~1.3x the hard
+    // angle so the +-theta_hard guides sit near the strip edges.
+    const float maxE = cartPole_ ? hardB * 1.3f : 1.0f;
     const float midY = r.y + r.height * 0.5f;
     auto eToY = [&](float e) { return midY - std::clamp(e / maxE, -1.0f, 1.0f) * (r.height * 0.5f - 4); };
 
-    // Threshold guide lines.
-    for (float b : {(float)vr::kHardBound, (float)vr::kSoftBound}) {
-        const Color c = (b == (float)vr::kHardBound) ? Color{210, 70, 60, 200}
-                                                     : Color{220, 195, 70, 200};
+    const auto& fr = rec_->frames[selected_];
+    const int total = (int)fr.size();
+
+    // Cart-pole shove windows (kCritical = mid-shove), faint, behind the trace.
+    if (cartPole_)
+        for (int i = 0; i < total; ++i)
+            if (fr[i].flags & Frame::kCritical) {
+                const int x = total > 1 ? (int)((float)i / (total - 1) * sw) : 0;
+                DrawLine(x, (int)r.y, x, (int)(r.y + r.height), Color{120, 110, 200, 70});
+            }
+
+    // Threshold guide lines (stored bounds: 0.8/0.2 m car, theta_hard/soft rad pole).
+    for (float b : {hardB, softB}) {
+        const Color c = (b == hardB) ? Color{210, 70, 60, 200} : Color{220, 195, 70, 200};
         DrawLine(0, (int)eToY(b), sw, (int)eToY(b), c);
         DrawLine(0, (int)eToY(-b), sw, (int)eToY(-b), c);
     }
     DrawLine(0, (int)midY, sw, (int)midY, Color{120, 120, 130, 160});
 
-    const auto& fr = rec_->frames[selected_];
-    const int total = (int)fr.size();
     int prevx = -1;
     float prevy = midY;
     for (int x = 0; x < sw; ++x) {
@@ -439,14 +639,15 @@ void Visualizer::drawErrorStrip() {
         const float e = fr[idx].e_y_real;
         const float yy = eToY(e);
         if (prevx >= 0) DrawLineEx(Vector2{(float)prevx, prevy}, Vector2{(float)x, yy}, 1.5f,
-                                   errorColor(std::fabs(e)));
+                                   errorColor(std::fabs(e), softB, hardB));
         prevx = x;
         prevy = yy;
     }
     // Playback cursor.
     const float cx = total > 1 ? (float)gFrame / (total - 1) * sw : 0;
     DrawLine((int)cx, (int)r.y, (int)cx, (int)(r.y + r.height), RAYWHITE);
-    DrawText("lateral error e_y", 10, (int)r.y + 4, 14, Color{200, 200, 200, 200});
+    DrawText(cartPole_ ? "pole angle theta (rad)" : "lateral error e_y",
+             10, (int)r.y + 4, 14, Color{200, 200, 200, 200});
 }
 
 void Visualizer::drawTimeline() {
@@ -458,6 +659,13 @@ void Visualizer::drawTimeline() {
 
     const auto& fr = rec_->frames[selected_];
     const int total = (int)fr.size();
+    // Cart-pole shove windows (kCritical), faint, behind the breach ticks.
+    if (cartPole_)
+        for (int i = 0; i < total; ++i)
+            if (fr[i].flags & Frame::kCritical) {
+                const int x = total > 1 ? (int)((float)i / (total - 1) * sw) : 0;
+                DrawLine(x, (int)r.y, x, (int)(r.y + r.height), Color{120, 110, 200, 110});
+            }
     // Hard-breach ticks across the whole run.
     for (int i = 0; i < total; ++i) {
         if (fr[i].flags & Frame::kHard) {

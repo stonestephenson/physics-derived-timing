@@ -45,6 +45,12 @@ private:
     void handleInput();
     void updateCursor();
     void drawScene();
+    void drawCarScene();        // car / lateral world view (track + vehicles)
+    void drawCartPoleScene();   // cart-pole world view (rail + pole + bounds)
+    // Cart-pole prediction overlay: ghost poles at the predicted TTV / PNR
+    // angles + the rescue sweep, in pole-angle space (shares the Prediction).
+    void drawCartPolePrediction(float hx, float hy, float Lpx,
+                                float thSoft, float thHard);
     void drawTrack();
     void drawVehiclePaths();
     // Dotted held-command prediction for the selected vehicle, with markers at
@@ -69,6 +75,7 @@ private:
 
     const RunRecording* rec_ = nullptr;   // active recording (replay or sim's)
     Simulation*         sim_ = nullptr;   // non-null in live mode
+    bool                cartPole_ = false; // plant kind from the recording (v5)
 
     // Downsampled track geometry: centerline point + unit normal.
     std::vector<Vec2> trackPos_;

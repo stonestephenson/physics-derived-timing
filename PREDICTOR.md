@@ -111,8 +111,15 @@ Simulation (cache: TTV+polyline+PNR @10ms — warm-started, aged between)
   it (same ×exaggeration as everything else), a red ring at the predicted
   0.8 m crossing, an orange diamond at the PNR point, and a HUD line
   ("pred: hits 0.8m in X ms — PNR in Y ms" / "PAST POINT OF NO RETURN").
-  Works live and in replays of format-v4 recordings (`--select`, `--speed`,
-  `--screenshot-at` help aim scripted screenshots).
+  Works live and in replays of format-v4+ recordings (`--select`, `--speed`,
+  `--screenshot-at` help aim scripted screenshots). The **cart-pole** (`--plant
+  cartpole`, recording v5) renders the *same* `Prediction` in **angle space**: the
+  TTV/PNR markers become **ghost poles** at the predicted crossing / PNR angles, via
+  the shared `drawPredictionOverlay` (GENERALIZATION §6). (The cyan rescue *sweep* is
+  car-only today — the cart-pole predictor emits the rescue-clearance scalar, in the
+  HUD, but not the trajectory.) The PNR
+  ghost typically sits *inside* `thetaHard` — recovery is lost before the visible
+  crash, the physical deadline made legible.
 
 ## 5. First results (2026-06-11, worst exec, kill-and-hold, 30 s, 3 cores)
 

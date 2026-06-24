@@ -54,6 +54,12 @@ struct RunRecording {
     long   durationSteps  = 0;
     int    decimation     = 100;
     long   missedJobs     = 0;
+    // v5: which plant produced this run + its error-signal bounds, so replay
+    // renders the right plant with the right thresholds instead of assuming the
+    // car's 0.8/0.2 m. Older recordings load as Lateral with the car's bounds.
+    int    plantKind      = 0;     // PlantKind as int (0=Lateral, 1=CartPole)
+    double hardBoundVal   = 0.8;   // |error| crash bound (m car / rad pole)
+    double softBoundVal   = 0.2;   // |error| comfort bound
     // Fleet-wide simultaneous-criticality stats (HANDOFF §5 item 0). Live-only:
     // set in Simulation::finalizeSummary for the summary line + appendCsv;
     // intentionally NOT serialized (not needed for replay; no format-version bump).
@@ -66,7 +72,7 @@ struct RunRecording {
     // Format version this recording was loaded from (current version when
     // freshly recorded; not serialized). < 4 means frames carry no physical
     // state, so the replay prediction overlay is unavailable.
-    int    loadedVersion  = 4;
+    int    loadedVersion  = 5;
 
     // --- data ---
     std::vector<std::vector<Frame>> frames;   // frames[vehicle][sample]

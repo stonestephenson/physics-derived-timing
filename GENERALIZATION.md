@@ -127,3 +127,28 @@ to `CMakeLists.txt`. Everything else (scheduler, age, bound, `rta_solve.py`) is
 reused. Map the plant's safety quantity into `VehicleOutputs::e_y_real` and set
 `hardBound()/softBound()`. Route the 16 triggers in `endTick` order (§2) so the
 age metric stays valid.
+
+## 6. Visualization (the cart-pole view)
+
+The visualizer is plant-keyed (`Visualizer.cpp`, on `RunRecording.plantKind`, stored
+in recording format **v5**). The FMU car keeps its top-down track view; the cart-pole
+gets a dedicated view — a cart on a rail + a pole hinged at θ, ±`thetaSoft` /
+±`thetaHard` bound rays (the lane-ring analogue, drawn true-to-angle since
+`thetaHard` ≈ 12° is directly visible), the held-command prediction in **angle space**
+(a held-θ tip trajectory + **ghost poles** at the predicted TTV and PNR angles + the
+shared rescue-sweep branch, all from the plant-agnostic `Prediction`), a θ-vs-time strip with shove
+bands (`kCritical` = mid-shove), and a fleet row of per-vehicle θ ticks. The
+window/loop/input/replay/screenshot/select-speed shell and the prediction-overlay
+logic are **shared** with the car (`drawPredictionOverlay`, parameterized by the
+plant's (soft,hard) bounds) so the two views can't drift; a new plant adds only its
+own `draw<Plant>Scene`. The **PNR ghost pole sits inside `thetaHard`** (recovery is
+lost before the visible fall) — the razor-thin recoverability deadline made legible,
+the thesis (timing derived from physics) rendered. Replay re-rolls the plant's own
+`predictHeld`; live reads the sim's cache. *Caveat:* the replay overlay reconstructs
+with default `uMax`/`shoveForce` (not serialized, like the car's delta-max default) —
+exact for default-params runs; the θ bounds *are* serialized (so `--theta-max`
+replays correctly). The cyan rescue *sweep* is car-only today — `CartPolePlant::
+predictHeld` emits the rescue-clearance scalar (HUD), not the trajectory; emitting it
+is a small plant-side follow-up (the car's `Predictor.cpp` already does). Versioning: v5 adds `plantKind` + `hard/softBoundVal`; the frame
+layout is unchanged from v4, so v2/v3/v4 recordings still replay (older cart-pole
+runs predate the tag and render as the car — the prior behavior).

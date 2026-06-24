@@ -165,7 +165,8 @@ fixed guard, `aguard` = guard that tunes itself.
   PNR is a **bang-bang heuristic with a monotonicity assumption — not certified
   reachability.**
 - **Re-run `--validate-predictor` after ANY predictor change** (must stay
-  ~1.49e-08 m). Recording format is v4 (loads v2/v3).
+  ~1.49e-08 m). Recording format is v5 (loads v2/v3/v4; v5 adds PlantKind + bounds
+  for the cart-pole view — GENERALIZATION §6).
 - **`ContextAware`, `Hybrid`, `AdaptiveGuard` share `comfortUrgency*` helpers
   in `Policies.h`** — keep it that way so A/Bs isolate the mechanism, not a
   copy-paste drift.
@@ -230,10 +231,10 @@ The ultrareview surfaced 3 findings:
   FIXED (commit `f4f1699`) — routed through the `Plant` seam and skipped for
   non-lateral plants (the gate is FMU-port-specific). Lateral stays 1.490e-08 m.
 - **#2 / Finding A — aguard `--floor` inert:** FIXED (commit `3214880`, above).
-- **#1 — visualizer replay bypasses the `Plant` seam** (a cart-pole `.cpsr`
-  renders lateral dynamics + hardcoded 0.8/0.2 m bounds): **OPEN, low-priority
-  nit** — viz-only, cart-pole is headless-documented. Fix = guard the overlay for
-  non-lateral replays, or bump the recording format (v4→v5: store PlantKind+bounds).
+- **#1 — visualizer replay bypassed the `Plant` seam** (a cart-pole `.cpsr`
+  rendered lateral dynamics + hardcoded 0.8/0.2 m bounds): **RESOLVED 2026-06-23** —
+  recording bumped v4→v5 (stores PlantKind + bounds) and a dedicated cart-pole view
+  renders the right plant. See the cart-pole-visualizer item in §5.
 - **Follow-ups:** (a) proper multi-N `--floor` sweep to re-derive aguard's
   post-fix headline (supports §5 item 4); (b) **verify the `Li et al. RTSS'24`
   citation** in `BOUND.md §5` — flagged unconfirmed by the 2026-06-22 survey;
@@ -243,37 +244,33 @@ The ultrareview surfaced 3 findings:
 
 Reframed (post-Guo 2026-06-18) around the main-track generalization paper:
 
-**ACTIVE TASK (new, 2026-06-23): a cart-pole visualizer.** The visualizer
-(`src/viz/Visualizer.cpp`) is built entirely around the car — track geometry,
-lateral error, 0.8/0.2 m lane rings — and the replay path bypasses the `Plant`
-seam (a cart-pole `.cpsr` currently renders as the car; review-nit #1 below).
-Decision (lead): build a **separate cart-pole view**, NOT a generalization of the
-car's spatial renderer. Seed/scope:
-- **Render:** a cart on a horizontal rail + a pole hinged at angle θ; draw the
-  ±`thetaSoft` (0.05) / ±`thetaHard` (0.21 rad) angle bounds; adapt the existing
-  prediction overlay to angle-space (predicted-θ polyline, TTV-crossing marker, PNR
-  marker, rescue trajectory — all from the plant-agnostic `Prediction`); a θ-vs-time
-  error strip; optionally mark the periodic shove events. Reuse the live + replay +
-  select/speed/screenshot controls.
-- **The data is already recorded:** `Simulation::recordFrame` stores the cart-pole
-  state — `Frame.phys[0]` = cart x, `phys[2]` = θ (also `e_y_real`), plus per-frame
-  `ttv_ms`/`ttpnr_ms`. The gap is the *renderer* + telling replay which plant it is.
-- **First design call (bring to the lead):** a new render path keyed on `PlantKind`
-  *inside the same app* (reuse the window/loop/input/replay/recording shell, swap
-  drawing+overlay) vs a fuller fork. The plant-agnostic overlay logic (prediction
-  polyline, TTV/PNR markers, error strip) is worth sharing/mirroring, not blindly
-  duplicating, so the two views don't drift.
-- **Recording format:** a cart-pole `.cpsr` replays as the car today (nit #1).
-  Likely needs v4→v5 — store `PlantKind` + bounds so replay renders the right plant;
-  keep the back-compat loaders (v2/v3/v4 still replay), per the versioning practice.
-- **Files:** `src/viz/Visualizer.cpp` (`drawPrediction`, live+replay), `src/sim/
-  Recording.h` (frame/format, currently v4), `src/sim/CartPolePlant.{h,cpp}` (state
-  `[x, ẋ, θ, θ̇]`, bounds, `predictHeld`→`Prediction`, disturbance schedule),
-  `src/sim/Plant.h` (`hardBound`/`softBound`/`predictHeld` are plant-agnostic).
-  Record with `--save FILE`, view with `--replay FILE`.
-- **Discipline:** viz-only — read recordings/outputs, never touch the plant/FMU or
-  scheduling; **do not regress the car view**; the §6 headless baselines must stay
-  byte-identical. Lower stakes than the formal leg, but a real demo/figure deliverable.
+**DONE 2026-06-23 — cart-pole visualizer (was the active task).** A dedicated
+cart-pole view now renders inside the same app, keyed on `PlantKind` read from the
+recording (no fork): a cart on a rail + a pole hinged at θ, ±`thetaSoft` (0.05) /
+±`thetaHard` (0.21) bound rays (the lane-ring analogue), the held-command prediction
+in **angle space** (a held-θ tip trajectory + **ghost poles** at the predicted TTV
+and PNR angles + the shared rescue-sweep branch, all from the plant-agnostic
+`Prediction`), a θ-vs-time strip with shove bands, and a fleet row of per-vehicle θ ticks. Live +
+replay + select/speed/screenshot reused unchanged. The prediction-overlay logic is
+**single-sourced** with the car (`drawPredictionOverlay` in `Visualizer.cpp`,
+parameterized by the plant's (soft,hard) bounds) so the two views can't drift.
+- **Recording bumped v4→v5** (`RunRecording.plantKind` + `hard/softBoundVal`; frame
+  layout unchanged; v2/v3/v4 still replay). Old cart-pole `.cpsr` predate the tag, so
+  they load as Lateral and render as the car — the prior behavior, no crash.
+- **Replay** re-rolls the cart-pole's own `predictHeld` (`currentPrediction()`,
+  state from the frame, absolute step = frameIdx×decimation for the shove schedule);
+  **live** reads `sim_->prediction`. **Caveat:** the replay overlay uses default
+  `uMax`/`shoveForce` (not serialized — like the car's delta-max default); θ bounds
+  *are* serialized, so `--theta-max` replays correctly. Exact for default-params runs.
+  The cyan **rescue sweep** is car-only today: `CartPolePlant::predictHeld` emits the
+  rescue-clearance *scalar* (HUD "rescue margin") but not the trajectory, so the
+  shared sweep branch draws nothing — emitting it is a small *plant-side* follow-up
+  (beyond this viz-only task). Ghost poles + held trajectory are the cart-pole hero.
+- **Verified:** §6 baselines byte-identical (gate 1.490e-08; lateral 90.5/100.5, 0
+  missed); car view unregressed; cart-pole replay + live correct vs recorded
+  θ/ttv/ttpnr; old v4 still replays. Files: `Visualizer.{h,cpp}`, `Recording.{h,cpp}`,
+  `Simulation.cpp` (stamps plantKind+bounds in `start()`). **Resolves review-nit #1.**
+  (GENERALIZATION §6, PREDICTOR §4.) *Committed only on the lead's go-ahead.*
 
 **Existential gate — DONE (survey complete 2026-06-22; full map + citations:
 `PAPER_NOTES.md` 2026-06-22).** Outcome: the thesis isn't novel (Wilson F1Tenth

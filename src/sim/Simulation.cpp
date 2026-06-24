@@ -81,6 +81,11 @@ void Simulation::start() {
     rec_.decimation    = params_.decimation;
     rec_.schedulerName = scheduler_->name();
     rec_.startOffsets  = offsets_;
+    // v5: tag the recording with the plant + its error-signal bounds so replay
+    // renders the right view (car vs cart-pole) with the right thresholds.
+    rec_.plantKind     = static_cast<int>(params_.plant);
+    rec_.hardBoundVal  = vehicles_[0].plant->hardBound();
+    rec_.softBoundVal  = vehicles_[0].plant->softBound();
     rec_.frames.assign(n, {});
     rec_.summary.assign(n, {});
 

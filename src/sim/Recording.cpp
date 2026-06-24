@@ -10,7 +10,10 @@ namespace {
 constexpr char    kMagic[4] = {'C', 'P', 'S', 'R'};
 // v2: +VehicleSummary.max_data_age_ms; v3: +max_data_age_oldest_ms;
 // v4: +Frame.phys/ttv_ms/ttpnr_ms, +VehicleSummary.min_ttpnr_ms/past_pnr_ticks.
-constexpr int32_t kVersion  = 4;
+// v5: +RunRecording.plantKind/hardBoundVal/softBoundVal (which plant + its error
+//     bounds, for replay). Frame + VehicleSummary layouts are unchanged from v4,
+//     so the v4 bulk reads are reused.
+constexpr int32_t kVersion  = 5;
 
 // On-disk layouts of older formats, for loading old recordings.
 struct VehicleSummaryV2 {
@@ -78,6 +81,9 @@ void RunRecording::save(const std::string& path) const {
     put<int64_t>(os, durationSteps);
     put<int32_t>(os, decimation);
     put<int64_t>(os, missedJobs);
+    put<int32_t>(os, plantKind);       // v5
+    put<double>(os, hardBoundVal);     // v5
+    put<double>(os, softBoundVal);     // v5
     putStr(os, schedulerName);
 
     put<int32_t>(os, static_cast<int32_t>(startOffsets.size()));
@@ -115,6 +121,11 @@ RunRecording RunRecording::load(const std::string& path) {
     r.durationSteps = static_cast<long>(get<int64_t>(is));
     r.decimation    = get<int32_t>(is);
     r.missedJobs    = static_cast<long>(get<int64_t>(is));
+    if (version >= 5) {                // else: defaults (Lateral, 0.8/0.2) from the struct
+        r.plantKind    = get<int32_t>(is);
+        r.hardBoundVal = get<double>(is);
+        r.softBoundVal = get<double>(is);
+    }
     r.schedulerName = getStr(is);
 
     const int32_t nOff = get<int32_t>(is);
