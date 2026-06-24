@@ -91,7 +91,7 @@ in hold time — plausible but unproven. Consequences:
 Simulation (cache: TTV+polyline+PNR @10ms — warm-started, aged between)
   ├── VehicleView.ttv_ms / .ttpnr_ms  → policies (ttu ranks on them)
   ├── VehicleSummary.min_ttpnr_ms / .past_pnr_ticks → table + --csv
-  ├── Frame.phys[6] / .ttv_ms / .ttpnr_ms (recording v4) → replay
+  ├── Frame.phys[6] / .ttv_ms / .ttpnr_ms (recording v4+) → replay
   └── Simulation::prediction(v) → live visualizer overlay
 ```
 

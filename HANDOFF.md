@@ -270,7 +270,7 @@ parameterized by the plant's (soft,hard) bounds) so the two views can't drift.
   missed); car view unregressed; cart-pole replay + live correct vs recorded
   θ/ttv/ttpnr; old v4 still replays. Files: `Visualizer.{h,cpp}`, `Recording.{h,cpp}`,
   `Simulation.cpp` (stamps plantKind+bounds in `start()`). **Resolves review-nit #1.**
-  (GENERALIZATION §6, PREDICTOR §4.) *Committed only on the lead's go-ahead.*
+  (GENERALIZATION §6, PREDICTOR §4.) *Committed `949d436`, pushed to `tempbosch`.*
 
 **Existential gate — DONE (survey complete 2026-06-22; full map + citations:
 `PAPER_NOTES.md` 2026-06-22).** Outcome: the thesis isn't novel (Wilson F1Tenth
@@ -387,7 +387,10 @@ avg|worst|best|pert`, `--overrun kill|skip`, `--guard MS` (hybrid), `--floor MS`
 - `src/sched/TaskModel.cpp` — `endTick` (stamps, age), `releaseIfDue` (overrun);
   `recentLatchAgeTicks` (the live round-trip signal).
 - `src/sched/policies/` — one .cpp per policy; `Policies.h` has shared helpers.
-- `src/viz/Visualizer.cpp` — `drawPrediction` (overlay, live + replay).
+- `src/viz/Visualizer.cpp` — `drawPredictionOverlay` (shared car+cart-pole overlay
+  walker), `drawCarScene`/`drawCartPoleScene` (plant-keyed views on `rec.plantKind`),
+  `drawCartPolePrediction` (angle-space ghost poles), `currentPrediction` (live cache
+  vs replay re-roll). Cart-pole view: GENERALIZATION §6.
 - `tools/rta_solve.py` — RTA solver + capacity sweep + sim cross-check (machine-verifies §7).
 - `tools/tolerance_sweep.py` — per-plant age-tolerance sweep (car vs cart-pole).
 - `*_sweep.csv` — committed sweep data behind the result tables.
@@ -411,7 +414,7 @@ avg|worst|best|pert`, `--overrun kill|skip`, `--guard MS` (hybrid), `--floor MS`
 - **When you port/duplicate a model, build an exact-match gate** and re-run it
   after every change (`--validate-predictor`). It catches coefficient typos
   the eye never will.
-- **Version serialized formats with back-compat loaders** (recording v2→v3→v4);
+- **Version serialized formats with back-compat loaders** (recording v2→v3→v4→v5);
   old runs must still replay.
 - **Keep the hot path fast but keep an exact path for the gate:** rollouts use
   a velocity-quantized matrix cache + coarse 10-tick affine stepping +

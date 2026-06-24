@@ -75,7 +75,9 @@ rules on a rollout from the cloud's delayed state instead of true state
 (`--pred-staleness`, +`--pred-margin`); see PREDICTOR.md §5e. The
 visualizer shows the selected car's
 predicted path as a dotted line with 0.8 m-crossing and point-of-no-return
-markers, live and in replays (recording format v4).
+markers, live and in replays (recording format v5; v2–v4 still load). With
+`--plant cartpole` the replay renders a **different, dedicated view** — see
+"The cart-pole view" below.
 
 Scheduler notes: `context` scores on ground-truth metrics (an **oracle** upper
 bound); `honest` is the same scoring restricted to the estimator-derived remote
@@ -101,6 +103,28 @@ The track shows the **gray centerline** (expected path), **yellow ±0.2 m** soft
 offset from the centerline by the lateral error, exaggerated (default ×25) so
 it's visible, and colored green→red by error magnitude. Hard breaches are marked
 red on the track and on the timeline so you can jump straight to them.
+
+### The cart-pole view (`--plant cartpole`)
+
+A cart-pole recording (format v5) replays as a **separate** view, not the track:
+a cart on a horizontal rail with a pole hinged at θ, the **±θ_soft / ±θ_hard angle
+rays** (the lane-ring analogue), the held-command prediction in angle space (a
+dashed held-θ tip trajectory + **ghost poles** at the predicted TTV / point-of-no-
+return angles), a θ-vs-time strip with periodic-shove bands, and a fleet row of
+per-vehicle θ ticks. The controls above apply unchanged. Architecture + caveats:
+`GENERALIZATION.md §6`. View one:
+
+    ./build/cps --headless --plant cartpole --vehicles 16 --scheduler rm \
+        --exec worst --duration 20 --save /tmp/cp.cpsr
+    ./build/cps --replay /tmp/cp.cpsr      # ] cycles cars; veh 0–6 recover, 7–15 fall
+
+There is **no numeric gate** for this view (the cart-pole predictor skips
+`--validate-predictor`), so it is checked by eye — two things to expect:
+- markers are **drawn true-to-angle** (θ_hard ≈ 12°), so the ghost poles sit in a
+  narrow wedge of vertical — small by design, not a bug;
+- a run made with non-default `--u-max` / `--shove-force` will **not** replay the
+  overlay faithfully (those aren't serialized; the replay rollout uses the
+  calibrated defaults — θ bounds *are* serialized, so `--theta-max` is exact).
 
 ## Add your own scheduling method
 

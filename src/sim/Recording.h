@@ -25,7 +25,11 @@ struct Frame {
     // v4: full physical state + aged predictions, so the prediction overlay
     // can be recomputed while scrubbing a replay (PREDICTOR.md). ttv/ttpnr
     // are -1 in recordings loaded from older formats ("no prediction data").
-    float    phys[6]      = {};    // [yaw rate, slip, steer angle, steer rate, e_y, e_y_dot]
+    // Plant-specific slots: FMU car = [yaw rate, slip, steer, steer rate, e_y,
+    // e_y_dot]; cart-pole = [x, xdot, theta, thetadot, theta, thetadot] (the
+    // cart-pole view reads phys[0]=cart x, phys[2]=theta; replay re-rolls the
+    // cart-pole rollout from phys[0..3]).
+    float    phys[6]      = {};
     float    ttv_ms       = -1.0f;
     float    ttpnr_ms     = -1.0f;
     uint8_t  flags        = 0;     // bit0 soft, bit1 hard, bit2 critical

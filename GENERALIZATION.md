@@ -126,7 +126,9 @@ Implement `Plant` (`src/sim/`), add a `PlantKind` value (`Plant.h`), a branch in
 to `CMakeLists.txt`. Everything else (scheduler, age, bound, `rta_solve.py`) is
 reused. Map the plant's safety quantity into `VehicleOutputs::e_y_real` and set
 `hardBound()/softBound()`. Route the 16 triggers in `endTick` order (§2) so the
-age metric stays valid.
+age metric stays valid. (Editing a `Plant` *implementation* such as
+`CartPolePlant.cpp` is allowed — CLAUDE.md invariant 6 forbids touching the
+prebuilt **FMU** and the `Plant.h` **seam**, not the implementations behind it.)
 
 ## 6. Visualization (the cart-pole view)
 
