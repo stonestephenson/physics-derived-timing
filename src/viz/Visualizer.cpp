@@ -39,6 +39,7 @@ inline Color zoneColor(TrackZone zone) {
         case TrackZone::Z0Straight:   return Color{155, 165, 180, 190};
         case TrackZone::Z1SlightTurn: return Color{70, 190, 210, 220};
         case TrackZone::Z2SharpTurn:  return Color{245, 135, 65, 235};
+        case TrackZone::Z3LaneChange: return Color{220, 80, 190, 240};
     }
     return Color{155, 165, 180, 190};
 }
@@ -373,8 +374,12 @@ void Visualizer::drawHud() {
         put(line, Color{90, 200, 255, 255});
         const Trajectory::Inputs in = traj_->inputsAt(f.refStep);
         const TrackZone zone = traj_->zoneAt(f.refStep);
-        std::snprintf(line, sizeof line, "zone %s: %s   ff0=%+.4f",
-                      trackZoneCode(zone), trackZoneName(zone), in.ff0);
+        const char* zoneLabel = (zone == TrackZone::Z3LaneChange) ? "lane chg"
+                              : (zone == TrackZone::Z1SlightTurn) ? "slight"
+                              : trackZoneName(zone);
+        std::snprintf(line, sizeof line, "zone %s %-8s C=%+.4f dC=%.4f",
+                      trackZoneCode(zone), zoneLabel, in.ff0,
+                      traj_->curvatureDeltaAt(f.refStep));
         put(line, zoneColor(zone));
         const float a = std::fabs(f.e_y_real);
         std::snprintf(line, sizeof line, "e_y=%+.3f m (est %+.3f)", f.e_y_real, f.e_y_est);

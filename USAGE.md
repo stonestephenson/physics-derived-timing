@@ -91,12 +91,16 @@ it's visible, and colored green→red by error magnitude. Hard breaches are mark
 red on the track and on the timeline so you can jump straight to them.
 
 The reference centerline is zone-colored from the curvature proxy `ff_ref_0`,
-and the selected vehicle's current zone is shown in the HUD. The provisional
-classification is shared by the visualizer and `--ttv-csv`: **Z0 straight** for
-`|ff_ref_0| <= 1e-6`, **Z1 slight turn** for
-`1e-6 < |ff_ref_0| < 0.0215`, and **Z2 sharp turn** for
-`|ff_ref_0| >= 0.0215`. The CSV columns are `zone` (`z0`/`z1`/`z2`) and
-`zone_name`.
+the curvature-rate proxy `ff_ref_1`, and a local curvature-change metric. The
+selected vehicle's current zone is shown in the HUD. The provisional
+classification is shared by the visualizer and `--ttv-csv`: **Z3 lane change**
+first. Lane-change seeds are detected when `|ff_ref_1| >= 0.0035` or the local
+100 ms range of `ff_ref_0` is `>= 0.004`; then an oracle pass expands each seed
+by ±100 ms and fills quiet gaps up to 250 ms so the whole maneuver is tagged.
+Otherwise, **Z0 straight** is `|ff_ref_0| <= 1e-6`, **Z1 slight turn** is
+`1e-6 < |ff_ref_0| < 0.0215`, and **Z2 sharp turn** is
+`|ff_ref_0| >= 0.0215`. The CSV columns are `zone` (`z0`/`z1`/`z2`/`z3`),
+`zone_name`, and `curvature_delta_100ms`.
 
 ## Add your own scheduling method
 

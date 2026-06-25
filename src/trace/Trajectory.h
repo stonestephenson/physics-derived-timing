@@ -19,15 +19,27 @@ namespace cps {
 
 enum class Profile { V10, V12_5, V15 };
 
-// Initial curvature-based track partition used by analysis exports and the
-// visualizer. ff_ref_0 is treated as a curvature proxy; keep the thresholds
-// centralized here so later refinements (ff_ref_1, short-window changes) do
-// not require changes in every consumer.
-enum class TrackZone { Z0Straight = 0, Z1SlightTurn = 1, Z2SharpTurn = 2 };
+// Curvature-based track partition used by analysis exports and the visualizer.
+// ff_ref_0 is treated as a curvature proxy. z3 is a curvature-transition /
+// lane-change proxy: it uses ff_ref_1, a short-window curvature range, and an
+// oracle-style lookahead/lookbehind pass so the whole maneuver is tagged, not
+// only the highest-derivative samples.
+enum class TrackZone {
+    Z0Straight = 0,
+    Z1SlightTurn = 1,
+    Z2SharpTurn = 2,
+    Z3LaneChange = 3
+};
 inline constexpr float kZoneZeroEpsilon = 1e-6f;
 inline constexpr float kZoneSharpThreshold = 0.0215f;
+inline constexpr float kZoneLaneFf1Threshold = 0.0035f;
+inline constexpr float kZoneLaneCurvatureDeltaThreshold = 0.0040f;
+inline constexpr long  kZoneLaneHalfWindowTicks = 500;  // +/- 50 ms at 0.1 ms/tick
+inline constexpr long  kZoneLaneOraclePadTicks = 1000;  // +/- 100 ms around seeds
+inline constexpr long  kZoneLaneOracleBridgeTicks = 3500;  // fill gaps up to 350 ms
 
 TrackZone trackZoneFromFf0(float ff0);
+TrackZone trackZoneFromRefs(float ff0, float ff1, float curvatureDelta);
 const char* trackZoneCode(TrackZone zone);
 const char* trackZoneName(TrackZone zone);
 
@@ -64,9 +76,8 @@ public:
     }
     Vec2 pointAt(long step)  const { const long i = wrap(step); return {x_[i], y_[i]}; }
     Vec2 normalAt(long step) const { const long i = wrap(step); return {nx_[i], ny_[i]}; }
-    TrackZone zoneAt(long step) const {
-        return trackZoneFromFf0(ff0_[wrap(step)]);
-    }
+    float curvatureDeltaAt(long step) const { return curvatureDelta_[wrap(step)]; }
+    TrackZone zoneAt(long step) const { return zone_[wrap(step)]; }
 
     // AABB of one lap, for camera framing.
     Vec2 minBound() const { return min_; }
@@ -74,6 +85,7 @@ public:
 
 private:
     Trajectory() = default;
+    void computeTrackZones();
     void computeNormalsAndBounds();
 
     Profile profile_ = Profile::V10;
@@ -81,6 +93,8 @@ private:
     double  peakVel_  = 0.0;
     std::vector<float> x_, y_, vel_, ff0_, ff1_;  // length == lapSteps_
     std::vector<float> nx_, ny_;                  // unit path normal per tick
+    std::vector<float> curvatureDelta_;           // local max(ff0)-min(ff0)
+    std::vector<TrackZone> zone_;                 // one per reference tick
     Vec2 min_{}, max_{};
 };
 

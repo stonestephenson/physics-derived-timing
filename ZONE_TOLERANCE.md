@@ -17,16 +17,23 @@ yours.
 
 Derive zones from the reference trace, not from runtime flags: the FMU's
 critical-section flag is just `|ff_ref_0| > 1e-6` (in-curve), which is binary.
-The provisional implementation bins the track by |ff_ref_0| (curvature proxy):
-- Z0 straight: `|ff_ref_0| <= 1e-6`.
-- Z1 slight turn: `1e-6 < |ff_ref_0| < 0.0215`.
-- Z2 sharp turn: `|ff_ref_0| >= 0.0215`.
+The provisional implementation uses |ff_ref_0| as a curvature proxy, `ff_ref_1`
+as a curvature-rate proxy, and a local 100 ms curvature range
+`max(ff_ref_0)-min(ff_ref_0)`:
+- Z3 lane change / transition: seed when `|ff_ref_1| >= 0.0035` or local range
+  `>= 0.004`; then expand seeds by ±100 ms and fill quiet gaps up to 350 ms.
+- Z0 straight: otherwise, `|ff_ref_0| <= 1e-6`.
+- Z1 slight turn: otherwise, `1e-6 < |ff_ref_0| < 0.0215`.
+- Z2 sharp turn: otherwise, `|ff_ref_0| >= 0.0215`.
 
-These thresholds are an initial analysis partition, not a final physical
-classification. Future refinements may incorporate `ff_ref_1` and short-window
-curvature changes to distinguish lane changes and other transient maneuvers.
-Map each recorded frame to its zone via `Frame.refStep` (the wrapped trajectory
-index). `--ttv-csv` writes the resulting `zone` and `zone_name` directly.
+Z3 takes precedence because a fast curvature transition can be important even
+when instantaneous curvature is small. The expansion/bridging step is
+intentionally oracle-like: it uses nearby future and past reference samples, so
+it is appropriate for offline analysis/zoning, not for online scheduling unless
+the zone map is precomputed. These thresholds are an initial analysis partition,
+not a final physical classification. Map each recorded frame to its zone via
+`Frame.refStep` (the wrapped trajectory index). `--ttv-csv` writes the resulting
+`zone`, `zone_name`, and `curvature_delta_100ms` directly.
 
 ## Phase 1 — whole-run delay sweeps, zone-attributed violations
 

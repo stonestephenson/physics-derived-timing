@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <deque>
 #include <fstream>
 #include <iterator>
 #include <stdexcept>
@@ -66,11 +67,20 @@ TrackZone trackZoneFromFf0(float ff0) {
     return TrackZone::Z2SharpTurn;
 }
 
+TrackZone trackZoneFromRefs(float ff0, float ff1, float curvatureDelta) {
+    if (std::fabs(ff1) >= kZoneLaneFf1Threshold ||
+        curvatureDelta >= kZoneLaneCurvatureDeltaThreshold) {
+        return TrackZone::Z3LaneChange;
+    }
+    return trackZoneFromFf0(ff0);
+}
+
 const char* trackZoneCode(TrackZone zone) {
     switch (zone) {
         case TrackZone::Z0Straight:   return "z0";
         case TrackZone::Z1SlightTurn: return "z1";
         case TrackZone::Z2SharpTurn:  return "z2";
+        case TrackZone::Z3LaneChange: return "z3";
     }
     return "z0";
 }
@@ -80,6 +90,7 @@ const char* trackZoneName(TrackZone zone) {
         case TrackZone::Z0Straight:   return "straight";
         case TrackZone::Z1SlightTurn: return "slight turn";
         case TrackZone::Z2SharpTurn:  return "sharp turn";
+        case TrackZone::Z3LaneChange: return "lane change";
     }
     return "straight";
 }
@@ -120,8 +131,120 @@ std::shared_ptr<Trajectory> Trajectory::load(Profile profile,
     check(t->ff0_, "feedforward_sequence_0");
     check(t->ff1_, "feedforward_sequence_1");
 
+    t->computeTrackZones();
     t->computeNormalsAndBounds();
     return t;
+}
+
+void Trajectory::computeTrackZones() {
+    const long n = lapSteps_;
+    const long half = std::min<long>(kZoneLaneHalfWindowTicks, std::max<long>(0, n / 2));
+    const long window = 2 * half + 1;
+    curvatureDelta_.assign(static_cast<size_t>(n), 0.0f);
+    zone_.resize(static_cast<size_t>(n));
+    std::vector<unsigned char> laneSeed(static_cast<size_t>(n), 0);
+
+    std::deque<long> maxQ, minQ;
+    const long extN = n + 2 * half;
+    auto extValue = [&](long extIdx) {
+        return ff0_[static_cast<size_t>(wrap(extIdx - half))];
+    };
+
+    for (long right = 0; right < extN; ++right) {
+        const float val = extValue(right);
+        while (!maxQ.empty() && extValue(maxQ.back()) <= val) maxQ.pop_back();
+        while (!minQ.empty() && extValue(minQ.back()) >= val) minQ.pop_back();
+        maxQ.push_back(right);
+        minQ.push_back(right);
+
+        const long left = right - window + 1;
+        while (!maxQ.empty() && maxQ.front() < left) maxQ.pop_front();
+        while (!minQ.empty() && minQ.front() < left) minQ.pop_front();
+
+        if (right >= window - 1) {
+            const long center = right - 2 * half;
+            if (center >= 0 && center < n) {
+                const float delta = extValue(maxQ.front()) - extValue(minQ.front());
+                curvatureDelta_[static_cast<size_t>(center)] = delta;
+                const TrackZone seedZone = trackZoneFromRefs(
+                    ff0_[static_cast<size_t>(center)],
+                    ff1_[static_cast<size_t>(center)],
+                    delta);
+                laneSeed[static_cast<size_t>(center)] =
+                    seedZone == TrackZone::Z3LaneChange ? 1 : 0;
+            }
+        }
+    }
+
+    // Oracle pass: lane-change seeds mark high local curvature activity. Expand
+    // them in both directions and bridge short quiet gaps so a whole maneuver is
+    // one z3 segment, including the flatter middle between two transition lobes.
+    std::vector<int> diff(static_cast<size_t>(n + 1), 0);
+    auto addLinear = [&](long lo, long hi) {
+        diff[static_cast<size_t>(lo)] += 1;
+        diff[static_cast<size_t>(hi + 1)] -= 1;
+    };
+    auto addCircular = [&](long lo, long hi) {
+        if (hi - lo + 1 >= n) {
+            addLinear(0, n - 1);
+            return;
+        }
+        const long l = wrap(lo);
+        const long r = wrap(hi);
+        if (l <= r) {
+            addLinear(l, r);
+        } else {
+            addLinear(l, n - 1);
+            addLinear(0, r);
+        }
+    };
+
+    const long pad = std::min<long>(kZoneLaneOraclePadTicks, std::max<long>(0, n / 2));
+    for (long i = 0; i < n; ++i) {
+        if (laneSeed[static_cast<size_t>(i)])
+            addCircular(i - pad, i + pad);
+    }
+
+    std::vector<unsigned char> lane(static_cast<size_t>(n), 0);
+    int active = 0;
+    bool anyLane = false;
+    bool allLane = true;
+    for (long i = 0; i < n; ++i) {
+        active += diff[static_cast<size_t>(i)];
+        lane[static_cast<size_t>(i)] = active > 0 ? 1 : 0;
+        anyLane = anyLane || lane[static_cast<size_t>(i)];
+        allLane = allLane && lane[static_cast<size_t>(i)];
+    }
+
+    if (anyLane && !allLane) {
+        const long bridge = std::min<long>(kZoneLaneOracleBridgeTicks, std::max<long>(0, n / 2));
+        long start = 0;
+        while (start < n && !lane[static_cast<size_t>(start)]) ++start;
+
+        long i = (start + 1) % n;
+        while (i != start) {
+            if (lane[static_cast<size_t>(i)]) {
+                i = (i + 1) % n;
+                continue;
+            }
+
+            std::vector<long> gap;
+            while (!lane[static_cast<size_t>(i)]) {
+                gap.push_back(i);
+                i = (i + 1) % n;
+                if (i == start) break;
+            }
+            if (i != start && static_cast<long>(gap.size()) <= bridge) {
+                for (long idx : gap) lane[static_cast<size_t>(idx)] = 1;
+            }
+        }
+    }
+
+    for (long i = 0; i < n; ++i) {
+        zone_[static_cast<size_t>(i)] = lane[static_cast<size_t>(i)]
+            ? TrackZone::Z3LaneChange
+            : trackZoneFromFf0(ff0_[static_cast<size_t>(i)]);
+    }
 }
 
 void Trajectory::computeNormalsAndBounds() {

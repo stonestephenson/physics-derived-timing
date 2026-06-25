@@ -111,7 +111,7 @@ void writeTtvCsv(const std::string& path, const RunRecording& rec,
     std::fprintf(f,
         "scheduler,profile,vehicles,cores,exec,overrun,net_delay_ms,seed,"
         "vehicle,sample,t_s,ref_step,from_ref_step,zone,zone_name,"
-        "vel,ff_ref_0,ff_ref_1,"
+        "vel,ff_ref_0,ff_ref_1,curvature_delta_100ms,"
         "act_out,phys_0_yaw_rate,phys_1_slip,phys_2_steer,phys_3_steer_rate,"
         "phys_4_e_y,phys_5_e_y_dot,abs_e_y,ttv_ms,ttpnr_ms,"
         "ttv_horizon_ms,ttv_censored\n");
@@ -140,6 +140,7 @@ void writeTtvCsv(const std::string& path, const RunRecording& rec,
             const Prediction pred = predictHold(x0, fr.act, fromRef, traj, 0, pp);
             const Trajectory::Inputs in = traj.inputsAt(fr.refStep);
             const TrackZone zone = traj.zoneAt(fr.refStep);
+            const float curvatureDelta = traj.curvatureDeltaAt(fr.refStep);
             const double ttvMs = pred.ttvTicks * rec.baseStep * 1000.0;
             const double ttpnrMs = pred.ttpnrTicks * rec.baseStep * 1000.0;
             const double horizonMs = pp.horizonTicks * rec.baseStep * 1000.0;
@@ -148,13 +149,15 @@ void writeTtvCsv(const std::string& path, const RunRecording& rec,
             std::fprintf(f,
                 "%s,%s,%d,%d,%s,%s,%.2f,%llu,%d,%zu,%.6f,%u,%ld,%s,%s,"
                 "%.8g,%.8g,%.8g,%.8g,"
-                "%.10g,%.10g,%.10g,%.10g,%.10g,%.10g,%.10g,%.3f,%.3f,%.3f,%d\n",
+                "%.10g,%.10g,%.10g,%.10g,%.10g,%.10g,%.10g,%.10g,"
+                "%.3f,%.3f,%.3f,%d\n",
                 scheduler.c_str(), profileName(static_cast<Profile>(rec.profile)),
                 rec.nVehicles, rec.nCores, exec.c_str(), overrun.c_str(),
                 netDelayMs, static_cast<unsigned long long>(seed), v, i,
                 fr.t, fr.refStep, fromRef, trackZoneCode(zone), trackZoneName(zone),
                 static_cast<double>(in.vel), static_cast<double>(in.ff0),
-                static_cast<double>(in.ff1), static_cast<double>(fr.act),
+                static_cast<double>(in.ff1), static_cast<double>(curvatureDelta),
+                static_cast<double>(fr.act),
                 static_cast<double>(fr.phys[0]), static_cast<double>(fr.phys[1]),
                 static_cast<double>(fr.phys[2]), static_cast<double>(fr.phys[3]),
                 static_cast<double>(fr.phys[4]), static_cast<double>(fr.phys[5]),
