@@ -7,10 +7,14 @@ timing requirement (Challenge Q4) that the age-aware scheduler will enforce,
 and the empirical port of the Wilson et al. (MEMOCODE 2024) zone methodology
 from UPPAAL to the Bosch FMU.
 
-Everything here runs on the existing harness — **no code changes needed**
-(`--net-delay` and `--csv` are implemented). AI-assist the sweep scripts and
-plots freely; the analysis calls (zone boundaries, tolerance thresholds) are
-yours.
+**Status 2026-06-26: Phase-1 + Phase-2 are now IMPLEMENTED.** Per-zone breach
+attribution lives in `Simulation` (buckets frame breaches/occupancy by
+`Trajectory::zoneAt`); causal in-zone injection is `--zone-target Z` /
+`--zone-extra-ms D`; `tools/zone_sweep.py` runs the causal sweep → `zone_tolerance.csv`.
+**Causal A(zone): z3 lane-change 140 ms (binding) / z0 straight & z2 sharp 290 ms /
+z1 slight 400 ms** (PAPER_NOTES 2026-06-26; THEOREM_BRIEF §3.2). `--net-delay` and
+`--csv` also available. AI drives the sweep scripts/plots; the zone-boundary and
+tolerance-threshold *judgment* calls are the EE side's.
 
 ## Role: this is now an INPUT to the fleet-safety bound (promoted 2026-06-25)
 

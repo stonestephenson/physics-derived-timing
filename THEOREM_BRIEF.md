@@ -103,14 +103,28 @@ the reference trajectory's curvature (`|ff_ref_0|`, see `ZONE_TOLERANCE.md`):
 `Z0` straight, `Z1` gentle curve, `Z2` sharp curve / double-lane-change. A route `R`
 has a **zone map**: the sequence/fraction of track length in each zone.
 
-### 3.2 A(zone): tolerable data age **[measured, not derived]**
+### 3.2 A(zone): tolerable data age **[measured 2026-06-26 — causal table]**
 
-`A(z)` = the largest data age at which a car *in zone `z`* still satisfies the hard
-bound (no |e_y| > 0.8 m). Measured by delay-sweep (`tools/tolerance_sweep.py`):
-whole-plant numbers so far are **car ≈ 245 ms, cart-pole ≈ 110 ms**; the per-zone
-split (`A(Z0) ≫ A(Z2)`) is the hypothesis the zone-tolerance experiment is pinning
-down. **Honest status:** empirical, no closed form (contrast Sudvarg RTAS'25, who
-*derive* a safe delay via control-barrier functions + sum-of-squares).
+`A(z)` = the largest data age at which a car whose commands are staled *while in zone
+`z`* still satisfies the hard bound (no |e_y| > 0.8 m anywhere). Measured **causally**
+(`tools/zone_sweep.py`: inject extra command delay only while in z, via
+`--zone-target Z` / `--zone-extra-ms D`):
+
+    A(z3 lane-change) = 140 ms   (BINDING -- the route's tightest tolerance)
+    A(z0 straight)    = 290 ms
+    A(z2 sharp turn)  = 290 ms
+    A(z1 slight turn) = 400 ms
+
+The lane-change is ~2–3× tighter than the rest. **Honest status / nuances:** (1)
+empirical, no closed form (contrast Sudvarg RTAS'25, who *derive* a safe delay via
+CBF + sum-of-squares); (2) non-monotonic in instantaneous curvature — `A(z1 slight) >
+A(z0 straight)` because straights often *precede* curves, so staling there delays the
+car's entry to the next curve (spatial error propagation ⇒ the zone label doesn't
+fully capture causal tolerance); (3) this *causal* (sudden-in-zone) number is more
+conservative than the uniform-global whole-plant tolerance (~245 ms) — the
+conservative, zone-specific value is the right one for a safety bound. Phase-1
+*manifestation* attribution (where breaches land, not what caused them) is NOT this —
+see PAPER_NOTES 2026-06-26.
 
 ### 3.3 Recoverability deadline (point of no return, PNR) **[assumed — heuristic]**
 

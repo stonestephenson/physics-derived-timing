@@ -65,12 +65,29 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   (formal problem statement for Kurt; fleet model = `F_spaced`; strip-able `User note`
   blocks) → commit **`1ff68ed`**, pushed to tempbosch.
 - **Then adopted the EE curvature zone map** (`Trajectory.zoneAt(step)` /
-  `curvatureDeltaAt`) from `tempbosch/main 8fad423` → commit **`bad422e`**
-  (**LOCAL-ONLY, not pushed**). Verified additive: N=6 RM 90.5/100.5, 0 missed
-  (byte-identical), fidelity gate 1.490e-08 PASS. **Source of truth stays
+  `curvatureDeltaAt`; 4 zones Z0 straight / Z1 slight / Z2 sharp / Z3 lane-change)
+  from `tempbosch/main 8fad423` → **`bad422e`**. **Source of truth stays
   paper-generalization; the rest of the EE branch (200k-line data dumps, xlsx, viz
-  coloring, CLI) intentionally NOT merged.** Next: wire a `zone` column (via
-  `zoneAt(refStep)`) → Phase-1 `A(zone)` sweep (§5 THE PLAN leg 1).
+  coloring, CLI) intentionally NOT merged** — only `Trajectory.{cpp,h}` lifted.
+- **Built leg-1 of THE PLAN — the A(zone) instrument (§5):**
+  - **Phase-1** per-zone breach attribution (`Simulation` buckets frame breaches +
+    occupancy by `zoneAt`) → **`47c8832`**. Finding: breach *manifestation* ≠
+    *cause* — overshoot lands breaches in straights, so Phase-1 alone misleads
+    (PAPER_NOTES 2026-06-26).
+  - **Phase-2** causal injection: `--zone-target Z --zone-extra-ms D` adds extra
+    netCA delay only while a car is in zone Z → **`2b6ce45`**; + `tools/zone_sweep.py`
+    + `zone_tolerance.csv` → **`1158082`**.
+  - **Result — causal A(zone), N=1 worst, full lap: A(z3 lane-change)=140 ms
+    (binding) ; z0 straight / z2 sharp = 290 ms ; z1 slight = 400 ms.** The
+    lane-change is ~2–3× tighter — the route's binding tolerance, by a reproducible
+    method. Nuances (PAPER_NOTES 2026-06-26): z1>z0 (straights precede curves ⇒
+    spatial propagation); causal (sudden in-zone) is more conservative than uniform
+    global (`tolerance_sweep` ~245 ms). `THEOREM_BRIEF §3.2` carries the table.
+  - **All five commits are LOCAL-ONLY (push held by request).** Every step verified
+    byte-identical (N=6 90.5/100.5, 0 missed; fidelity 1.490e-08).
+- **Immediate next (THE PLAN): leg 1 ≈ done → the danger-relative metric** (redefine
+  `k` = delivered-age vs `A(zone)`, not TTPNR-under-held), then legs 2 (occupancy)
+  & 3 (Kurt). Flags added: `--zone-target`, `--zone-extra-ms` (`./build/cps --help`).
 - Builds clean: `cmake --build build -j`. Fidelity gate passes — `max |dev| =
   1.490e-08 m` on the trust anchor (`--vehicles 1 rm --exec worst --duration 120
   --validate-predictor`); the value **scales with lap coverage**, so use that exact
@@ -279,10 +296,12 @@ checkable, not abstract "bounded disturbance." Dissolves the 2026-06-21/22
 existential risk (unconstrained disturbance ⇒ k = N).
 
 **Critical path (3 legs + a metric fix):**
-1. **A(zone) — define a zone rigorously** as tolerable-age vs position/state from the
-   control physics. This is `ZONE_TOLERANCE.md`, **promoted from EE side-experiment
-   to an input to the bound**; its Phase 1/2 are the concrete next runs. (Control/EE
-   side; user+AI drive the sweeps.)
+1. **A(zone) — DONE 2026-06-26 (causal table measured).** Adopted the EE curvature
+   zone map (`Trajectory.zoneAt`), built Phase-1 attribution + Phase-2 causal
+   injection (`--zone-target`/`--zone-extra-ms`, `tools/zone_sweep.py`). **Causal
+   A(zone): z3 lane-change 140 ms (binding) ; z0 straight / z2 sharp 290 ms ; z1
+   slight 400 ms** (`zone_tolerance.csv`; THEOREM_BRIEF §3.2). Optional refinements:
+   the z1>z0 spatial-propagation nuance, a finer cliff, v12.5/v15 profiles.
 2. **Worst-case zone occupancy** — given a map + a **fleet model** (free-flowing/
    spaced vs bunching/jam — STATE THE ASSUMPTION), how many cars can be in WC zones
    (hence critical) at once. New geometric/dynamics piece; prototype empirically with
@@ -296,9 +315,11 @@ existential risk (unconstrained disturbance ⇒ k = N).
    empirical shadow of the *new* bound: sweep τ (not one point), build a one-run K(τ)
    curve, place cars adversarially.
 
-Instruments ready or one step away: `--tau-crit` (sweep it), `--align-offsets` (place
-cars), `tools/tolerance_sweep.py` (A(zone) per plant). Immediate next code: a
-zone-aware adversarial placement + a swept-τ one-run K(τ) curve.
+Instruments built: `--tau-crit`, `--align-offsets`, `--zone-target`/`--zone-extra-ms`
+(causal A(zone)), `tools/zone_sweep.py`, `tools/tolerance_sweep.py`. **Immediate next
+code: the danger-relative metric (leg 4) — redefine `k` = delivered-age vs `A(zone)`
+(per-vehicle, via `zoneAt`), so the empirical `k` matches the theorem's; then re-run
+it swept over τ + adversarial placement as the shadow of the route-map bound.**
 
 The items below (0–6) are retained as recorded state; this PLAN supersedes the
 "simultaneity ≤ k" framing in the existential-gate block and reprioritizes around

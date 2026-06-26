@@ -10,6 +10,41 @@ Newest first.
 
 ---
 
+## 2026-06-26 — Causal A(zone) table: the lane-change is the binding zone (140 ms)
+
+**What it is.** Phase-2 (zone-conditional delay injection, `--zone-target`/
+`--zone-extra-ms`, `tools/zone_sweep.py`) measured the **causal** data-age tolerance
+per curvature zone (N=1 worst, full lap; largest delivered age with zero hard breaches
+anywhere):
+
+    A(z3 lane-change) = 140 ms   (BINDING)
+    A(z0 straight)    = 290 ms
+    A(z2 sharp turn)  = 290 ms
+    A(z1 slight turn) = 400 ms
+
+**Why it matters.** The first real, reproducible, physics-derived A(zone) table — the
+input the route-map bound needs (THEOREM_BRIEF §3.2). The lane-change is ~2–3× tighter
+than the rest, so it sets the route's binding tolerance. Validates Phase-2 (gate-clean;
+injecting only in z3 breaches at +100 ms while z0 tolerates +200 ms — the causal method
+corrects the Phase-1 manifestation inversion, next entry).
+
+**Honest nuances.** (1) `A(z1 slight)=400 > A(z0 straight)=290`: non-monotonic in
+instantaneous curvature — straights *precede* curves, so staling there delays curve
+entry (spatial propagation). The zone label doesn't fully capture causal tolerance ⇒ a
+refinement hook (an "approach-to-curve" notion). (2) Causal (sudden-in-zone) is more
+conservative than uniform-global (~245 ms whole-plant `tolerance_sweep`): suddenly
+staling at maneuver onset is a harder transient. The conservative, zone-specific value
+is the right one for a safety bound.
+
+**Evidence / repro.** `python3 tools/zone_sweep.py` → `zone_tolerance.csv`. Committed
+`1158082`.
+
+**Where it lands.** The A(zone) results: physics-derived per-zone tolerance with the
+lane-change as the binding constraint; honesty notes on spatial propagation +
+causal-vs-global.
+
+---
+
 ## 2026-06-26 — Zone A(zone): breach MANIFESTATION ≠ CAUSE (overshoot into straights)
 
 **What it is.** Wired per-zone breach attribution (Simulation buckets each frame's
