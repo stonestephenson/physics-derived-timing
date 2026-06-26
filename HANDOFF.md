@@ -59,13 +59,18 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   solver (`4f49f46`); the cart-pole generalization (Plant seam + second plant +
   Phase-3 evidence, 4 commits) lives on the branch. **Push only to `tempbosch`.
   NEVER push to `origin`** (the Bosch upstream). `relatedPapers/` untracked.
-- **Uncommitted this session (2026-06-25):** a new `--align-offsets FRAC` knob
-  (`Simulation.{h,cpp}`, `main.cpp`) for the leg-(A) simultaneity experiment +
-  doc updates (this file, `PAPER_NOTES`, `ZONE_TOLERANCE`, `USAGE`, `BOUND`,
-  `PREDICTOR §5d`) + a new **`THEOREM_BRIEF.md`** (the formal problem statement
-  for Kurt / leg 3 of THE PLAN; has strip-able `User note` blocks for the lead).
-  Builds clean; **byte-identical baselines at `--align-offsets 0`** (verified N=6
-  RM 90.5/100.5, 0 missed). Not yet committed — see §5 "THE PLAN".
+- **This session (2026-06-25/26), committed + pushed:** `--align-offsets FRAC` knob
+  (`Simulation.{h,cpp}`, `main.cpp`) + the leg-(A) route-map reframe (PAPER_NOTES,
+  HANDOFF §5, BOUND, PREDICTOR §5d, ZONE_TOLERANCE, USAGE) + new **`THEOREM_BRIEF.md`**
+  (formal problem statement for Kurt; fleet model = `F_spaced`; strip-able `User note`
+  blocks) → commit **`1ff68ed`**, pushed to tempbosch.
+- **Then adopted the EE curvature zone map** (`Trajectory.zoneAt(step)` /
+  `curvatureDeltaAt`) from `tempbosch/main 8fad423` → commit **`bad422e`**
+  (**LOCAL-ONLY, not pushed**). Verified additive: N=6 RM 90.5/100.5, 0 missed
+  (byte-identical), fidelity gate 1.490e-08 PASS. **Source of truth stays
+  paper-generalization; the rest of the EE branch (200k-line data dumps, xlsx, viz
+  coloring, CLI) intentionally NOT merged.** Next: wire a `zone` column (via
+  `zoneAt(refStep)`) → Phase-1 `A(zone)` sweep (§5 THE PLAN leg 1).
 - Builds clean: `cmake --build build -j`. Fidelity gate passes — `max |dev| =
   1.490e-08 m` on the trust anchor (`--vehicles 1 rm --exec worst --duration 120
   --validate-predictor`); the value **scales with lap coverage**, so use that exact

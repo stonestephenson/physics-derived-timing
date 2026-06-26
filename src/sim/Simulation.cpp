@@ -99,6 +99,7 @@ void Simulation::start() {
     triggers_.resize(n);
     maxRolling_.assign(n, 0.0);
     hardCount_.assign(n, 0);
+    for (int z = 0; z < 4; ++z) { zoneHard_[z] = 0; zoneSoft_[z] = 0; zoneFrames_[z] = 0; }
 
     predParams_ = PredictParams{};
     predParams_.deltaMax = params_.deltaMax;  // <= 0 -> calibrated default
@@ -354,6 +355,17 @@ void Simulation::recordFrame(double t) {
         if (o.critical_real) flags |= Frame::kCritical;
         f.flags = flags;
 
+        // Zone attribution (leg A / Phase-1 A(zone)): bucket this frame's breach
+        // by its curvature zone (lateral only -- zones are a track concept).
+        if (params_.plant == PlantKind::Lateral) {
+            const int z = static_cast<int>(vehicles_[v].traj->zoneAt(step_ + offsets_[v]));
+            if (z >= 0 && z < 4) {
+                ++zoneFrames_[z];
+                if (flags & Frame::kHard) ++zoneHard_[z];
+                if (flags & Frame::kSoft) ++zoneSoft_[z];
+            }
+        }
+
         rec_.frames[v].push_back(f);
         if (o.rolling_real > maxRolling_[v]) maxRolling_[v] = o.rolling_real;
     }
@@ -465,6 +477,14 @@ void Simulation::runToCompletion(bool verbose) {
         if (worstAgeMs >= 0.0)
             std::printf("  worst-case data age: %.2f ms (freshest) / %.2f ms (path)\n",
                         worstAgeMs, worstAgeOldMs);
+        if (params_.plant == PlantKind::Lateral)
+            std::printf("  zone breaches (frame-decimated): hard z0=%ld z1=%ld z2=%ld "
+                        "z3=%ld | soft z0=%ld z1=%ld z2=%ld z3=%ld\n",
+                        zoneHard_[0], zoneHard_[1], zoneHard_[2], zoneHard_[3],
+                        zoneSoft_[0], zoneSoft_[1], zoneSoft_[2], zoneSoft_[3]);
+        if (params_.plant == PlantKind::Lateral)
+            std::printf("  zone frames: z0=%ld z1=%ld z2=%ld z3=%ld\n",
+                        zoneFrames_[0], zoneFrames_[1], zoneFrames_[2], zoneFrames_[3]);
         // Simultaneous criticality (HANDOFF §5 item 0): empirical shadow of leg (A).
         {
             long over = 0;

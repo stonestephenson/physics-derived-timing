@@ -122,6 +122,11 @@ private:
 
     std::vector<double> maxRolling_;
     std::vector<int>    hardCount_;
+    // Per-zone breach attribution for leg (A) / Phase-1 A(zone) (lateral only;
+    // zones are a track concept). Frame-decimated, fleet-aggregated over vehicles.
+    long                zoneHard_[4] = {0, 0, 0, 0};
+    long                zoneSoft_[4] = {0, 0, 0, 0};
+    long                zoneFrames_[4] = {0, 0, 0, 0};  // frames spent in each zone
 
     // --- Held-command prediction cache (drives TTU policy, viz, stats).
     //     TTV + polyline refresh every 10 ms (cheap single rollout); the PNR
