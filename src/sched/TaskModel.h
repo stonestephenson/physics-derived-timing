@@ -98,6 +98,9 @@ public:
     void beginTick(long step, std::vector<ReadyJob>& readyOut);
     void grantCore(TaskKind kind);
     void endTick(long step, VehicleTriggers& out);
+    // Phase-2 causal A(zone): extra delay (ticks) added to netCA command packets
+    // sent while set (Simulation sets it per tick from the vehicle's zone).
+    void setExtraNetDelayTicks(long t) { extraNetDelayTicks_ = t; }
 
     int vehicleId() const { return vehicleId_; }
     long missedJobs() const { return missed_; }
@@ -146,6 +149,7 @@ private:
 
     Job sensor_, estimator_, controller_, feedforward_, merger_, actuator_;
     NetworkParams netSC_, netCA_;
+    long          extraNetDelayTicks_ = 0;  // zone-conditional injection (Phase-2)
 
     // Pending network "receive" events (arrival tick + carried data-age stamp).
     std::vector<NetPacket> scReceiveAt_;

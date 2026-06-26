@@ -316,7 +316,7 @@ void TaskChainModel::endTick(long step, VehicleTriggers& out) {
     }
     if (mergerFinished) {
         out.net_ca_sent = true;
-        caReceiveAt_.push_back(NetPacket{step + sampleDelayTicks(netCA_.delay),
+        caReceiveAt_.push_back(NetPacket{step + sampleDelayTicks(netCA_.delay) + extraNetDelayTicks_,
                                          aggOutStamp_, aggOutOldStamp_});
     }
 

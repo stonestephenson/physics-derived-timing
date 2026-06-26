@@ -35,6 +35,11 @@ void PolicyScheduler::onTick(double /*t*/, long step,
         models_[j.vehicle].grantCore(j.kind);
     }
 
+    // 3b. Apply any per-vehicle zone-conditional extra netCA delay (Phase-2
+    //     causal A(zone)); 0 for every vehicle unless --zone-target is set.
+    for (size_t v = 0; v < models_.size() && v < views.size(); ++v)
+        models_[v].setExtraNetDelayTicks(views[v].extra_net_delay_ticks);
+
     // 4. Advance every model and emit this tick's triggers.
     for (size_t v = 0; v < models_.size(); ++v)
         models_[v].endTick(step, out[v]);

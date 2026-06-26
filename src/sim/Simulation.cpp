@@ -239,6 +239,14 @@ void Simulation::buildViews() {
                                 ttv * dt_ * 1000.0, ttpnr * dt_ * 1000.0,
                                 predCache_[v].rescueClearanceM,
                                 recent < 0 ? -1.0 : recent * dt_ * 1000.0};
+        // Phase-2: inject extra netCA delay while this vehicle is in the target zone.
+        views_[v].extra_net_delay_ticks =
+            (params_.zoneTarget >= 0 && params_.zoneExtraMs > 0.0 &&
+             params_.plant == PlantKind::Lateral &&
+             static_cast<int>(vehicles_[v].traj->zoneAt(step_ + offsets_[v])) ==
+                 params_.zoneTarget)
+                ? static_cast<long>(params_.zoneExtraMs / (dt_ * 1000.0) + 0.5)
+                : 0;
         if (params_.honestPredictor) {
             long ttvE, ttpnrE;
             currentHonestPredTicks(static_cast<int>(v), ttvE, ttpnrE);

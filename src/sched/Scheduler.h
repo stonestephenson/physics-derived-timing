@@ -65,6 +65,10 @@ struct VehicleView {
     double ttv_est_ms      = 500.0;
     double ttpnr_est_ms    = 500.0;
     double rescue_clearance_est_m = 1e9;
+    // Phase-2 causal A(zone) (ZONE_TOLERANCE): extra netCA delay (ticks) the
+    // model should add to commands sent this tick, set by Simulation when the
+    // vehicle is in the targeted curvature zone. 0 = none (default) -> no effect.
+    long   extra_net_delay_ticks = 0;
 };
 
 class Scheduler {

@@ -37,6 +37,12 @@ struct SimParams {
     // applied when startOffsets is not given explicitly. Ignored by cart-pole
     // (its shove is already a global-phase disturbance).
     double   alignOffsets  = 0.0;
+    // Phase-2 causal A(zone) (ZONE_TOLERANCE): inject extra netCA command delay
+    // only while a vehicle is in curvature zone `zoneTarget` (0..3); -1 = off.
+    // `zoneExtraMs` is the extra delay (ms). Isolates a zone's causal tolerance
+    // (lateral only). Off -> baselines byte-identical.
+    int      zoneTarget    = -1;
+    double   zoneExtraMs   = 0.0;
     ExecMode execMode      = ExecMode::Average;
     OverrunPolicy overrun  = OverrunPolicy::KillAndHold;
     // If >= 0, override BOTH network delays with this fixed value (ms),

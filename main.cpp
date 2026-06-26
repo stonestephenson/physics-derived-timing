@@ -164,6 +164,10 @@ void usage() {
         "                               simultaneity experiment. 0 = even spread (default);\n"
         "                               1 = all on the same lap phase (adversarial). See\n"
         "                               HANDOFF leg (A).\n"
+        "  --zone-target Z              Phase-2 causal A(zone): inject extra command delay\n"
+        "                               only while in curvature zone Z (0=straight 1=slight\n"
+        "                               2=sharp 3=lane-change); -1 = off (default)\n"
+        "  --zone-extra-ms D            extra netCA delay (ms) injected in --zone-target's zone\n"
         "  --pred-staleness MS          honest predictor (ttu/hybrid/aguard-honest): age\n"
         "                               of the cloud's delayed state estimate (default 16\n"
         "                               = worst sensor delay)\n"
@@ -224,6 +228,8 @@ int main(int argc, char** argv) {
         params.cpThetaHard   = std::atof(argValue(argc, argv, "--theta-max", "-1"));
         params.tauCritMs     = std::atof(argValue(argc, argv, "--tau-crit", "100"));
         params.alignOffsets  = std::atof(argValue(argc, argv, "--align-offsets", "0"));
+        params.zoneTarget    = std::atoi(argValue(argc, argv, "--zone-target", "-1"));
+        params.zoneExtraMs   = std::atof(argValue(argc, argv, "--zone-extra-ms", "0"));
         params.predStalenessMs = std::atof(argValue(argc, argv, "--pred-staleness", "16"));
         params.predMarginMs  = std::atof(argValue(argc, argv, "--pred-margin", "0"));
         params.triage        = hasFlag(argc, argv, "--triage");
