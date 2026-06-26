@@ -10,6 +10,46 @@ Newest first.
 
 ---
 
+## 2026-06-26 — Zone A(zone): breach MANIFESTATION ≠ CAUSE (overshoot into straights)
+
+**What it is.** Wired per-zone breach attribution (Simulation buckets each frame's
+hard/soft breach by `Trajectory::zoneAt`, lateral; instrument committed `47c8832`,
+additive, gate-clean). The first Phase-1 delay sweep (N=1 worst, full lap) gives a
+**surprising hard-cliff ordering** — at delivered age 250 ms the **straight (z0) and
+lane-change (z3) breach first**; the **sharp turn (z2) not until 285 ms**, slight (z1)
+310 ms. Occupancy is healthy (z0 5364 / z1 1716 / z2 3866 / z3 1054 frames), so this
+isn't a sampling artifact.
+
+**The finding.** Phase-1 attributes a breach to the zone where `|e_y| > 0.8`
+**manifests** — which is where the car **overshoots**, i.e. the straight *following* a
+maneuver — not the demanding zone that **caused** it via stale commands. So a
+manifestation-based A(zone) reads `A(straight) ≈ A(lane-change) ≈ 250 ms`, which is
+**misleading for the bound**. The causal A(zone) the bound needs (which zone's
+staleness threatens safety) requires **Phase-2** (ZONE_TOLERANCE): inject delay only
+while *in* zone z, and see when z's own staleness causes a breach (wherever it lands).
+
+**Deeper implication for the bound.** Breaches manifest in zones away from their cause
+⇒ a car's safety depends on its **recent trajectory**, not only its current zone. So
+the bound's "occupancy of WC zones" (k) is **not** simply "cars currently in WC zones"
+— a car that just *exited* a WC zone is still at risk. The danger window extends a
+recovery-time past the zone, which bears on the decision horizon θ and the occupancy
+definition (THEOREM_BRIEF §3.4/§3.5). Spatial error-propagation is a real subtlety of
+physics-derived tolerance.
+
+**Status / honesty.** Do NOT publish a manifestation A(zone) as the bound's tolerance.
+Phase-1 instrument is committed and useful (occupancy + manifestation view); the
+**causal** A(zone) = Phase-2 (a zone-conditional delay hook), the next step.
+
+**Evidence / repro.** `for d in 16 64 96 112 128; do ./build/cps --headless --vehicles
+1 --scheduler rm --exec worst --duration 120 --net-delay $d; done` (read the "zone
+breaches" / "zone frames" lines).
+
+**Where it lands.** The A(zone) methods section + an honesty note that physics-derived
+tolerance is trajectory-dependent (error propagates spatially), motivating Phase-2
+causal attribution and a θ that covers post-zone recovery.
+
+---
+
 ## 2026-06-25 — The map IS the disturbance model: the fleet-safety bound is a function of the route's zone structure
 
 **What it is.** The sharpened form of leg (A). Working the simultaneous-criticality
