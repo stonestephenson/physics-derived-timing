@@ -40,9 +40,12 @@ Derive zones from the reference trace, not from runtime flags: the FMU's
 critical-section flag is just `|ff_ref_0| > 1e-6` (in-curve), which is binary.
 Better resolution: bin the track by |ff_ref_0| (curvature proxy) from
 `examples/example_v_10/feedforward_sequence_0.csv`:
-- Z0 straight (ff ≈ 0), Z1 gentle curve, Z2 sharp curve / double lane change
-  (the |ff| peaks; per the challenge paper, the double lane change at the start
-  is the most demanding maneuver, > 0.5 g).
+- **The adopted implementation (`Trajectory::zoneAt`) uses FOUR zones:** Z0 straight,
+  Z1 slight turn, Z2 sharp turn (all by `|ff_ref_0|` thresholds), and **Z3 lane-change**
+  — seeded by curvature-*rate* (`ff_ref_1`) + a local curvature range, then oracle-
+  expanded over the whole maneuver. **Z3 is the BINDING zone (causal A = 140 ms)**;
+  the challenge's double-lane-change is the most demanding maneuver (> 0.5 g). (The
+  old 3-zone `|ff_ref_0|`-only binning below is superseded by this.)
 Map each recorded frame to its zone via `Frame.refStep` (the wrapped trajectory
 index — already in every recording/CSV frame row… in the recording; for CSV
 work, join on time × known start offset).

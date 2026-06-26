@@ -83,8 +83,9 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
     method. Nuances (PAPER_NOTES 2026-06-26): z1>z0 (straights precede curves ⇒
     spatial propagation); causal (sudden in-zone) is more conservative than uniform
     global (`tolerance_sweep` ~245 ms). `THEOREM_BRIEF §3.2` carries the table.
-  - **All five commits are LOCAL-ONLY (push held by request).** Every step verified
-    byte-identical (N=6 90.5/100.5, 0 missed; fidelity 1.490e-08).
+  - **All zone commits are LOCAL-ONLY (push held by request)** — `git log
+    1ff68ed..HEAD` (the last pushed commit). Every step verified byte-identical
+    (N=6 90.5/100.5, 0 missed; fidelity 1.490e-08).
 - **Immediate next (THE PLAN): leg 1 ≈ done → the danger-relative metric** (redefine
   `k` = delivered-age vs `A(zone)`, not TTPNR-under-held), then legs 2 (occupancy)
   & 3 (Kurt). Flags added: `--zone-target`, `--zone-extra-ms` (`./build/cps --help`).
@@ -320,6 +321,14 @@ Instruments built: `--tau-crit`, `--align-offsets`, `--zone-target`/`--zone-extr
 code: the danger-relative metric (leg 4) — redefine `k` = delivered-age vs `A(zone)`
 (per-vehicle, via `zoneAt`), so the empirical `k` matches the theorem's; then re-run
 it swept over τ + adversarial placement as the shadow of the route-map bound.**
+   **Cold-agent-verified heads-up for whoever builds this:** (a) needs a small new
+   hook — a per-vehicle *instantaneous* applied-age accessor; the value is computed in
+   `TaskModel.cpp::endTick` (~L354, the `age_path` convention) but only max'd, so add
+   `currentDataAgeOldestTicks()` through Scheduler→PolicyScheduler→TaskChainModel
+   (mirror `recentLatchAgeTicks`). (b) the `A(zone)` table {z0:290, z1:400, z2:290,
+   z3:140} ms is hard-coded from `zone_tolerance.csv` (V10 only), lateral-only.
+   (c) Add the metric *alongside* `--tau-crit` (don't replace) to keep baselines
+   byte-identical. (d) Use the age-vs-`A(zone)` reading (not "distance-to-PNR").
 
 The items below (0–6) are retained as recorded state; this PLAN supersedes the
 "simultaneity ≤ k" framing in the existential-gate block and reprioritizes around

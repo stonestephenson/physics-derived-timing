@@ -100,7 +100,9 @@ These are the new pieces. Each is tagged **[measured]**, **[assumed]**, or
 
 A **zone** is a stretch of the route classified by control difficulty, derived from
 the reference trajectory's curvature (`|ff_ref_0|`, see `ZONE_TOLERANCE.md`):
-`Z0` straight, `Z1` gentle curve, `Z2` sharp curve / double-lane-change. A route `R`
+`Z0` straight, `Z1` slight turn, `Z2` sharp turn, and `Z3` lane-change — the
+**binding** zone, detected by curvature-*rate* (not just instantaneous curvature) and
+expanded over the whole maneuver (see `Trajectory.h`). A route `R`
 has a **zone map**: the sequence/fraction of track length in each zone.
 
 ### 3.2 A(zone): tolerable data age **[measured 2026-06-26 — causal table]**
@@ -228,8 +230,8 @@ hence (by §2/§3.2) no car ever crosses its hard bound. So `m` cores keep all `
 safe on route `R` under fleet model `F`.
 
 **Corollary (beyond worst-case).**
-The classical test provisions for "every car needs the tightest deadline `A(Z2)`
-always," giving capacity `≈ m · A(Z2) / C`. The bound above provisions for `k(R,F)`
+The classical test provisions for "every car needs the tightest deadline
+`A(z3 lane-change)=140 ms` always," giving capacity `≈ m · A(z3) / C`. The bound above provisions for `k(R,F)`
 tight-zone cars at once, giving a strictly larger capacity whenever `k(R,F) < N` —
 i.e. on any route that is not tight-zone-everywhere.
 
