@@ -29,6 +29,14 @@ struct SimParams {
     long     durationSteps = 0;   // 0 -> one full lap of the chosen profile
     int      decimation    = 100; // record one frame per N ticks (100 == 10 ms)
     std::vector<long> startOffsets;  // empty -> spread vehicles evenly around lap
+    // Adversarial disturbance-alignment knob for the simultaneous-criticality
+    // experiment (leg A): scales the even auto-spread of start offsets toward a
+    // common phase. 0 = full even spread (default; anti-aligned, byte-identical
+    // to the historical baseline); 1 = all vehicles on the same lap phase, so
+    // every car hits the same curve at the same time (maximally aligned). Only
+    // applied when startOffsets is not given explicitly. Ignored by cart-pole
+    // (its shove is already a global-phase disturbance).
+    double   alignOffsets  = 0.0;
     ExecMode execMode      = ExecMode::Average;
     OverrunPolicy overrun  = OverrunPolicy::KillAndHold;
     // If >= 0, override BOTH network delays with this fixed value (ms),

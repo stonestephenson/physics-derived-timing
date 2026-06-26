@@ -279,6 +279,19 @@ once** (≤ k); compose with a multicore RTA ⇒ m cores keep all N safe. This i
 empirical instrument for that claim. It does **not** prove it — a sim refutes or
 fails-to-refute; the bound is Kurt's — but it measures the realized count.
 
+> **REINTERPRETED 2026-06-25 (read before trusting the headline numbers below).**
+> The single-τ readings here (e.g. "max 10, 0.18 % over cores") are measured at the
+> **round-trip horizon (τ=100 ms), which is a saturated gauge** — at the *decision*
+> horizon (τ≈200–300 ms) the same runs show k ≈ N almost always (cart-pole aguard:
+> 0.17 %→93.7 % over cores from τ=100→300, still 0 crashes). Two consequences
+> (PAPER_NOTES 2026-06-25): (1) **the count is not the bound** — k ≈ N yet the fleet
+> is safe, because safety comes from *service rate*, not a small simultaneous count;
+> (2) for **unstable** plants `ttpnr_ms`-under-held ≈ the instability timescale, so
+> this metric flags the whole fleet by construction. Leg (A) was reframed to the
+> **route-map bound** (HANDOFF §5 "THE PLAN"); this metric is to be **redefined
+> danger-relative** (delivered age vs A(zone)) and swept over τ. The numbers below
+> remain valid *as measured at τ=100*; just don't read them as the (A) verdict.
+
 **Definition.** Every base tick (0.1 ms) a vehicle is **critical** iff its aged
 `ttpnr_ms < τ_crit`, where τ_crit ≈ **one command round-trip** = the time to
 compute + deliver a *fresh* command (the "must-be-served-now" line: below it,

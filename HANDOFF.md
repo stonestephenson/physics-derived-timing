@@ -1,6 +1,6 @@
 # Session Handoff — CPS Challenge Visualizer
 
-Resume point for a fresh agent. Last updated **2026-06-23**.
+Resume point for a fresh agent. Last updated **2026-06-25**.
 
 **Read order:** `CLAUDE.md` (stable bootstrap: invariants, reading map, rules) →
 this file (what's true *now*) → the owning design docs as your task needs them
@@ -59,7 +59,13 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   solver (`4f49f46`); the cart-pole generalization (Plant seam + second plant +
   Phase-3 evidence, 4 commits) lives on the branch. **Push only to `tempbosch`.
   NEVER push to `origin`** (the Bosch upstream). `relatedPapers/` untracked.
-- Working tree clean after this handoff commit.
+- **Uncommitted this session (2026-06-25):** a new `--align-offsets FRAC` knob
+  (`Simulation.{h,cpp}`, `main.cpp`) for the leg-(A) simultaneity experiment +
+  doc updates (this file, `PAPER_NOTES`, `ZONE_TOLERANCE`, `USAGE`, `BOUND`,
+  `PREDICTOR §5d`) + a new **`THEOREM_BRIEF.md`** (the formal problem statement
+  for Kurt / leg 3 of THE PLAN; has strip-able `User note` blocks for the lead).
+  Builds clean; **byte-identical baselines at `--align-offsets 0`** (verified N=6
+  RM 90.5/100.5, 0 missed). Not yet committed — see §5 "THE PLAN".
 - Builds clean: `cmake --build build -j`. Fidelity gate passes — `max |dev| =
   1.490e-08 m` on the trust anchor (`--vehicles 1 rm --exec worst --duration 120
   --validate-predictor`); the value **scales with lap coverage**, so use that exact
@@ -244,6 +250,55 @@ The ultrareview surfaced 3 findings:
 
 Reframed (post-Guo 2026-06-18) around the main-track generalization paper:
 
+### THE PLAN (2026-06-25) — the route-map fleet-safety bound (leg A, sharpened)
+
+Working the simultaneous-criticality worst case this session **reshaped what leg
+(A)'s bound is** (full reasoning: PAPER_NOTES 2026-06-25 ×2). The old shape
+("physics bounds simultaneous criticality to k < N, compose with an RTA") does NOT
+survive: an adversary can put all N cars in worst-case track zones at once
+(realistic when the *route* has WC zones spread around it), so k = N and there is no
+slack — back to the pessimistic classical assumption.
+
+**New shape: the bound is a FUNCTION of the route's zone map.** The physics re-enters
+as the track, not a count cap:
+
+    worst-case demand = (number/extent of worst-case zones on the route)
+                        × (cars that fit in each zone's danger window at once),
+                        capped at N;
+    safe iff m cores can meet each car's A(zone) deadline under that demand.
+
+Slack = the route's non-WC fraction (straightaways tolerate huge staleness). Benign
+route → admits many cars; all-WC route (slalom) → degrades gracefully to classical
+(honest, not a failure). **The map is the disturbance model** — concrete and
+checkable, not abstract "bounded disturbance." Dissolves the 2026-06-21/22
+existential risk (unconstrained disturbance ⇒ k = N).
+
+**Critical path (3 legs + a metric fix):**
+1. **A(zone) — define a zone rigorously** as tolerable-age vs position/state from the
+   control physics. This is `ZONE_TOLERANCE.md`, **promoted from EE side-experiment
+   to an input to the bound**; its Phase 1/2 are the concrete next runs. (Control/EE
+   side; user+AI drive the sweeps.)
+2. **Worst-case zone occupancy** — given a map + a **fleet model** (free-flowing/
+   spaced vs bunching/jam — STATE THE ASSUMPTION), how many cars can be in WC zones
+   (hence critical) at once. New geometric/dynamics piece; prototype empirically with
+   `--align-offsets` + zone-aware placement. (user+AI.)
+3. **Schedulability composition** — can m cores meet the A(zone) deadlines of the
+   worst-case occupancy (builds on BOUND §7 RTA). **Kurt** (the one leg neither user
+   nor AI owns).
+4. **Redefine the simultaneity metric to be danger-relative** — delivered age vs
+   A(zone) (or distance-to-PNR), NOT TTPNR-under-held, which saturates for unstable
+   plants (PAPER_NOTES 2026-06-25 Finding 3). Then re-run the instrument as the
+   empirical shadow of the *new* bound: sweep τ (not one point), build a one-run K(τ)
+   curve, place cars adversarially.
+
+Instruments ready or one step away: `--tau-crit` (sweep it), `--align-offsets` (place
+cars), `tools/tolerance_sweep.py` (A(zone) per plant). Immediate next code: a
+zone-aware adversarial placement + a swept-τ one-run K(τ) curve.
+
+The items below (0–6) are retained as recorded state; this PLAN supersedes the
+"simultaneity ≤ k" framing in the existential-gate block and reprioritizes around
+the route-map bound.
+
 **DONE 2026-06-23 — cart-pole visualizer (was the active task).** A dedicated
 cart-pole view now renders inside the same app, keyed on `PlantKind` read from the
 recording (no fork): a cart on a rail + a pole hinged at θ, ±`thetaSoft` (0.05) /
@@ -280,7 +335,7 @@ RTAS'25 + MEMOCODE'24 own "derive timing from physics"); **(B)** age-tolerance
 background; **(C)** folds into (A); **(A)** is the **only surviving leg** — *bound
 from the physics how many of N loops are simultaneously within reaction-time of
 their PNR (≤ k), compose with a multicore RTA ⇒ m cores keep all N safe, admitting
-more loops than an "all-critical-at-once" test.* **Must-cite that was MISSING from
+more loops than an "all-critical-at-once" test.* **→ SHARPENED 2026-06-25 (see "THE PLAN" above + PAPER_NOTES): this "k < N" shape does NOT survive (adversary ⇒ k = N); the bound is instead a FUNCTION of the route's zone map. The map is the disturbance model.** **Must-cite that was MISSING from
 `relatedPapers/`: Sudvarg–Clark–Gill, "Integrated Real-Time Control and Scheduling
 for Safety-Critical CPS," RTAS 2025** (multi-loop + CBF safe-set safety +
 physics-derived period × multiprocessor schedulability — but NO cross-loop
@@ -370,7 +425,7 @@ for s in rm context ttu aguard; do ./build/cps --headless --vehicles 14 --schedu
 Flags: `--scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard`, `--vehicles
 N`, `--cores N`, `--profile 10|12.5|15`, `--duration SEC`, `--exec
 avg|worst|best|pert`, `--overrun kill|skip`, `--guard MS` (hybrid), `--floor MS`
-(aguard), `--tau-crit MS` (sim-criticality, §5 item 0 / PREDICTOR §5d), `--pred-staleness MS`/`--pred-margin MS` (honest predictor, §5 item 3 / PREDICTOR §5e), `--triage`, `--delta-max RAD`, `--u-max N`/`--shove-force N`/`--theta-max RAD` (cartpole calibration, GENERALIZATION §4), `--net-delay MS`, `--validate-predictor`,
+(aguard), `--tau-crit MS` (sim-criticality, §5 item 0 / PREDICTOR §5d), `--align-offsets FRAC` (adversarial car phasing for leg A, 0=spread default..1=all aligned; PAPER_NOTES 2026-06-25), `--pred-staleness MS`/`--pred-margin MS` (honest predictor, §5 item 3 / PREDICTOR §5e), `--triage`, `--delta-max RAD`, `--u-max N`/`--shove-force N`/`--theta-max RAD` (cartpole calibration, GENERALIZATION §4), `--net-delay MS`, `--validate-predictor`,
 `--csv FILE`, `--save/--replay FILE`, `--select N`, `--speed X`, `--screenshot[-at]`.
 
 ## 7. Key files

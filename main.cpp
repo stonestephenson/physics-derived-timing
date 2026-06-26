@@ -160,6 +160,10 @@ void usage() {
         "  --tau-crit MS                simultaneous-criticality threshold: a car is\n"
         "                               'critical' when TTPNR < MS (~1 round-trip; default\n"
         "                               100). Reports max # critical at once vs cores.\n"
+        "  --align-offsets FRAC         lateral only: align vehicle start phases for the\n"
+        "                               simultaneity experiment. 0 = even spread (default);\n"
+        "                               1 = all on the same lap phase (adversarial). See\n"
+        "                               HANDOFF leg (A).\n"
         "  --pred-staleness MS          honest predictor (ttu/hybrid/aguard-honest): age\n"
         "                               of the cloud's delayed state estimate (default 16\n"
         "                               = worst sensor delay)\n"
@@ -219,6 +223,7 @@ int main(int argc, char** argv) {
         params.cpShoveForce  = std::atof(argValue(argc, argv, "--shove-force", "-1"));
         params.cpThetaHard   = std::atof(argValue(argc, argv, "--theta-max", "-1"));
         params.tauCritMs     = std::atof(argValue(argc, argv, "--tau-crit", "100"));
+        params.alignOffsets  = std::atof(argValue(argc, argv, "--align-offsets", "0"));
         params.predStalenessMs = std::atof(argValue(argc, argv, "--pred-staleness", "16"));
         params.predMarginMs  = std::atof(argValue(argc, argv, "--pred-margin", "0"));
         params.triage        = hasFlag(argc, argv, "--triage");

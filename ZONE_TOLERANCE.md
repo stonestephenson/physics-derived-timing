@@ -12,6 +12,24 @@ Everything here runs on the existing harness — **no code changes needed**
 plots freely; the analysis calls (zone boundaries, tolerance thresholds) are
 yours.
 
+## Role: this is now an INPUT to the fleet-safety bound (promoted 2026-06-25)
+
+Originally scoped as the EE-track Q4 experiment. As of **2026-06-25 it is on the
+critical path of leg (A)**: the fleet-safety bound was reframed as *a function of
+the route's zone map* (PAPER_NOTES 2026-06-25; HANDOFF §5 "THE PLAN"). The bound's
+worst-case demand = (number/extent of worst-case zones on the route) × (cars that
+fit in a zone's danger window at once); slack = the route's non-worst-case fraction.
+**A(zone) — the tolerable age per zone derived below — is the physics input that
+makes that bound non-pessimistic**, so Phase 1/2 feed the theorem directly, not just
+the Q4 figure. Two consumers of the A(zone) output now:
+- the **bound** (each zone's deadline tightness; how much slack the route offers);
+- the **scheduler** (per-zone mode-switch / guard — deliverable #2 below).
+
+Companion piece needed alongside (HANDOFF §5 leg 2, owned with the bound): the
+worst-case zone **occupancy** depends on a **fleet model** — can cars bunch (a jam
+releasing together) or are they free-flowing and spaced? State that assumption; the
+`--align-offsets` knob is the empirical lever for placing cars adversarially.
+
 ## Zones
 
 Derive zones from the reference trace, not from runtime flags: the FMU's

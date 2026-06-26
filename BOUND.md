@@ -7,6 +7,16 @@ but consistency is not proof. (§7's RTA *arithmetic* is now machine-verified an
 sim-cross-checked by `tools/rta_solve.py` — see §7.3; the lemmas and the §7.2
 workload *formula* itself remain unverified draft.)
 
+> **Scope note (2026-06-25).** This document is the **per-vehicle data-age ceiling**
+> (+ its §7 RTA). The separate **fleet-safety bound (leg A)** — "can m cores keep all
+> N plants safe" — was reframed this session as *a schedulability bound parameterized
+> by the route's zone map* (PAPER_NOTES 2026-06-25; HANDOFF §5 "THE PLAN"): worst-case
+> demand = (worst-case zones on the route) × (cars per zone danger-window), composed
+> with the §7 RTA against each car's A(zone) deadline. The earlier "physics bounds
+> simultaneous criticality ≤ k < N" shape does NOT survive (adversary ⇒ k = N); the
+> route map is the disturbance model. That bound builds on §7's RTA and is Kurt's to
+> formalize.
+
 The quantity bounded is the **oldest-direct-input ("path") data age** measured by
 the harness (`age_path` column; `TaskChainModel::maxDataAgeOldestTicks`). See
 `DATA_AGE.md` for why this equals the classical S→E→B→M→A cause-effect-chain

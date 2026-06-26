@@ -32,8 +32,14 @@ void Simulation::start() {
     offsets_ = params_.startOffsets;
     if (static_cast<int>(offsets_.size()) != n) {
         offsets_.resize(n);
-        for (int v = 0; v < n; ++v)  // spread evenly around the lap
-            offsets_[v] = static_cast<long>(static_cast<double>(v) * traj_->lapSteps() / n);
+        // alignOffsets scales the even spread toward a common phase: 0 = full
+        // spread (anti-aligned, the historical baseline); 1 = all on phase 0
+        // (maximally aligned -- the adversarial simultaneity case, leg A). At
+        // alignOffsets 0 this is bit-identical to the old v*lapSteps/n spread.
+        const double spread = 1.0 - params_.alignOffsets;
+        for (int v = 0; v < n; ++v)
+            offsets_[v] = static_cast<long>(spread * static_cast<double>(v) *
+                                            traj_->lapSteps() / n);
     }
 
     vehicles_.resize(n);

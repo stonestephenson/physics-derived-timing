@@ -10,6 +10,112 @@ Newest first.
 
 ---
 
+## 2026-06-25 — The map IS the disturbance model: the fleet-safety bound is a function of the route's zone structure
+
+**What it is.** The sharpened form of leg (A). Working the simultaneous-criticality
+worst case (next entry) forced a reframing of what the fleet-safety bound *is*. The
+old shape — "physics bounds the number of loops simultaneously critical to k < N,
+compose with an RTA" — does **not** survive: an adversary can put all N cars in
+worst-case track zones at once (realistic when the *route* has worst-case zones
+distributed around it, not just the unrealistic all-stacked sim case), so the
+worst-case simultaneity count is **k = N** and there is no slack — back to the
+pessimistic "all-critical-at-once" assumption.
+
+**The resolution (the actual contribution shape).** The physics re-enters not as a
+count cap but as the **route**: the bound is a **function of the track's zone map**.
+
+    worst-case demand = (number/extent of worst-case zones on the map)
+                        × (cars that fit in each zone's danger window at once),
+                        capped at N;
+    safe iff m cores can meet each car's A(zone) deadline under that demand.
+
+Two map-derived slack mechanisms: (1) **spacing/geometry** — cars occupy distinct
+positions, so only so many fit a WC zone's danger window at once (< N on a long
+route, unless the map is WC-everywhere); (2) **per-zone tolerable age** (load-bearing)
+— a car on a straightaway tolerates huge staleness (a stale "go straight" is still
+correct) and barely needs a core; only cars in tight zones need frequent service.
+The physics enters as **A(zone)** — exactly the zone-tolerance quantity
+(`ZONE_TOLERANCE.md`), now promoted from EE side-experiment to an **input to the
+bound**.
+
+**Why it's the honest framing.** The bound is **tight, not universal**: it reports
+the slack *this route* offers. Benign route (mostly straight) → much slack → admits
+many cars; pathological all-WC route (a slalom) → zero slack → degrades gracefully
+to the classical pessimistic capacity. That degradation is a *feature* (honest about
+a genuinely hard route), not a failure. "Our bound is parameterized by the route's
+worst-case-zone coverage" is a concrete, checkable assumption — far more defensible
+than an abstract "bounded disturbance" class. **The map is the disturbance model**,
+which dissolves the existential risk flagged 2026-06-21/22 (unconstrained
+disturbances ⇒ k = N).
+
+**The plan it implies (3 legs + a metric fix; HANDOFF §5 "THE PLAN").** (1) define
+A(zone) rigorously from the control physics (ZONE_TOLERANCE Phase 1/2 — control/EE
+side); (2) worst-case zone *occupancy* given map + a **fleet model** (free-flowing vs
+bunching — state the assumption); (3) schedulability composition over the BOUND §7
+RTA (Kurt); (4) redefine the simultaneity metric to be danger-relative (next entry).
+
+**Where it lands.** The lead contribution / theorem framing: the fleet-safety bound
+as a route-parameterized schedulability test (vs Sudvarg's per-loop utilization
+co-design — ours is a cross-loop, route-derived demand bound). Forced by the
+empirical work in the next entry.
+
+---
+
+## 2026-06-25 — tau_crit is a saturated gauge; k ≈ N at the decision horizon; the count is not the bound
+
+**What it is.** A re-examination of the simultaneous-criticality metric
+(`--tau-crit`, PREDICTOR §5d), started from a user question — "why count cars that
+are already past saving?" — that overturned how we read `k`.
+
+**Finding 1 — the horizon makes the metric say opposite things.** `k(τ)` =
+max-over-run of #{cars : TTPNR < τ}. At τ = 100 ms (≈ one round-trip, the default) it
+reads near 0; raise τ toward the *decision* horizon (round-trip + time to actually
+get served) and `k` jumps to ≈ N. **Same run.** Cart-pole aguard N=16 worst 20 s:
+
+| τ (ms) | max sim-crit | % run over cores | crashed |
+|---|---|---|---|
+| 100 | 10/16 | 0.17 % | 0 |
+| 200 | 16/16 | 44.9 % | 0 |
+| 300 | 16/16 | 93.7 % | 0 |
+
+The "max 10, 0.18 % over cores" headline (HANDOFF/PREDICTOR §5d) is an artifact of
+measuring at exactly the round-trip horizon; the real decision-horizon demand is the
+whole fleet, almost always. τ = 100 is a **saturated gauge reading near its floor**.
+
+**Finding 2 — the count is not the bound; service-rate is.** At τ = 300, k = 16 ≫ 3
+cores for 94 % of the run, yet aguard crashes **0/16** (RM crashes 9). Safety does
+NOT come from "few simultaneously critical" — it comes from the scheduler *rotating*
+3 cores through 16 poles fast enough that none reaches PNR. The naive (A) "physics
+bounds k ≤ m ⇒ safe" is **false as stated** (k ≈ N). The bound must be a throughput
+property — which forced the route-map reframing (entry above).
+
+**Finding 3 — TTPNR-under-held conflates instability with danger.** For an *unstable*
+plant, "time to unrecoverable if I freeze the command" ≈ the natural fall time
+(√(L/g) ≈ 200–300 ms for the pole — exactly where the table saturates). So
+"TTPNR < 300 ms" flags *every* pole *always*: it measures open-loop instability, not
+closed-loop risk. The metric means different things on the stable car (genuine drift
+to the lane edge) vs the unstable pole (perpetual). ⇒ **redefine the metric to be
+danger-relative** (delivered age vs A(zone) tolerable age, or distance-to-PNR), not
+TTPNR-under-held.
+
+**Finding 4 (the `--align-offsets` A/B) — the car's benign number is NOT a spread
+artifact.** New `--align-offsets FRAC` knob (0 = even spread, default; 1 = all cars on
+one lap phase = adversarial; lateral only — cart-pole's shove is already global-phase).
+Car aguard N=18 worst: aligning barely moves sim-crit (1→2 of 18), and aguard holds 0
+hard breaches even at **26.8 s** data age. On the *same* aligned segment, physics-blind
+RM lets **14/18** go critical and crashes the fleet — so the segment IS adversarial;
+the protection is the scheduler doing real physics-aware work, not luck from spacing.
+Reconfirms the car "binds on scheduling, not physics" under adversarial alignment.
+
+**Evidence / repro.** `--align-offsets 1` on lateral; `--tau-crit {100,200,300}` on
+either plant. Scratch recordings: `/tmp/{spread_rm,aligned_rm,aligned_aguard}.cpsr`.
+Code: `--align-offsets` (`Simulation.{h,cpp}`, `main.cpp`; byte-identical at FRAC 0).
+
+**Where it lands.** Motivates the route-map bound (entry above) and a redefined
+simultaneity metric; the τ-sweep + align A/B become the "why a count won't do" figure.
+
+---
+
 ## 2026-06-23 — Cart-pole calibration to paper-grade: the tolerance cliff is invariant to it
 
 **What it is.** `HANDOFF §5 item 1`. The cart-pole's control params were first-pass
