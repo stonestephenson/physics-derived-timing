@@ -10,6 +10,44 @@ Newest first.
 
 ---
 
+## 2026-06-29 — A(zone) is conditioned on good entry: tolerance is state-dependent, errors carry across zones
+
+**What it is.** A user question exposed a load-bearing assumption inside the causal
+A(zone) table (2026-06-26): `A(zone)` is keyed on *position on the track*, but the true
+tolerance is **state-dependent** — a car entering a zone already near the 0.8 m bound
+has ~0 tolerance regardless of the zone. So `A(zone)` implicitly assumes the car
+**enters the zone well-tracked** (the state the clean N=1 measurement produces).
+
+**Two quantities, two roles.** The state-dependent counterpart already exists in the
+harness: **TTPNR** (the predictor rolls forward from the car's actual state). So
+`A(zone)` = the *track's* demand (assumes good entry); TTPNR = *this car's*
+instantaneous danger (reads real state). The bound reconciles them **inductively**:
+respect `A(zone)` in *every* zone ⇒ no car accumulates enough error to reach the edge ⇒
+the good-entry precondition holds everywhere ⇒ the edge-entering case can't arise.
+
+**The wrinkle (= the overshoot finding, sharpened).** Errors carry *across* zone
+boundaries — a car staled in z−1 enters z degraded — so `A(z)` measured for a clean
+entry *under*-counts the danger for a degraded entry. The per-zone budget the induction
+needs may have to be **tighter** than the isolated `A(z)`: charge the worst hand-off
+from the previous zone. The user's extreme case: a car exiting z1 at the very edge
+falls off *immediately* on entering z2 ("response time ≈ 0") — `A(z2)` doesn't cover it
+because the good-entry precondition was already violated upstream.
+
+**Consequence for the danger-relative metric (THE PLAN leg 4).** Do NOT build it as
+purely "delivered age vs `A(zone)`" — fold in the car's *actual* state/margin (or
+TTPNR), because accumulated error can make a car critical even with a fairly fresh
+command. The danger signal and the occupancy count both need state, not just
+age-vs-budget. (The coarse age-vs-`A(zone)` is a sound, conservative *starting* point;
+just build with this in view.)
+
+**Status.** Flagged as an explicit assumption + open wrinkle in THEOREM_BRIEF §3.2;
+added as an ask for Kurt's inductive argument (§6.3c). Caught pre-submission.
+
+**Where it lands.** The A(zone) methods + assumptions: state-dependence, the inductive
+good-entry argument, and cross-zone error carry as the honest limitation.
+
+---
+
 ## 2026-06-26 — Causal A(zone) table: the lane-change is the binding zone (140 ms)
 
 **What it is.** Phase-2 (zone-conditional delay injection, `--zone-target`/

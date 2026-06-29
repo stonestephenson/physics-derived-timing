@@ -328,7 +328,11 @@ it swept over τ + adversarial placement as the shadow of the route-map bound.**
    (mirror `recentLatchAgeTicks`). (b) the `A(zone)` table {z0:290, z1:400, z2:290,
    z3:140} ms is hard-coded from `zone_tolerance.csv` (V10 only), lateral-only.
    (c) Add the metric *alongside* `--tau-crit` (don't replace) to keep baselines
-   byte-identical. (d) Use the age-vs-`A(zone)` reading (not "distance-to-PNR").
+   byte-identical. (d) Start from the age-vs-`A(zone)` reading as a sound, conservative base, **but fold
+   in the car's actual state/margin (or TTPNR)** — `A(zone)` assumes the car *enters
+   the zone well-tracked*, and accumulated error makes a car critical even with a
+   fresh-ish command (THEOREM_BRIEF §3.2 "Load-bearing assumption + wrinkle";
+   PAPER_NOTES 2026-06-29). The occupancy count needs state too, not just age-vs-budget.
 
 The items below (0–6) are retained as recorded state; this PLAN supersedes the
 "simultaneity ≤ k" framing in the existential-gate block and reprioritizes around

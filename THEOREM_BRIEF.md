@@ -128,6 +128,24 @@ conservative, zone-specific value is the right one for a safety bound. Phase-1
 *manifestation* attribution (where breaches land, not what caused them) is NOT this —
 see PAPER_NOTES 2026-06-26.
 
+**Load-bearing assumption + open wrinkle (flagged 2026-06-29).** `A(zone)` is keyed on
+*position on the track*, but the true tolerance is **state-dependent** — a car entering
+a zone already near the bound (large |e_y|) has ~0 tolerance regardless of the zone. So
+`A(zone)` implicitly assumes the car **enters the zone well-tracked** (near the
+centerline) — exactly the state the clean N=1 measurement produces. The state-dependent
+counterpart already exists: **TTPNR** (§3.3) reads the car's *actual* state. So
+`A(zone)` = the *track's* demand (good-entry); TTPNR = *this car's* instantaneous
+danger. The bound reconciles them **inductively**: respect `A(zone)` in *every* zone ⇒
+no car accumulates enough error to reach the edge ⇒ the "enters well-tracked"
+precondition holds everywhere ⇒ the edge-entering case cannot arise. **The wrinkle:**
+errors carry *across* zone boundaries (the overshoot / spatial-propagation finding) — a
+car staled in zone z−1 enters z degraded — so `A(z)` measured for a *clean* entry
+*under*-counts the danger for a degraded entry, and the per-zone budget the induction
+needs may have to be **tighter** than the isolated `A(z)` (charge the worst hand-off
+from z−1). **Consequence for the metric (§3.6):** the danger-relative `k` should fold
+in the car's *actual* state/margin (or TTPNR), **not** be purely "delivered age vs
+`A(zone)`" — accumulated error can make a car critical even with a fairly fresh command.
+
 ### 3.3 Recoverability deadline (point of no return, PNR) **[assumed — heuristic]**
 
 For a car in a given state holding a given command, the **PNR** is the time after
@@ -258,7 +276,10 @@ i.e. on any route that is not tight-zone-everywhere.
    deadlines. `rta_solve.py` is ready to machine-check candidates.
 3. **Pin the soft spots:** (a) a defensible **PNR** definition or an explicit
    assumption (currently a bang-bang heuristic, §3.3); (b) whether to take `A(zone)`
-   as **measured** or push for a derivation (§3.2).
+   as **measured** or push for a derivation (§3.2); (c) the **inductive `A(zone)`-budget
+   argument** + how to charge cross-zone error carry (the §3.2 wrinkle) — is "respect
+   `A(zone)` everywhere ⇒ cars stay well-tracked" sound, and must the per-zone budget
+   tighten for the worst hand-off from the previous zone?
 4. **Adjudicate the scheduler abstraction** (§4): is the deadline-driven target the
    right thing to prove, with aguard as achievability?
 5. **Sanity-check the related-work delta** — does the occupancy lemma actually clear
