@@ -367,6 +367,31 @@ carry-in re-derivation). The `Occ(s)` + `K(τ)` curves are his empirical inputs.
 the degraded-entry case — the current `Occ` is the clean geometric count (the conservative
 worst case for placement); the danger pairing (RM-crashes/aguard-safe) supplies the state side.
 
+**Parked AI-ownable work (NON-BLOCKING — none gates Kurt or fixes anything broken; pick up
+while leg 3 is with Kurt).** Recorded 2026-06-29; the critical path is Kurt's leg 3.
+1. **Prototype the limited-carry-in RTA** (highest leverage; de-risks leg 3 directly).
+   Implement a candidate `m−1` Guan RTA-LC workload in `tools/rta_solve.py` (the full-carry-in
+   `W_i(x)` is at `BOUND.md §7.2`), see if it closes the **certified-5 → empirical-10** gap, and
+   cross-check it sound vs the sim (`--cross-check`). Feeds `THEOREM_BRIEF §9.4` (the gating
+   sub-task) / `BOUND.md §7.4` items 2–3. **CAVEAT (invariant #5):** the *derivation's
+   soundness* is Kurt's — this is a labeled-**unverified** candidate to machine-check, NOT a
+   proof. Genuine tension on whether to do it now vs. let Kurt drive the derivation and we
+   machine-check his version (avoids anchoring) — lead deferred it pending Kurt.
+2. **Generalize the curves to v12.5 / v15** (most paper value; not Kurt-gated). The `A(zone)`
+   table, `Occ` curve, and danger metric are **v10-only** — `kAZoneMs` is hard-coded
+   `{290,400,290,140}` in `Simulation.cpp`. Run `tools/zone_sweep.py` + `tools/occupancy_sweep.py`
+   on `--profile 12.5` and `15` for per-profile `A(zone)` + `Occ`; generalize the danger metric's
+   table per profile. Answers the open §8.2 route-family decision (THEOREM_BRIEF) + the
+   generality leg.
+3. **Measure the cross-zone error carry** (honesty-strengthening). Extend Phase-2
+   (`--zone-target`/`--zone-extra-ms`): inject delay in zone z−1, measure the degraded-entry
+   breach in z, to quantify how much tighter `A(z)` must be for a worst hand-off. Turns the §3.2
+   good-entry wrinkle (PAPER_NOTES 2026-06-29) from a flagged assumption into a number; feeds
+   Kurt's inductive `A(zone)`-budget argument (THEOREM_BRIEF §6 #3c / §9.5).
+4. **Reproducibility housekeeping.** Fold `occupancy_sweep` + the danger metric into
+   `tools/reproduce.py` so the new CSVs regenerate one-command (Guo directive). `occupancy_sweep.csv`
+   is already committed; `--danger-tau` has no dedicated sweep yet.
+
 The items below (0–6) are retained as recorded state; this PLAN supersedes the
 "simultaneity ≤ k" framing in the existential-gate block and reprioritizes around
 the route-map bound.
