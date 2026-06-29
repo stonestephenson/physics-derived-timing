@@ -25,9 +25,13 @@ worst-case demand = (number/extent of worst-case zones on the route) × (cars th
 fit in a zone's danger window at once); slack = the route's non-worst-case fraction.
 **A(zone) — the tolerable age per zone derived below — is the physics input that
 makes that bound non-pessimistic**, so Phase 1/2 feed the theorem directly, not just
-the Q4 figure. Two consumers of the A(zone) output now:
-- the **bound** (each zone's deadline tightness; how much slack the route offers);
-- the **scheduler** (per-zone mode-switch / guard — deliverable #2 below).
+the Q4 figure. Consumer of the A(zone) output today:
+- the **bound** (each zone's deadline tightness; how much slack the route offers) —
+  via the in-process zone instruments in `Simulation.cpp` (`--zone-target`, `--pack-zone`,
+  `--danger-tau`), which read `Trajectory::zoneAt`.
+- (Hypothetical, **not built**) a per-zone mode-switching **scheduler** — see the
+  corrected deliverable #2 below. No scheduler reads `zoneAt` today; zones are
+  measurement-only.
 
 Companion piece needed alongside (HANDOFF §5 leg 2, owned with the bound): the
 worst-case zone **occupancy** depends on a **fleet model** — can cars bunch (a jam
@@ -49,6 +53,40 @@ Better resolution: bin the track by |ff_ref_0| (curvature proxy) from
 Map each recorded frame to its zone via `Frame.refStep` (the wrapped trajectory
 index — already in every recording/CSV frame row… in the recording; for CSV
 work, join on time × known start offset).
+
+### Zone segmentation — algorithm + constants (code-only; re-examine per profile)
+
+The zone array is built once per profile in **`Trajectory::computeTrackZones`
+(`src/trace/Trajectory.cpp:139-248`)** and read in-process via `zoneAt`. The algorithm
+(not previously documented anywhere but the code):
+1. **Per-tick base zone** by `|ff_ref_0|` (curvature proxy): `Z0` if ≤ `kZoneZeroEpsilon`,
+   `Z1` if `< kZoneSharpThreshold`, else `Z2` (`trackZoneFromFf0`).
+2. **Z3 (lane-change) seeds** at ticks where the curvature *rate* is high —
+   `|ff_ref_1| ≥ kZoneLaneFf1Threshold` **or** a windowed curvature *range*
+   `curvatureDelta ≥ kZoneLaneCurvatureDeltaThreshold`. The range is the max−min of
+   `ff_ref_0` over a ±`kZoneLaneHalfWindowTicks` window, computed with a **monotonic-deque
+   sliding window** (O(n)); seeds are written into a diff-array, then **padded**
+   ±`kZoneLaneOraclePadTicks` and **bridged** across gaps ≤ `kZoneLaneOracleBridgeTicks`
+   (the "oracle" expand pass) so the whole maneuver — not just its onset — is labelled Z3.
+
+**The constants (`src/trace/Trajectory.h:33-39`) — code-only, not CLI flags, hand-tuned
+for v10, with no formal derivation:**
+
+| constant | value | role |
+|---|---|---|
+| `kZoneSharpThreshold` | `0.0215` | Z1 vs Z2 split (slight vs sharp turn) |
+| `kZoneLaneFf1Threshold` | `0.0035` | Z3 seed: curvature-rate threshold |
+| `kZoneLaneCurvatureDeltaThreshold` | `0.0040` | Z3 seed: windowed curvature-range threshold |
+| `kZoneLaneHalfWindowTicks` | `500` (±50 ms) | range window half-width |
+| `kZoneLaneOraclePadTicks` | `1000` (±100 ms) | pad around each Z3 seed |
+| `kZoneLaneOracleBridgeTicks` | `3500` (350 ms) | fill gaps between Z3 seeds |
+
+The headline **A(z3)=140 ms binding result rests entirely on this partition.** The
+A(zone) deadline table itself is hard-coded **v10-only** as `kAZoneMs={290,400,290,140}`
+at `src/sim/Simulation.cpp` (leg-4 danger metric) — if the partition is re-tuned, that
+table must change **in lockstep**. **For the parked v12.5/v15 generalization (HANDOFF §5):
+these thresholds were tuned to v10's curvature scale; re-examine/re-derive them per profile
+(from that profile's own curvature distribution) before trusting per-profile A(zone).**
 
 ## Phase 1 — whole-run delay sweeps, zone-attributed violations
 
@@ -99,7 +137,14 @@ causality: delay only inside the zone.
 ## Deliverables (feed both papers)
 
 1. `A(zone)` table per profile + the violation-vs-age curves (Route A §"age ↔
-   control performance"; Route B's requirement model).
-2. The zone array (wrapped-step → zone id) as a CSV checked into `examples/` —
-   the scheduler consumes it for mode switching.
+   control performance"; Route B's requirement model). **(Done for v10:
+   `zone_tolerance.csv`; v12.5/v15 parked, HANDOFF §5.)**
+2. ~~The zone array as a CSV checked into `examples/` — the scheduler consumes it for
+   mode switching.~~ **CORRECTION (2026-06-29): not built, and not the current design.**
+   The zone array is computed **at runtime** in `Trajectory::computeTrackZones` and read
+   **in-process** via `zoneAt` by the measurement instruments only — it is **not exported
+   to a CSV** (nothing under `examples/` holds one) and **no scheduler consumes it**
+   (`grep zoneAt` → only `Trajectory` + `Simulation`). A per-zone mode-switching scheduler
+   is plausible future work; it does not exist. If a CSV export is ever wanted, add it to
+   the runtime build, don't check in a static one (it must track the constants above).
 3. A two-paragraph methods write-up (goes nearly verbatim into the papers).

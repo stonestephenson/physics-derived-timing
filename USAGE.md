@@ -21,6 +21,14 @@ cmake --build build -j
 
 The executable is `build/cps`.
 
+**Platform support.** The FMU ships prebuilt binaries for **`darwin64` (macOS) and
+`win64` (Windows) only** (`LateralMotionControl/binaries/` — there is **no `linux64`**).
+CMake bakes the platform dylib path at configure time, so on Linux the build configures
+and compiles fine but **`--plant lateral` fails at runtime** (the FMU can't load);
+**`--plant cartpole` works on Linux** (pure C++, no FMU). On Linux, raylib's fetch also
+needs the usual GL/X11 dev headers. macOS note: the filesystem is case-insensitive, so
+`readme.md` (Bosch's FMU doc) and `README.md` are the same file.
+
 ## Run
 
 ```sh
@@ -178,22 +186,58 @@ For full control over the 16 FMU triggers (e.g. data-driven, aperiodic triggerin
 [`src/sched/Scheduler.h`](src/sched/Scheduler.h)) and pass it to the `Simulation`
 instead of a `PolicyScheduler`.
 
+## Verification & baselines
+
+There is **no `ctest` / unit-test harness**: the regression suite is a small set of
+`./build/cps` + `tools/*.py` invocations whose **golden numbers live as prose in
+`HANDOFF.md`** (§2 "Current state" / §Headline-results). Run these after any change and
+compare to the expected output. The two **gates** are mandatory after *any* edit that
+could touch scheduling-visible behavior (CLAUDE.md invariants 3–6):
+
+| # | Command | Expected (the golden) |
+|---|---|---|
+| **G1** byte-identical baseline | `./build/cps --headless --vehicles 6 --scheduler rm --exec worst --duration 30` | `90.50 / 100.50 ms`, `missed jobs: 0`, veh3 `0.507 / 13.43%` |
+| **G2** predictor fidelity gate | `./build/cps --headless --vehicles 1 --scheduler rm --exec worst --duration 120 --validate-predictor` | `max \|dev\| = 1.490e-08 m -> PASS` (value scales with lap coverage — use the full 120 s) |
+| **G3** RTA machine-check | `python3 tools/rta_solve.py --cross-check` | certified capacity `N=5`, empirical `10`, all checks pass, sound vs sim |
+| **G4** results regen | `python3 tools/reproduce.py` | regenerates the scheduling CSVs + prints the tables (see footgun below) |
+
+**Measurement-only / additive changes must keep G1 and G2 byte-identical** — that is the
+definition of "didn't break anything." **If you intentionally change scheduling-visible
+behavior** (tie-break, `--overrun`, periods/WCETs, the `Plant` seam), the golden numbers
+*are expected to move*: re-run G1–G3, and **update the numbers in `HANDOFF.md` + `BOUND.md`
+§7 in the same commit** (CLAUDE.md invariant 4). There is no separate golden file to bless;
+the prose in those docs *is* the baseline of record.
+
 ## Reproducing the results
 
-One command regenerates every scheduling results CSV and prints the table it backs:
+One command regenerates the **scheduling** results CSVs and prints the table each backs:
 
 ```sh
-python3 tools/reproduce.py            # all experiments (--exec worst)
+python3 tools/reproduce.py            # all scheduling experiments (--exec worst)
 python3 tools/reproduce.py --list     # capacity / simcrit / honest / floor / tolerance
 python3 tools/reproduce.py floor      # just one (e.g. re-derives PREDICTOR.md §5c)
-python3 tools/reproduce.py --quick    # small grids (fast smoke)
+python3 tools/reproduce.py --quick    # SMALL grids (fast smoke) -- see warning below
 ```
 
-Committed CSVs (`capacity_sweep.csv`, `simcrit_sweep.csv`, `honest_sweep.csv`,
-`aguard_sweep.csv`, `tolerance_sweep.csv`) are the data behind the PREDICTOR.md /
-PAPER_NOTES.md tables. Two companion tools stay separate: `tools/tolerance_sweep.py`
-(the per-plant cliff, which `reproduce.py tolerance` delegates to) and
-`tools/rta_solve.py` (machine-verifies the BOUND.md §7 RTA).
+> ⚠️ **CSV-overwrite footgun.** `reproduce.py` writes its CSVs into `--out-dir`, which
+> **defaults to the repo root (`.`)**, so a bare run — and especially `--quick` —
+> **overwrites the committed baseline CSVs in place** (`--quick` replaces them with
+> *small-grid smoke data*, no warning). `tools/zone_sweep.py` and
+> `tools/occupancy_sweep.py` are worse: they hard-code their output names
+> (`zone_tolerance.csv`, `occupancy_sweep.csv`) in the CWD with **no `--out` flag at all**,
+> so they unconditionally clobber committed data. To experiment safely, run `reproduce.py`
+> with `--out-dir /tmp/...`, and treat `zone_sweep`/`occupancy_sweep` as
+> commit-or-discard. (Fixing the tools to take `--out` / refuse to overwrite is a tracked
+> follow-up — HANDOFF §5.)
+
+**The reproduce surface is split (not one command for everything):** `reproduce.py` covers
+only the *scheduling* CSVs (`capacity_sweep.csv`, `simcrit_sweep.csv`, `honest_sweep.csv`,
+`aguard_sweep.csv`, `tolerance_sweep.csv`). The physics/route CSVs are separate tools:
+`tools/zone_sweep.py` → `zone_tolerance.csv` (leg 1, causal `A(zone)`),
+`tools/occupancy_sweep.py` → `occupancy_sweep.csv` (leg 2, `Occ(s)`), and
+`tools/tolerance_sweep.py` (the per-plant cliff, which `reproduce.py tolerance` delegates
+to). `tools/rta_solve.py` machine-verifies the BOUND.md §7 RTA. **The `--danger-tau` (leg 4)
+metric has no dedicated sweep tool yet** (HANDOFF §5 backlog).
 
 ## Layout
 

@@ -48,6 +48,10 @@ S (T=5, in-veh) → [net SC: delay δ_SC] → E (T=10, cloud) → B (T=20, cloud
 - **Overrun policy: kill-and-hold.** A job unfinished at its next release never
   publishes; the register holds. (Under the bound's precondition P1 below this
   never triggers, so the bound is identical under skip-next.)
+- **Execution-time floor:** every sampled job execution is **≥ 2 ticks (0.2 ms)** —
+  `std::max<long>(2, …)` at `TaskModel.cpp:100`, so completion is strictly after
+  activation. This floor is **load-bearing for the §7 RTA workload** (the solver
+  mirrors it, `rta_solve.py:80`); it is not a free parameter.
 
 **Preconditions for the bound:**
 - **P1 (no overruns):** every job of every stage completes within its period.

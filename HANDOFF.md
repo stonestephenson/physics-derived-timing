@@ -106,7 +106,8 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   The *same* `Occ` is policy-independent yet **fatal under RM / safe (0 hard) under aguard**
   at spacing ≥ 500 ms — the occupancy→schedulability link; at full stack (`Occ=N`) even
   aguard crashes (honest `F_adversarial` degradation). CSV cols
-  `pack_zone,min_spacing_ms,max_occ_packed`. Not yet committed.
+  `pack_zone,min_spacing_ms,max_occ_packed`. Committed `bd6e5e1` (local; push held).
+  The Kurt-facing leg-3 brief is `THEOREM_BRIEF §9`, committed `a2b6d6d` (local; push held).
 - **Immediate next (THE PLAN): legs 1, 2, 4 done → leg 3 (Kurt) is the only remaining leg**
   — schedulability composition (can `m` cores meet the `A(zone)` deadlines of the measured
   `Occ`; the `Occ(s)` + `K(τ)` curves are the empirical inputs). **The leg-3 brief packet for
@@ -391,6 +392,12 @@ while leg 3 is with Kurt).** Recorded 2026-06-29; the critical path is Kurt's le
 4. **Reproducibility housekeeping.** Fold `occupancy_sweep` + the danger metric into
    `tools/reproduce.py` so the new CSVs regenerate one-command (Guo directive). `occupancy_sweep.csv`
    is already committed; `--danger-tau` has no dedicated sweep yet.
+5. **Sweep-tool safety (footgun, from the 2026-06-29 handoff audit).** `tools/reproduce.py`
+   defaults `--out-dir .` (repo root) and `--quick` overwrites the committed baseline CSVs with
+   smoke data; `tools/zone_sweep.py` / `tools/occupancy_sweep.py` hard-code their output names in
+   CWD with **no `--out` flag** and unconditionally clobber committed data. Give the latter two an
+   `--out`, and make `reproduce.py` refuse to overwrite committed CSVs (or default to a scratch
+   dir). Documented as a warning in USAGE §Reproducing.
 
 The items below (0–6) are retained as recorded state; this PLAN supersedes the
 "simultaneity ≤ k" framing in the existential-gate block and reprioritizes around

@@ -177,9 +177,10 @@ true worst case.
 | --- | --- |
 | Stamping + propagation + per-tick max | `src/sched/TaskModel.cpp` (`endTick`) |
 | Stamp/`NetPacket` state | `src/sched/TaskModel.h` |
-| Per-vehicle accessors (scheduler interface) | `Scheduler::maxDataAgeTicks` (freshest) and `maxDataAgeOldestTicks` (path) (`src/sched/Scheduler.h`), overridden in `src/sched/PolicyScheduler.cpp` |
+| Per-vehicle accessors (scheduler interface) | `Scheduler::maxDataAgeTicks` (freshest) and `maxDataAgeOldestTicks` (run-max path) (`src/sched/Scheduler.h`), overridden in `src/sched/PolicyScheduler.cpp` |
+| Live (this-tick) path-age accessor | `Scheduler::currentDataAgeOldestTicks(v, step)` (instantaneous `age_path`; feeds the `--danger-tau` metric, THE PLAN leg 4) — mirrors `recentLatchAgeTicks`, plumbed Scheduler→PolicyScheduler→`TaskChainModel` |
 | ticks→ms into the summary | `Simulation::finalizeSummary` (`src/sim/Simulation.cpp`) |
-| Stored fields | `VehicleSummary::max_data_age_ms` + `max_data_age_oldest_ms` (`src/sim/Recording.h`, `.cpsr` format v3; v2 still loads) |
+| Stored fields | `VehicleSummary::max_data_age_ms` + `max_data_age_oldest_ms` (`src/sim/Recording.h`, `.cpsr` format **v5**; v2–v4 still load) |
 | Printed column + overall line | `Simulation::runToCompletion` (`src/sim/Simulation.cpp`) |
 
 ## 7. Reading the output
