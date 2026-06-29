@@ -162,7 +162,7 @@ wait behind other loops)`. Round-trip ≈ **90–100 ms** here (the uncontended
 `age_path` is 90.5 ms). The danger horizon to count at is `θ`, **not** the round-trip
 alone (counting at the round-trip is too late — the car is already unrecoverable).
 
-### 3.5 Worst-case zone occupancy + the fleet model **[chosen: `F_spaced` — see §8.1]**
+### 3.5 Worst-case zone occupancy + the fleet model **[chosen: `F_spaced`; Occ measured 2026-06-29]**
 
 `Occ(R, F)` = the maximum number of cars that can be in tight zones (small `A(z)`)
 **at the same instant**, given route `R` and a **fleet model `F`** that says how cars
@@ -175,6 +175,17 @@ case:**
 - **`F_adversarial`** — cars may cluster (a jam releasing together; or just "the
   phases are unconstrained"). Then `Occ` can reach **`N`** if the route's tight zones
   can hold them.
+
+**Measured (`--pack-zone Z --min-spacing MS`, `tools/occupancy_sweep.py`).** The instrument
+packs zone `Z`'s arcs (all of them — the route has several lane-change arcs) at the `F_spaced`
+gap and reports the realized worst-case `Occ`. For the v10 route, **z3 (binding) = 105,400
+ticks ≈ 8.9 % of the lap**, and measured `Occ` **tracks `ceil(zone_len / spacing)` within
++1–2** (per-arc boundary terms) — confirming the `(tight-zone length)/spacing` form. `Occ < N`
+for realistic spacing (N=18: 1 s gap → `Occ=12`; 2 s → 7; 4 s → 4), degrading to `Occ=N` only
+when stacked. **The same `Occ` is policy-independent (geometry) yet fatal under RM and safe
+under aguard** (0 hard at spacing ≥ 500 ms) — the occupancy→schedulability link for Lemma 2.
+At the fully-stacked extreme (`Occ=N`) even aguard crashes — the honest `F_adversarial`
+degradation (§5 Corollary). (PAPER_NOTES 2026-06-29.)
 
 ### 3.6 Concurrent demand k **[measured — danger-relative metric built 2026-06-29]**
 
@@ -276,8 +287,11 @@ i.e. on any route that is not tight-zone-everywhere.
 ## 6. What we're asking you to do (prioritized)
 
 1. **Lemma 1 (occupancy).** Is it true under **`F_spaced`** (our chosen model, §3.5)?
-   This is the make-or-break, genuinely new piece. We can hand you empirical `Occ(R,F)` curves
-   (via `--align-offsets` + zone-aware placement) to test any candidate statement.
+   This is the make-or-break, genuinely new piece. **Empirical `Occ(R, F_spaced)` curves are
+   ready** (`tools/occupancy_sweep.py`, `--pack-zone`/`--min-spacing` — §3.5): measured `Occ`
+   tracks `ceil(tight-zone length / spacing)` within +1–2, `< N` for realistic spacing. The
+   candidate statement to prove: `Occ(R, F_spaced) ≤ ceil(L_tight / s)` (capped `N`), with the
+   per-arc boundary correction. We can regenerate the curve for any `R`/`s`/`N`.
 2. **Lemma 2 (schedulability).** Re-derive the §7.2 workload for the discrete
    global-FP model with **limited carry-in** (you flagged full-carry-in as 2×
    pessimistic: certified 5 vs empirical 10), then compose it against the `A(zone)`

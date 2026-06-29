@@ -83,7 +83,7 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
     method. Nuances (PAPER_NOTES 2026-06-26): z1>z0 (straights precede curves ⇒
     spatial propagation); causal (sudden in-zone) is more conservative than uniform
     global (`tolerance_sweep` ~245 ms). `THEOREM_BRIEF §3.2` carries the table.
-  - **All zone + leg-4 commits are LOCAL-ONLY (push held by request)** — `git log
+  - **All zone + leg-4 + leg-2 commits are LOCAL-ONLY (push held by request)** — `git log
     1ff68ed..HEAD` (the last pushed commit). Every step verified byte-identical
     (N=6 90.5/100.5, 0 missed; fidelity 1.490e-08).
 - **This session (2026-06-29): built THE PLAN leg 4 — the danger-relative metric**
@@ -96,9 +96,21 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   (§5 leg 4 / PAPER_NOTES 2026-06-29):** the two failure axes are *orthogonal* — RM
   `K_age≈0` but `K=7/12` (unserved/past-PNR, state term); aguard `K=K_age=3/6`, zero
   state-critical (over-budget but recoverable). Neither term alone is sound; the union
-  `K ⊇ --tau-crit`. CSV cols `danger_tau,max_k_age,max_k_danger`. Not yet committed.
-- **Immediate next (THE PLAN): legs 1 & 4 done → leg 2 (occupancy) & leg 3 (Kurt).**
-  Flags added: `--zone-target`, `--zone-extra-ms`, `--danger-tau` (`./build/cps --help`).
+  `K ⊇ --tau-crit`. CSV cols `danger_tau,max_k_age,max_k_danger`. Committed `66d0fa2`.
+- **This session (2026-06-29) also built THE PLAN leg 2 — the occupancy instrument**
+  (`--pack-zone Z` / `--min-spacing MS`, lateral; `tools/occupancy_sweep.py`). Packs the
+  binding zone's arcs at the `F_spaced` minimum spacing and measures worst-case
+  simultaneous `Occ`; off by default ⇒ byte-identical. **Result (§5 leg 2 / PAPER_NOTES):
+  measured `Occ` tracks `ceil(zone_len/spacing)` within +1–2** (z3 = 8.9 % of lap);
+  `Occ < N` for realistic spacing (N=18: 1 s gap → 12; 2 s → 7; 4 s → 4), `→ N` stacked.
+  The *same* `Occ` is policy-independent yet **fatal under RM / safe (0 hard) under aguard**
+  at spacing ≥ 500 ms — the occupancy→schedulability link; at full stack (`Occ=N`) even
+  aguard crashes (honest `F_adversarial` degradation). CSV cols
+  `pack_zone,min_spacing_ms,max_occ_packed`. Not yet committed.
+- **Immediate next (THE PLAN): legs 1, 2, 4 done → leg 3 (Kurt) is the only remaining leg**
+  — schedulability composition (can `m` cores meet the `A(zone)` deadlines of the measured
+  `Occ`; the `Occ(s)` + `K(τ)` curves are the empirical inputs). Flags added:
+  `--zone-target`, `--zone-extra-ms`, `--danger-tau`, `--pack-zone`, `--min-spacing`.
 - Builds clean: `cmake --build build -j`. Fidelity gate passes — `max |dev| =
   1.490e-08 m` on the trust anchor (`--vehicles 1 rm --exec worst --duration 120
   --validate-predictor`); the value **scales with lap coverage**, so use that exact
@@ -313,13 +325,19 @@ existential risk (unconstrained disturbance ⇒ k = N).
    A(zone): z3 lane-change 140 ms (binding) ; z0 straight / z2 sharp 290 ms ; z1
    slight 400 ms** (`zone_tolerance.csv`; THEOREM_BRIEF §3.2). Optional refinements:
    the z1>z0 spatial-propagation nuance, a finer cliff, v12.5/v15 profiles.
-2. **Worst-case zone occupancy** — given a map + a **fleet model** (free-flowing/
-   spaced vs bunching/jam — STATE THE ASSUMPTION), how many cars can be in WC zones
-   (hence critical) at once. New geometric/dynamics piece; prototype empirically with
-   `--align-offsets` + zone-aware placement. (user+AI.)
+2. **Worst-case zone occupancy — DONE 2026-06-29 (`--pack-zone`/`--min-spacing`).** Packs
+   the binding zone's arcs at the `F_spaced` minimum spacing and measures worst-case
+   simultaneous `Occ` (all-arc greedy placement; the route has several lane-change arcs).
+   **Result:** measured `Occ` tracks `ceil(zone_len/spacing)` within +1–2 (z3 = 8.9 % of
+   lap), `< N` for realistic spacing (N=18: 1 s gap → 12; 2 s → 7; 4 s → 4), `→ N` stacked.
+   The *same* `Occ` is policy-independent yet **fatal under RM / safe (0 hard) under aguard**
+   at spacing ≥ 500 ms (occupancy→schedulability), degrading honestly to classical at full
+   stack. `tools/occupancy_sweep.py` → `occupancy_sweep.csv`; THEOREM_BRIEF §3.5/§6.1,
+   PAPER_NOTES 2026-06-29. Measurement-only; baselines byte-identical.
 3. **Schedulability composition** — can m cores meet the A(zone) deadlines of the
    worst-case occupancy (builds on BOUND §7 RTA). **Kurt** (the one leg neither user
-   nor AI owns).
+   nor AI owns) — **now the only remaining leg.** The empirical inputs are ready: the
+   `Occ(s)` curve (leg 2) and the `K(τ)` curve (leg 4).
 4. **Danger-relative simultaneity metric — DONE 2026-06-29 (`--danger-tau`).** Per base
    tick, count cars with delivered age_path ≥ `τ·A(zone_now)` (`K_age`) **unioned** with
    state-critical cars (TTPNR<`--tau-crit`) → `K`; one run sweeps a fixed τ grid → the
@@ -333,14 +351,15 @@ existential risk (unconstrained disturbance ⇒ k = N).
    A(zone) hard-coded {z0:290,z1:400,z2:290,z3:140} ms (V10, lateral). Measurement-only;
    baselines byte-identical. THEOREM_BRIEF §3.6 / PREDICTOR §5d / PAPER_NOTES 2026-06-29.
 
-Instruments built: `--tau-crit`, `--danger-tau`, `--align-offsets`,
-`--zone-target`/`--zone-extra-ms` (causal A(zone)), `tools/zone_sweep.py`,
-`tools/tolerance_sweep.py`. **Immediate next code: leg 2 — worst-case zone *occupancy***
-(given the map + `F_spaced`, how many cars are simultaneously in tight zones at horizon θ;
-prototype with `--align-offsets` + zone-aware placement). The leg-4 `K(τ)` curve is the
-empirical shadow it composes against. Note (THEOREM_BRIEF §3.2 + the leg-4 honesty notes):
-the occupancy count, like `K`, needs **state** (TTPNR), not just age-vs-budget — a
-never-actuated/degraded car is dangerous even with no measurable delivered age.
+Instruments built: `--tau-crit`, `--danger-tau` (leg 4), `--pack-zone`/`--min-spacing`
+(leg 2), `--align-offsets`, `--zone-target`/`--zone-extra-ms` (causal A(zone)),
+`tools/zone_sweep.py`, `tools/occupancy_sweep.py`, `tools/tolerance_sweep.py`. **All AI-ownable
+legs (1, 2, 4) are done; the critical path is now Kurt's leg 3** — compose the measured
+`Occ(R, F_spaced)` (leg 2) against the `A(zone)` deadlines over the BOUND §7 RTA (limited
+carry-in re-derivation). The `Occ(s)` + `K(τ)` curves are his empirical inputs. Note
+(THEOREM_BRIEF §3.2): the occupancy count, like `K`, ultimately needs **state** (TTPNR) for
+the degraded-entry case — the current `Occ` is the clean geometric count (the conservative
+worst case for placement); the danger pairing (RM-crashes/aguard-safe) supplies the state side.
 
 The items below (0–6) are retained as recorded state; this PLAN supersedes the
 "simultaneity ≤ k" framing in the existential-gate block and reprioritizes around
@@ -472,7 +491,7 @@ for s in rm context ttu aguard; do ./build/cps --headless --vehicles 14 --schedu
 Flags: `--scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard`, `--vehicles
 N`, `--cores N`, `--profile 10|12.5|15`, `--duration SEC`, `--exec
 avg|worst|best|pert`, `--overrun kill|skip`, `--guard MS` (hybrid), `--floor MS`
-(aguard), `--tau-crit MS` (sim-criticality, §5 item 0 / PREDICTOR §5d), `--danger-tau FRAC` (danger-relative criticality, lateral; delivered age vs `τ·A(zone)` ∪ state; §5 leg 4 / PREDICTOR §5d / PAPER_NOTES 2026-06-29), `--align-offsets FRAC` (adversarial car phasing for leg A, 0=spread default..1=all aligned; PAPER_NOTES 2026-06-25), `--pred-staleness MS`/`--pred-margin MS` (honest predictor, §5 item 3 / PREDICTOR §5e), `--triage`, `--delta-max RAD`, `--u-max N`/`--shove-force N`/`--theta-max RAD` (cartpole calibration, GENERALIZATION §4), `--net-delay MS`, `--validate-predictor`,
+(aguard), `--tau-crit MS` (sim-criticality, §5 item 0 / PREDICTOR §5d), `--danger-tau FRAC` (danger-relative criticality, lateral; delivered age vs `τ·A(zone)` ∪ state; §5 leg 4 / PREDICTOR §5d / PAPER_NOTES 2026-06-29), `--pack-zone Z`/`--min-spacing MS` (worst-case zone occupancy, lateral; pack zone Z's arcs at the F_spaced gap; §5 leg 2 / THEOREM_BRIEF §3.5 / PAPER_NOTES 2026-06-29), `--align-offsets FRAC` (adversarial car phasing for leg A, 0=spread default..1=all aligned; PAPER_NOTES 2026-06-25), `--pred-staleness MS`/`--pred-margin MS` (honest predictor, §5 item 3 / PREDICTOR §5e), `--triage`, `--delta-max RAD`, `--u-max N`/`--shove-force N`/`--theta-max RAD` (cartpole calibration, GENERALIZATION §4), `--net-delay MS`, `--validate-predictor`,
 `--csv FILE`, `--save/--replay FILE`, `--select N`, `--speed X`, `--screenshot[-at]`.
 
 ## 7. Key files

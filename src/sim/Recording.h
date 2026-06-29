@@ -76,6 +76,11 @@ struct RunRecording {
     double dangerTau      = -1.0;    // primary fraction-of-A(zone) line (--danger-tau)
     long   maxKAge        = 0;       // run-max #cars age-critical (age >= tau*A(zone))
     long   maxKDanger     = 0;       // ... unioned with state-critical (TTPNR < tauCrit)
+    // Worst-case zone occupancy (THE PLAN leg 2). Live-only (same as above).
+    int    packZone       = -1;      // zone packed for the occupancy sweep (-1 = off)
+    double minSpacingMs   = 0.0;     // F_spaced minimum inter-car phase gap (ms)
+    long   maxOccPacked   = 0;       // run-max simultaneous occupancy of packZone
+    long   packZoneArcTicks = 0;     // longest contiguous arc of packZone (geo-predict)
     std::string schedulerName;
     std::vector<long> startOffsets;        // per vehicle
     // Format version this recording was loaded from (current version when

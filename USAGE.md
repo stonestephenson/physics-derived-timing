@@ -60,7 +60,11 @@ always reported, not opt-in); `--danger-tau FRAC` = danger-relative criticality
 (lateral; default 1.0): a car is "in danger" when delivered age_path ≥ FRAC·A(zone of
 the car now), unioned with TTPNR<tau-crit; reports K_age/K + a K(τ) curve + CSV cols
 `danger_tau,max_k_age,max_k_danger` (THE PLAN leg 4 / PREDICTOR §5d / THEOREM_BRIEF §3.6);
-`--align-offsets FRAC` aligns vehicle start phases for
+`--pack-zone Z` + `--min-spacing MS` = worst-case zone occupancy (lateral; THE PLAN leg 2):
+pack zone Z's arcs (3 = binding lane-change) at the F_spaced minimum inter-car gap MS and
+report max simultaneous Occ vs ceil(zone_len/spacing) + CSV cols
+`pack_zone,min_spacing_ms,max_occ_packed` (off by default; `tools/occupancy_sweep.py`;
+THEOREM_BRIEF §3.5); `--align-offsets FRAC` aligns vehicle start phases for
 the leg-(A) simultaneity experiment (lateral only; 0 = even spread default, 1 = all
 cars on one lap phase = adversarial worst case; PAPER_NOTES 2026-06-25); `--pred-staleness`/
 `--pred-margin` = honest-predictor delayed-state age + safety margin §5e)

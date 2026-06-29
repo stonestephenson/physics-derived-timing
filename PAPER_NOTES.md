@@ -10,6 +10,60 @@ Newest first.
 
 ---
 
+## 2026-06-29 — Worst-case zone occupancy `Occ(R, F_spaced)`: the route admits `Occ < N`, and a scheduler converts occupancy into safety
+
+**What it is.** THE PLAN leg 2 built: a zone-aware placement instrument (`--pack-zone Z`
+`--min-spacing MS`, lateral) that packs the binding zone (z3 lane-change) with cars at a
+minimum inter-car phase gap — the `F_spaced` fleet model (THEOREM_BRIEF §3.5) — and measures
+the worst-case **simultaneous occupancy** `Occ`. It greedily fills **all** z3 arcs at the gap
+(cars in different arcs are still simultaneously in the zone), and reports `Occ` against the
+geometric prediction `ceil(zone_len / spacing)`. The empirical `Occ(R, F)` curve is the input
+to Kurt's Lemma 1. Added alongside the leg-4 metric; off by default ⇒ byte-identical (N=6
+90.5/100.5, 0 missed; fidelity 1.490e-08). z3 total length = **105,400 ticks ≈ 8.9 % of the
+lap**.
+
+**The `Occ(s)` curve (N=18, pack z3, 30 s worst), with the rm-vs-aguard safety pairing:**
+
+| spacing (ms) | Occ / N | geo ceil(L/s) | aguard hard | rm hard |
+|---|---|---|---|---|
+| 0 (stacked) | 18/18 | 18 | **36012** | 22512 |
+| 500 | 18/18 | 18 | **0** | 34581 |
+| 1000 (≈1 s gap) | 12/18 | 11 | **0** | 26003 |
+| 2000 | 7/18 | 6 | **0** | 26464 |
+| 4000 | 4/18 | 3 | **0** | 34207 |
+
+**Findings.**
+1. **`Occ` tracks `ceil(L/s)` within +1–2** (per-arc boundary terms), validating THEOREM_BRIEF
+   §3.5's `Occ ~ tight-zone length / spacing`. `Occ < N` for realistic spacing (1 s gap →
+   12/18; 2 s → 7; 4 s → 4) and `→ N` only when stacked. **The slack the bound exploits is the
+   route's non-tight fraction** (z3 is 8.9 % of the lap).
+2. **Multi-arc:** the route has several lane-change arcs, so a single-longest-arc model
+   *under*-counts; the worst case packs **all** arcs (the greedy instrument), matching the
+   total-zone-length/spacing bound. (An early single-arc cut read `Occ=4` where all-arc reads
+   `Occ=7` at 2 s — the sim, as adversary, exposed the omission.)
+3. **Occupancy → schedulability (the leg-3 preview):** occupancy is **policy-independent**
+   (same `Occ=12/18` for both schedulers — it is geometry). Yet that same occupancy is **fatal
+   under RM** (26003 hard, K>cores 98.5 %) and **safe under aguard** (0 hard, K=7) for every
+   spacing ≥ 500 ms. Occupancy is *necessary, not sufficient*; a physics-aware scheduler
+   converts high binding-zone occupancy into zero crashes — exactly what Kurt's Lemma 2 must
+   show `m` cores can do.
+4. **Honest degradation:** at the fully-stacked extreme (spacing → 0, `Occ = N`, K = 18), even
+   aguard crashes — the bound degrades gracefully to classical when the route/placement is
+   worst-case-everywhere (`F_adversarial`). A feature (honest about a genuinely hard route),
+   not a failure (THEOREM_BRIEF §5 Corollary).
+
+**Evidence / repro.** `python3 tools/occupancy_sweep.py` → `occupancy_sweep.csv` + the `Occ(s)`
+table; or by hand `for sp in 0 500 1000 2000 4000; do ./build/cps --headless --vehicles 18
+--scheduler aguard --exec worst --duration 30 --pack-zone 3 --min-spacing $sp; done` (read the
+`packed z3` + `zone occupancy` lines). Code: `packZoneOffsets` + the occupancy counter
+(`Simulation.cpp`); CSV cols `pack_zone,min_spacing_ms,max_occ_packed`.
+
+**Where it lands.** Lemma 1's empirical `Occ(R, F_spaced)` curves (the geometric occupancy
+model validated), paired with the occupancy→schedulability figure (same `Occ`, RM crashes /
+aguard safe) that motivates Kurt's leg-3 composition.
+
+---
+
 ## 2026-06-29 — Danger-relative criticality metric: the two failure axes are orthogonal
 
 **What it is.** THE PLAN leg 4 built: a danger-relative simultaneous-criticality metric

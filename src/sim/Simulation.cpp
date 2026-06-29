@@ -31,6 +31,49 @@ Simulation::Simulation(const SimParams& params, std::unique_ptr<Scheduler> sched
     dt_ = vr::kBaseStepSeconds;
 }
 
+// Leg 2: place cars to maximize simultaneous occupancy of `zone`. The F_spaced
+// worst case (THEOREM_BRIEF §3.5: Occ ~ tight-zone length / spacing) packs ALL of the
+// zone's arcs -- the route has several lane-change arcs, and cars in different arcs are
+// still simultaneously in the zone. We greedily walk the lap and drop a car onto every
+// zone tick that is >= spacingTicks past the last placed car (filling all arcs at the
+// minimum gap); leftover cars go onto NON-zone ticks (also >= spacing apart) so they do
+// not inflate the count. offsets[v] is car v's phase lead (lap-phase = step + offset),
+// so the packed set is in-zone at step 0. The per-tick counter measures the realized
+// run-max, which (as the rigid formation rotates) is >= the step-0 count -- the truth.
+std::vector<long> Simulation::packZoneOffsets(int zone, long spacingTicks) {
+    const int  n   = params_.nVehicles;
+    const long lap = traj_->lapSteps();
+    std::vector<long> offs(static_cast<size_t>(std::max(0, n)), 0);
+    if (n <= 0) return offs;
+    spacingTicks = std::max<long>(1, spacingTicks);
+
+    long zoneTicks = 0;                       // total length of `zone` over one lap
+    for (long i = 0; i < lap; ++i)
+        if (static_cast<int>(traj_->zoneAt(i)) == zone) ++zoneTicks;
+    packZoneArcTicks_ = zoneTicks;
+    if (zoneTicks == 0) {                      // zone absent: fall back to even spread
+        for (int v = 0; v < n; ++v) offs[static_cast<size_t>(v)] = v * lap / n;
+        return offs;
+    }
+    // Pass 1: greedily fill zone ticks at >= spacing (packs every arc).
+    long placed = 0, sinceZone = spacingTicks;
+    for (long i = 0; i < lap && placed < n; ++i) {
+        const bool inZone = static_cast<int>(traj_->zoneAt(i)) == zone;
+        if (inZone && sinceZone >= spacingTicks) { offs[static_cast<size_t>(placed++)] = i; sinceZone = 0; }
+        else ++sinceZone;
+    }
+    // Pass 2: leftover cars onto non-zone ticks at >= spacing (out of the zone count).
+    long sinceAny = spacingTicks;
+    for (long i = 0; i < lap && placed < n; ++i) {
+        const bool inZone = static_cast<int>(traj_->zoneAt(i)) == zone;
+        if (!inZone && sinceAny >= spacingTicks) { offs[static_cast<size_t>(placed++)] = i; sinceAny = 0; }
+        else ++sinceAny;
+    }
+    for (long j = placed; j < n; ++j)         // degenerate overflow: even spread
+        offs[static_cast<size_t>(j)] = j * lap / n;
+    return offs;
+}
+
 void Simulation::start() {
     if (started_) return;
 
@@ -43,15 +86,24 @@ void Simulation::start() {
     const int n = params_.nVehicles;
     offsets_ = params_.startOffsets;
     if (static_cast<int>(offsets_.size()) != n) {
-        offsets_.resize(n);
-        // alignOffsets scales the even spread toward a common phase: 0 = full
-        // spread (anti-aligned, the historical baseline); 1 = all on phase 0
-        // (maximally aligned -- the adversarial simultaneity case, leg A). At
-        // alignOffsets 0 this is bit-identical to the old v*lapSteps/n spread.
-        const double spread = 1.0 - params_.alignOffsets;
-        for (int v = 0; v < n; ++v)
-            offsets_[v] = static_cast<long>(spread * static_cast<double>(v) *
-                                            traj_->lapSteps() / n);
+        if (params_.packZone >= 0 && params_.packZone < 4 &&
+            params_.plant == PlantKind::Lateral) {
+            // Leg 2: zone-aware adversarial-but-spaced placement -- pack the target
+            // zone's longest arc at the F_spaced minimum spacing (THE PLAN leg 2).
+            const long spacingTicks = std::max<long>(
+                1, static_cast<long>(params_.minSpacingMs / (dt_ * 1000.0) + 0.5));
+            offsets_ = packZoneOffsets(params_.packZone, spacingTicks);
+        } else {
+            offsets_.resize(n);
+            // alignOffsets scales the even spread toward a common phase: 0 = full
+            // spread (anti-aligned, the historical baseline); 1 = all on phase 0
+            // (maximally aligned -- the adversarial simultaneity case, leg A). At
+            // alignOffsets 0 this is bit-identical to the old v*lapSteps/n spread.
+            const double spread = 1.0 - params_.alignOffsets;
+            for (int v = 0; v < n; ++v)
+                offsets_[v] = static_cast<long>(spread * static_cast<double>(v) *
+                                                traj_->lapSteps() / n);
+        }
     }
 
     vehicles_.resize(n);
@@ -140,6 +192,9 @@ void Simulation::start() {
     kDangerTicks_ = 0;
     maxKAgeGrid_.assign(kDangerTauN, 0);
     maxKDangerGrid_.assign(kDangerTauN, 0);
+    maxOcc_[0] = maxOcc_[1] = maxOcc_[2] = maxOcc_[3] = 0;
+    occHist_.assign(static_cast<size_t>(n) + 1, 0);
+    occTicks_ = 0;  // packZoneArcTicks_ already set by packZoneOffsets above (if packing)
     predWallSeconds_ = 0.0;
     predCount_ = 0;
 
@@ -357,6 +412,7 @@ bool Simulation::step() {
         int kAgePrimary = 0, kDangerPrimary = 0;
         int kAgeGrid[kDangerTauN] = {0};
         int kDangerGrid[kDangerTauN] = {0};
+        int occ[4] = {0, 0, 0, 0};  // leg-2: cars currently in each zone this tick
         for (size_t v = 0; v < vehicles_.size(); ++v) {
             // State term, evaluated for EVERY car (incl. never-actuated/starved):
             // this car's actual TTPNR-under-held (oracle rollout) -- the same signal
@@ -379,6 +435,7 @@ bool Simulation::step() {
             const long ageTicks =
                 scheduler_->currentDataAgeOldestTicks(static_cast<int>(v), step_);
             const int z = static_cast<int>(vehicles_[v].traj->zoneAt(step_ + offsets_[v]));
+            if (z >= 0 && z <= 3) ++occ[z];  // leg-2 zone occupancy (this car is in zone z)
             if (ageTicks >= 0 && z >= 0 && z <= 3)
                 ratio = (ageTicks * dt_ * 1000.0) / kAZoneMs[z];
             const bool ageCritPrimary = ratio >= params_.dangerTau;
@@ -397,6 +454,14 @@ bool Simulation::step() {
         for (int g = 0; g < kDangerTauN; ++g) {
             if (kAgeGrid[g] > maxKAgeGrid_[g]) maxKAgeGrid_[g] = kAgeGrid[g];
             if (kDangerGrid[g] > maxKDangerGrid_[g]) maxKDangerGrid_[g] = kDangerGrid[g];
+        }
+        // Leg 2: run-max simultaneous zone occupancy + packed-zone dwell histogram.
+        for (int zi = 0; zi < 4; ++zi)
+            if (occ[zi] > maxOcc_[zi]) maxOcc_[zi] = occ[zi];
+        if (params_.packZone >= 0 && params_.packZone < 4) {
+            const int oc = occ[params_.packZone];
+            if (oc < static_cast<int>(occHist_.size())) ++occHist_[oc];
+            ++occTicks_;
         }
     }
 
@@ -517,6 +582,11 @@ void Simulation::finalizeSummary() {
     rec_.dangerTau    = params_.dangerTau;
     rec_.maxKAge      = maxKAgePrimary_;
     rec_.maxKDanger   = maxKDangerPrimary_;
+    rec_.packZone     = params_.packZone;
+    rec_.minSpacingMs = params_.minSpacingMs;
+    rec_.maxOccPacked = (params_.packZone >= 0 && params_.packZone < 4)
+                        ? maxOcc_[params_.packZone] : 0;
+    rec_.packZoneArcTicks = packZoneArcTicks_;
     finalized_ = true;
 }
 
@@ -608,6 +678,28 @@ void Simulation::runToCompletion(bool verbose) {
             for (int g = 0; g < kDangerTauN; ++g)
                 std::printf(" %.2f:%ld", kDangerTauGrid[g], maxKDangerGrid_[g]);
             std::printf("\n");
+        }
+        // Worst-case zone occupancy (THE PLAN leg 2): max simultaneous cars per zone;
+        // headline is the packed/binding zone vs the geometric prediction floor(L/s)+1.
+        if (params_.plant == PlantKind::Lateral) {
+            std::printf("  zone occupancy (max simultaneous): z0=%ld z1=%ld z2=%ld z3=%ld of %d\n",
+                        maxOcc_[0], maxOcc_[1], maxOcc_[2], maxOcc_[3], rec_.nVehicles);
+            if (params_.packZone >= 0 && params_.packZone < 4) {
+                const long sp = std::max<long>(1, static_cast<long>(
+                    params_.minSpacingMs / (dt_ * 1000.0) + 0.5));
+                const long geo = packZoneArcTicks_ > 0    // ceil(L/s), THEOREM_BRIEF §3.5
+                    ? std::min<long>(rec_.nVehicles, (packZoneArcTicks_ + sp - 1) / sp) : 0;
+                long over = 0;
+                for (int c = params_.nCores + 1; c < static_cast<int>(occHist_.size()); ++c)
+                    over += occHist_[c];
+                const double fracOver = occTicks_ > 0
+                    ? 100.0 * static_cast<double>(over) / static_cast<double>(occTicks_) : 0.0;
+                std::printf("    packed z%d at spacing %.0f ms: Occ max %ld of %d | zone len "
+                            "%ld ticks -> geo-predict ceil(L/s)=%ld | Occ>cores %.2f%% of run\n",
+                            params_.packZone, params_.minSpacingMs,
+                            maxOcc_[params_.packZone], rec_.nVehicles,
+                            packZoneArcTicks_, geo, fracOver);
+            }
         }
         if (predCount_ > 0) {
             const double usPer  = predWallSeconds_ * 1e6 / static_cast<double>(predCount_);

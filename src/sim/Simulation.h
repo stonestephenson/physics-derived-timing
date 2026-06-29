@@ -79,6 +79,14 @@ struct SimParams {
     // Set by --danger-tau. Measurement only; companion to tauCritMs, never reads
     // back into scheduling. The K(tau) curve always sweeps a fixed grid besides this.
     double   dangerTau     = 1.0;
+    // Worst-case zone occupancy instrument (THE PLAN leg 2 / THEOREM_BRIEF §3.5,
+    // §6.1): when packZone in [0,3] (lateral, and startOffsets not given), place
+    // cars to maximize simultaneous occupancy of that zone at the F_spaced minimum
+    // inter-car phase gap minSpacingMs. -1 = off (default spread / --align-offsets,
+    // byte-identical). minSpacingMs -> 0 packs tight (F_adversarial, Occ -> N);
+    // larger = highway-like (Occ < N). Set by --pack-zone / --min-spacing.
+    int      packZone      = -1;
+    double   minSpacingMs  = 0.0;
     // Honest predictor (HANDOFF §5 item 3): when set, the predictive policies
     // rank on a SECOND rollout seeded from the cloud's legitimate DELAYED state
     // (the *_est_ms VehicleView twins) instead of true state. Set automatically
@@ -190,6 +198,17 @@ private:
     long                    kDangerTicks_      = 0;
     std::vector<long>       maxKAgeGrid_;     // run-max of K_age at each grid tau
     std::vector<long>       maxKDangerGrid_;  // run-max of K     at each grid tau
+    // Worst-case zone occupancy (THE PLAN leg 2): per base tick, count cars in each
+    // zone; track run-max simultaneous occupancy. The geometric input to Lemma 1.
+    // Lateral only; measurement only. occHist_ = dwell histogram of the packed zone.
+    long                    maxOcc_[4]      = {0, 0, 0, 0};
+    std::vector<long>       occHist_;        // occHist_[c] = ticks with c cars in packZone
+    long                    occTicks_       = 0;
+    long                    packZoneArcTicks_ = 0;  // longest contiguous arc of packZone (ticks)
+
+    // Compute startOffsets that pack `zone`'s longest arc at `spacingTicks` (leg 2);
+    // also records the longest-arc length into packZoneArcTicks_.
+    std::vector<long> packZoneOffsets(int zone, long spacingTicks);
 
     // --- Predictor fidelity gate state (params_.validatePredictor) ---
     void validatePredictions();
