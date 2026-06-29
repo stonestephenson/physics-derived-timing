@@ -109,8 +109,12 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   `pack_zone,min_spacing_ms,max_occ_packed`. Not yet committed.
 - **Immediate next (THE PLAN): legs 1, 2, 4 done → leg 3 (Kurt) is the only remaining leg**
   — schedulability composition (can `m` cores meet the `A(zone)` deadlines of the measured
-  `Occ`; the `Occ(s)` + `K(τ)` curves are the empirical inputs). Flags added:
-  `--zone-target`, `--zone-extra-ms`, `--danger-tau`, `--pack-zone`, `--min-spacing`.
+  `Occ`; the `Occ(s)` + `K(τ)` curves are the empirical inputs). **The leg-3 brief packet for
+  Kurt is drafted — `THEOREM_BRIEF §9`** (the precise Lemma-2 question, the Occ+K curve tables,
+  the achievability witness, and the crux: the §4 age bound 151.6 ms already exceeds
+  `A(z3)=140 ms` at certified N=5, so per-zone + occupancy is load-bearing; the limited-carry-in
+  RTA re-derivation is the gating sub-task). Flags added: `--zone-target`, `--zone-extra-ms`,
+  `--danger-tau`, `--pack-zone`, `--min-spacing`.
 - Builds clean: `cmake --build build -j`. Fidelity gate passes — `max |dev| =
   1.490e-08 m` on the trust anchor (`--vehicles 1 rm --exec worst --duration 120
   --validate-predictor`); the value **scales with lap coverage**, so use that exact
@@ -336,8 +340,10 @@ existential risk (unconstrained disturbance ⇒ k = N).
    PAPER_NOTES 2026-06-29. Measurement-only; baselines byte-identical.
 3. **Schedulability composition** — can m cores meet the A(zone) deadlines of the
    worst-case occupancy (builds on BOUND §7 RTA). **Kurt** (the one leg neither user
-   nor AI owns) — **now the only remaining leg.** The empirical inputs are ready: the
-   `Occ(s)` curve (leg 2) and the `K(τ)` curve (leg 4).
+   nor AI owns) — **now the only remaining leg. Brief packet drafted: `THEOREM_BRIEF §9`**
+   (precise Lemma-2 statement, the Occ+K curve tables, the aguard achievability witness,
+   the 151.6>140 crux, and the limited-carry-in RTA re-derivation as the gating sub-task).
+   The empirical inputs are ready: the `Occ(s)` curve (leg 2) and the `K(τ)` curve (leg 4).
 4. **Danger-relative simultaneity metric — DONE 2026-06-29 (`--danger-tau`).** Per base
    tick, count cars with delivered age_path ≥ `τ·A(zone_now)` (`K_age`) **unioned** with
    state-critical cars (TTPNR<`--tau-crit`) → `K`; one run sweeps a fixed τ grid → the

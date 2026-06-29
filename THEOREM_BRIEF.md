@@ -292,10 +292,13 @@ i.e. on any route that is not tight-zone-everywhere.
    tracks `ceil(tight-zone length / spacing)` within +1–2, `< N` for realistic spacing. The
    candidate statement to prove: `Occ(R, F_spaced) ≤ ceil(L_tight / s)` (capped `N`), with the
    per-arc boundary correction. We can regenerate the curve for any `R`/`s`/`N`.
-2. **Lemma 2 (schedulability).** Re-derive the §7.2 workload for the discrete
-   global-FP model with **limited carry-in** (you flagged full-carry-in as 2×
-   pessimistic: certified 5 vs empirical 10), then compose it against the `A(zone)`
-   deadlines. `rta_solve.py` is ready to machine-check candidates.
+2. **Lemma 2 (schedulability) — the active leg; full packet in §9.** Re-derive the §7.2
+   workload for the discrete global-FP model with **limited carry-in** (you flagged
+   full-carry-in as 2× pessimistic: certified 5 vs empirical 10), then compose it against
+   the `A(zone)` deadlines under the occupancy cap. `rta_solve.py` is ready to machine-check
+   candidates. **The empirical inputs are now measured** — the `Occ(R, F_spaced)` and `k(τ)`
+   curves + the aguard achievability witness are in §9.2, and §9.3 carries the crux (the §4
+   bound 151.6 ms already exceeds `A(z3)=140 ms`, so occupancy + per-zone is load-bearing).
 3. **Pin the soft spots:** (a) a defensible **PNR** definition or an explicit
    assumption (currently a bang-bang heuristic, §3.3); (b) whether to take `A(zone)`
    as **measured** or push for a derivation (§3.2); (c) the **inductive `A(zone)`-budget
@@ -363,3 +366,180 @@ All `--exec worst`, `m = 3` cores, reproducible via `tools/reproduce.py` /
 > let me build the danger-relative metric (#4) so the simulator measures exactly the
 > `k` the theorem talks about. Do those three and the brief becomes concrete enough
 > that Kurt's job is purely the two lemmas.
+
+---
+
+## 9. Leg 3 brief — schedulability composition (Lemma 2; the active leg)
+
+**Status of the program.** The three AI/lead-ownable legs are done and instrumented:
+**Lemma 1's occupancy curve `Occ(R, F_spaced)` is measured** (§3.5 / §9.2b), **`A(zone)` is
+measured** (§3.2), and the **danger-relative demand `k` is measured** (§3.6 / §9.2c). What
+remains — and the one piece neither the lead nor the harness can own — is **Lemma 2: the
+schedulability composition.** This section is the self-contained packet for it: the precise
+question, the empirical inputs (the `Occ` and `k` curves), the crux that makes the problem
+non-trivial, and the RTA machinery to extend.
+
+### 9.1 The question, precisely
+
+Take the **deadline-driven abstraction** (§4): each car `i` is a recurrent task that must
+receive a *fresh command* (one completed sensor→actuator round-trip) within a **relative
+deadline `D_i(t) = A(zone_i(t))`** — its current zone's tolerable data age (§3.2):
+
+    A(z3 lane-change) = 140 ms   (binding deadline)
+    A(z0 straight) = A(z2 sharp) = 290 ms ;   A(z1 slight) = 400 ms
+
+The deadline is **time-varying** (it changes as the car moves between zones) — the genuinely
+new wrinkle over standard RTA. The **demand is occupancy-shaped**: under `F_spaced`, at most
+`Occ(R, F) ≤ N` cars hold the *tight* deadline `A(z3)` at any instant (§9.2b); the rest hold
+looser deadlines. The service is the §1 cloud chain (E→C→M) over `m = 3` shared cores under
+global FP, with one round-trip of latency.
+
+> **Lemma 2 (to prove), occupancy-parameterized form.** Fix route `R`, fleet model
+> `F_spaced` with minimum spacing `s`, `m = 3` cores, the §1 task model. Suppose at every
+> instant at most `Occ(R, s)` cars are in the binding zone (deadline `A(z3)`) and the rest
+> have deadlines ≥ `A(z2)`. Then there is a schedule (and `aguard` realizes one — §9.2d)
+> under which every car's applied-command data age stays `≤ A(zone_i(t))` for all `t` — i.e.
+> every refresh deadline is met. Equivalently: characterize the admissible region of
+> `(N, s)` (or `(N, Occ)`) for which `m = 3` cores meet all `D_i`.
+
+Composed with **Lemma 1** (`Occ < N` for non-tight-everywhere routes under `F_spaced`) and
+**P1** (§1, no overrun), this gives the **Theorem** (§5): no car crosses its hard bound, so
+`m` cores keep all `N` cars safe — admitting **more cars than the classical "everyone needs
+`A(z3)` always" test** (the Corollary, §5), exactly by the margin `N − Occ`.
+
+> **User note.** In plain terms: a car in the lane-change must be refreshed every 140 ms; a
+> car on a straight can wait ~290–400 ms. Only `Occ` cars are in the lane-change at once. The
+> question for Kurt is the scheduling-theory half: *can 3 cores refresh the `Occ` urgent cars
+> (140 ms) plus the rest (looser) in time?* If yes for `Occ < N`, we fit more cars than a test
+> that makes everyone urgent. The hard, novel part is that the deadline **moves with the car**.
+
+### 9.2 The empirical inputs you now have (all `--exec worst`, `m = 3`, v10, reproducible)
+
+**(a) The deadlines** — `A(zone)` table above (§3.2; `tools/zone_sweep.py` → `zone_tolerance.csv`).
+**[measured]** Causal, N=1, full lap. Honest status / good-entry assumption + cross-zone carry:
+§3.2 (this bears on Lemma 2 only through the deadline *values*; the carry wrinkle is a Lemma-1/
+budget concern).
+
+**(b) `Occ(R, F_spaced)` — the demand cap (Lemma 1 input).** **[measured]**
+`tools/occupancy_sweep.py` packs the binding zone's arcs at minimum spacing `s` and reports the
+worst-case simultaneous occupancy. For v10, the z3 total length `L = 105,400` ticks (≈ 8.9 % of
+the lap); measured `Occ` tracks `ceil(L/s)` within +1–2 (per-arc boundary):
+
+| spacing `s` (ms) | `Occ`(z3) of N=18 | geo `ceil(L/s)` |
+|---|---|---|
+| 0 (stacked, `F_adversarial`) | 18 | 18 |
+| 500 | 18 | 18 |
+| 1000 (≈ 1 s gap) | 12 | 11 |
+| 2000 | 7 | 6 |
+| 4000 | 4 | 3 |
+
+So `Occ < N` for any realistic following gap — the slack Lemma 2 gets to exploit.
+
+**(c) `k(τ)` — the realized danger demand (§3.6).** **[measured]** `--danger-tau` counts cars
+whose delivered age has eaten fraction `τ` of `A(zone_now)`, unioned with the state-critical
+(TTPNR `< θ`) cars. One run sweeps `τ`. N=18 spread, default placement:
+
+| `τ` | RM `K(τ)` | aguard `K(τ)` |
+|---|---|---|
+| 0.25 | 18 | 18 |
+| 0.50 | 12 | 9 |
+| 1.00 | 12 | 6 |
+| 1.50 | 12 | 6 |
+
+The `K(τ)` curve is the demand "at danger level `τ`"; a single point is a saturated gauge
+(PAPER_NOTES 2026-06-25), so the curve is the object. (RM's `K` is all state-term:
+unserved/past-PNR cars; aguard's is age-budget pressure on recoverable cars — orthogonal axes,
+PAPER_NOTES 2026-06-29.)
+
+**(d) Achievability (`aguard`).** **[measured]** Under packed occupancy, the *same* geometric
+`Occ` is policy-independent, but the safety outcome is not — `aguard` meets the deadlines where
+RM does not (N=18, pack z3, 30 s; `total_hard` = breaches summed over the fleet):
+
+| spacing `s` (ms) | `Occ` | RM hard | **aguard hard** |
+|---|---|---|---|
+| 500 | 18 | 34,581 | **0** |
+| 1000 | 12 | 26,003 | **0** |
+| 2000 | 7 | 26,464 | **0** |
+| 4000 | 4 | 34,207 | **0** |
+| 0 (full stack, `Occ=N`) | 18 | 22,512 | 36,012 |
+
+So **3 cores empirically keep up to `Occ = 12` binding-zone cars (out of N=18) safe** under a
+realistic spacing — the existence evidence for Lemma 2. At the fully-stacked `Occ = N = 18`
+extreme even aguard fails: the bound *honestly* degrades to classical when the route/placement
+is tight-everywhere (`F_adversarial`, §5 Corollary). aguard is the **achievability witness**,
+not the proof object (§4).
+
+### 9.3 The crux — why a uniform RTA does *not* close (the reason occupancy is load-bearing)
+
+The uncontended round-trip is **`age_path = 90.5 ms` (N=1)**, so a binding-zone car has only
+**`140 − 90.5 = 49.5 ms` of scheduling/queueing budget** before it breaches `A(z3)`.
+
+Now the tension that makes this a real theorem and not bookkeeping: **the §4 worst-case age
+bound at the certified capacity already exceeds `A(z3)`.** From `BOUND.md §7.3` (machine-
+verified, `tools/rta_solve.py`): at the full-carry-in **certified capacity N = 5**, the §4
+fleet-max age bound is **151.6 ms — which is `> A(z3) = 140 ms`.** So a *uniform* argument —
+"P1 ⇒ every car's age ≤ a single bound ≤ `A(zone)`" — **cannot certify lane-change safety even
+at N = 5.** It must become **per-zone** (only the `≤ Occ` cars in z3 need `≤ 140`; everyone else
+needs only `≤ 290–400`) **and** either the bound must tighten (limited carry-in, §9.4) or the
+scheduler must provably prioritize the in-z3 cars. *This is exactly why the occupancy
+decomposition and the deadline-driven scheduler abstraction are essential, not cosmetic.*
+
+> **User note.** This is the single most important paragraph for Kurt. The naive hope was
+> "prove the fleet is schedulable (P1), then every car's age is under the bound, done." It
+> fails: the loosest proven bound (151.6 ms) is already worse than the tightest tolerance
+> (140 ms). The *only* way out is the contribution itself — count that few cars are in the
+> tight zone at once (`Occ`), and give those cars priority. If Kurt makes the per-zone +
+> occupancy argument work, the leg lands; if he can't, we learn the bound has to be tightened
+> first (§9.4) or the claim weakened to looser zones. Either is a real result.
+
+### 9.4 The RTA machinery to extend (`BOUND.md §7`, machine-checkable)
+
+Lemma 2 builds on the discrete-time, unit-quantum, `m`-core global-FP response-time analysis in
+`BOUND.md §7`. State you inherit:
+- **The model + interference argument** (§7.2): per task `k`, `x = C_k + floor((1/m)·Σ_{i∈hp(k)}
+  W_i(x))` with `W_i(x) = ceil((x + R_i − C_i)/T_i)·C_i`. Exact per tick (a rigor win over
+  continuous-time global RTA). Periods/WCETs at `TaskModel.cpp:38-52`.
+- **Machine solver `tools/rta_solve.py`** (validated vs hand calcs; cross-checked sound vs the
+  sim). It will machine-check any candidate fixed point.
+- **The known gap (the headline arithmetic, §7.3–§7.4):** full-carry-in certifies **N = 5**
+  (first overrun at `F_5`); the sim runs breach-free through **N = 10** — a **2× pessimism gap**
+  entirely from the borrowed **full-carry-in** workload term. **The queued fix is limited
+  carry-in (`m − 1`, Guan RTA-LC):** *re-deriving that workload for this discrete synchronized-
+  quantum model — not the arithmetic — is the critical path* (§7.4 items 2–3). It would place the
+  certified capacity in `(5, 10]` and is the prerequisite for composing a *tight* per-zone bound.
+
+So Lemma 2 has two coupled sub-tasks: **(i)** re-derive the limited-carry-in workload (tightens
+the age bound toward measured), then **(ii)** compose that bound against the `A(zone)` deadlines
+under the occupancy cap `Occ(R, s)` — the mixed-deadline / occupancy-parameterized schedulability
+test, of which the §9.2d aguard run is the existence witness.
+
+### 9.5 What is measured / assumed / to-prove (honesty ledger for leg 3)
+
+- **[measured]** `A(zone)` deadlines (§3.2); `Occ(R, F_spaced)` curve (§9.2b); `k(τ)` curve
+  (§9.2c); aguard achievability `Occ ≤ 12 → 0 hard` (§9.2d); the §7 RTA fixed points + the
+  certified-5/empirical-10 gap (`rta_solve.py`).
+- **[assumed / soft spots]** PNR is a bang-bang heuristic, not certified reachability (§3.3);
+  `A(zone)` is empirical with a good-entry assumption + cross-zone error carry (§3.2 wrinkle) —
+  these enter Lemma 2 only through the *deadline values* and the achievability witness, but flag
+  them. The conservatism shows up concretely: aguard can have cars *over* the `A(zone)` budget
+  (`K_age > 0`) yet **0 hard breaches** — the causal `A(zone)` is a conservative deadline, so
+  meeting it is sufficient but maybe not necessary.
+- **[to-prove — yours]** (1) the limited-carry-in workload re-derivation (§9.4i); (2) the
+  occupancy-parameterized schedulability composition (§9.1 Lemma 2 / §9.4ii); (3) adjudicate the
+  deadline-driven abstraction (§4) as the right proof object with aguard as witness; (4) confirm
+  the per-zone + occupancy device clears Sudvarg RTAS'25 / Kundu–Quevedo'19 (§6 #5).
+
+### 9.6 Reproduce every number above
+
+    python3 tools/occupancy_sweep.py        # Occ(s) + aguard-vs-RM hard  -> occupancy_sweep.csv  (§9.2b,d)
+    python3 tools/rta_solve.py --cross-check # §7 RTA fixed points + sim cross-check  (§9.4)
+    ./build/cps --headless --vehicles 18 --scheduler aguard --exec worst --duration 30   # K(tau) curve (§9.2c)
+    ./build/cps --headless --vehicles 1  --scheduler rm     --exec worst --duration 30   # round-trip 90.5 ms (§9.3)
+    # single occupancy point + safety pairing:
+    ./build/cps --headless --vehicles 18 --scheduler aguard --exec worst --duration 30 --pack-zone 3 --min-spacing 1000
+
+> **User note.** Hand Kurt §9 as the leg-3 packet; it stands on §1 (model), §3.2 (`A(zone)`),
+> §3.5 (`Occ`), §3.6 (`k`), §5 (the conjecture) and `BOUND.md §7` (the RTA). Lead with **§9.3**
+> — the 151.6 > 140 crux is what tells him the occupancy decomposition is doing real work — then
+> the two coupled to-proves in **§9.4**. Everything numeric here is reproduced by **§9.6**; if he
+> wants a different `N`/`s`/route, regenerate the curve and re-hand it.
