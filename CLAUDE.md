@@ -111,7 +111,7 @@ Then by task:
     # schedulers: rm | prm | edf | context(oracle) | honest | ttu | hybrid | aguard
     #   (+ ttu/hybrid/aguard-honest: predict from delayed state, not ground truth)
     # plants: lateral (FMU car) | cartpole    other: --overrun, --net-delay MS,
-    #   --guard/--floor MS, --tau-crit MS, --pred-staleness/--pred-margin MS, --delta-max RAD,
+    #   --guard/--floor MS, --tau-crit MS, --danger-tau FRAC, --pred-staleness/--pred-margin MS, --delta-max RAD,
     #   --u-max/--shove-force/--theta-max (cartpole calibration; GENERALIZATION §4), --validate-predictor, --csv FILE, --seed N
 
 ## Before you end a session (this keeps the system alive)

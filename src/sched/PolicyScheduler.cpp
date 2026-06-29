@@ -66,4 +66,9 @@ long PolicyScheduler::recentLatchAgeTicks(int vehicle, long step) const {
     return models_[vehicle].recentLatchAgeTicks(step);
 }
 
+long PolicyScheduler::currentDataAgeOldestTicks(int vehicle, long step) const {
+    if (vehicle < 0 || vehicle >= static_cast<int>(models_.size())) return -1;
+    return models_[vehicle].currentDataAgeOldestTicks(step);
+}
+
 }  // namespace cps

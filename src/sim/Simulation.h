@@ -73,6 +73,12 @@ struct SimParams {
     // when its TTPNR < tauCritMs (~ one command round-trip). Set by --tau-crit.
     // Measurement only (no scheduler reads it); see HANDOFF §5 item 0 / PREDICTOR.md.
     double   tauCritMs     = 100.0;
+    // Danger-relative criticality primary fraction (THE PLAN leg 4 / THEOREM_BRIEF
+    // §3.6): a car is age-critical this tick when its delivered age_path >=
+    // dangerTau * A(zone of car now). 1.0 = at the zone's tolerable-age budget.
+    // Set by --danger-tau. Measurement only; companion to tauCritMs, never reads
+    // back into scheduling. The K(tau) curve always sweeps a fixed grid besides this.
+    double   dangerTau     = 1.0;
     // Honest predictor (HANDOFF §5 item 3): when set, the predictive policies
     // rank on a SECOND rollout seeded from the cloud's legitimate DELAYED state
     // (the *_est_ms VehicleView twins) instead of true state. Set automatically
@@ -172,6 +178,18 @@ private:
     long                    maxSimCrit_   = 0;
     std::vector<long>       simCritHist_;    // simCritHist_[c] = ticks with exactly c critical
     long                    simCritTicks_ = 0;
+    // Danger-relative criticality (THE PLAN leg 4): per base tick, count cars whose
+    // delivered age_path has consumed fraction tau of their current zone's A(zone)
+    // budget (K_age), and that count unioned with the state-critical (TTPNR<tauCrit)
+    // cars (K). Primary tau = params_.dangerTau (full dwell histogram for the
+    // over-cores %); *Grid_ track run-max across the fixed K(tau) curve sweep.
+    // Lateral only (zones are a track concept). Measurement only.
+    long                    maxKAgePrimary_    = 0;
+    long                    maxKDangerPrimary_ = 0;
+    std::vector<long>       kDangerHist_;    // dwell of K (primary tau): [c] = ticks with c danger
+    long                    kDangerTicks_      = 0;
+    std::vector<long>       maxKAgeGrid_;     // run-max of K_age at each grid tau
+    std::vector<long>       maxKDangerGrid_;  // run-max of K     at each grid tau
 
     // --- Predictor fidelity gate state (params_.validatePredictor) ---
     void validatePredictions();

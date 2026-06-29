@@ -71,6 +71,11 @@ struct RunRecording {
     long   maxSimCrit     = 0;
     std::vector<long> simCritHist;   // simCritHist[c] = base-ticks with exactly c critical
     long   simCritTicks   = 0;
+    // Danger-relative criticality (THE PLAN leg 4). Live-only (same as above):
+    // set in finalizeSummary for the summary line + appendCsv; NOT serialized.
+    double dangerTau      = -1.0;    // primary fraction-of-A(zone) line (--danger-tau)
+    long   maxKAge        = 0;       // run-max #cars age-critical (age >= tau*A(zone))
+    long   maxKDanger     = 0;       // ... unioned with state-critical (TTPNR < tauCrit)
     std::string schedulerName;
     std::vector<long> startOffsets;        // per vehicle
     // Format version this recording was loaded from (current version when

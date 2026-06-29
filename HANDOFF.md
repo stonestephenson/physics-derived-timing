@@ -1,6 +1,6 @@
 # Session Handoff — CPS Challenge Visualizer
 
-Resume point for a fresh agent. Last updated **2026-06-25**.
+Resume point for a fresh agent. Last updated **2026-06-29**.
 
 **Read order:** `CLAUDE.md` (stable bootstrap: invariants, reading map, rules) →
 this file (what's true *now*) → the owning design docs as your task needs them
@@ -83,12 +83,22 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
     method. Nuances (PAPER_NOTES 2026-06-26): z1>z0 (straights precede curves ⇒
     spatial propagation); causal (sudden in-zone) is more conservative than uniform
     global (`tolerance_sweep` ~245 ms). `THEOREM_BRIEF §3.2` carries the table.
-  - **All zone commits are LOCAL-ONLY (push held by request)** — `git log
+  - **All zone + leg-4 commits are LOCAL-ONLY (push held by request)** — `git log
     1ff68ed..HEAD` (the last pushed commit). Every step verified byte-identical
     (N=6 90.5/100.5, 0 missed; fidelity 1.490e-08).
-- **Immediate next (THE PLAN): leg 1 ≈ done → the danger-relative metric** (redefine
-  `k` = delivered-age vs `A(zone)`, not TTPNR-under-held), then legs 2 (occupancy)
-  & 3 (Kurt). Flags added: `--zone-target`, `--zone-extra-ms` (`./build/cps --help`).
+- **This session (2026-06-29): built THE PLAN leg 4 — the danger-relative metric**
+  (`--danger-tau FRAC`, lateral). Per base tick, counts cars whose delivered age_path ≥
+  `τ·A(zone_now)` (`K_age`) **unioned** with state-critical cars (TTPNR<`--tau-crit`) →
+  `K`; one run sweeps a fixed τ grid → the `K(τ)` curve. New accessor
+  `currentDataAgeOldestTicks` plumbed Scheduler→PolicyScheduler→TaskChainModel (mirrors
+  `recentLatchAgeTicks`); A(zone) table hard-coded {z0:290,z1:400,z2:290,z3:140} ms.
+  Added ALONGSIDE `--tau-crit` (baselines byte-identical; fidelity 1.490e-08). **Finding
+  (§5 leg 4 / PAPER_NOTES 2026-06-29):** the two failure axes are *orthogonal* — RM
+  `K_age≈0` but `K=7/12` (unserved/past-PNR, state term); aguard `K=K_age=3/6`, zero
+  state-critical (over-budget but recoverable). Neither term alone is sound; the union
+  `K ⊇ --tau-crit`. CSV cols `danger_tau,max_k_age,max_k_danger`. Not yet committed.
+- **Immediate next (THE PLAN): legs 1 & 4 done → leg 2 (occupancy) & leg 3 (Kurt).**
+  Flags added: `--zone-target`, `--zone-extra-ms`, `--danger-tau` (`./build/cps --help`).
 - Builds clean: `cmake --build build -j`. Fidelity gate passes — `max |dev| =
   1.490e-08 m` on the trust anchor (`--vehicles 1 rm --exec worst --duration 120
   --validate-predictor`); the value **scales with lap coverage**, so use that exact
@@ -310,29 +320,27 @@ existential risk (unconstrained disturbance ⇒ k = N).
 3. **Schedulability composition** — can m cores meet the A(zone) deadlines of the
    worst-case occupancy (builds on BOUND §7 RTA). **Kurt** (the one leg neither user
    nor AI owns).
-4. **Redefine the simultaneity metric to be danger-relative** — delivered age vs
-   A(zone) (or distance-to-PNR), NOT TTPNR-under-held, which saturates for unstable
-   plants (PAPER_NOTES 2026-06-25 Finding 3). Then re-run the instrument as the
-   empirical shadow of the *new* bound: sweep τ (not one point), build a one-run K(τ)
-   curve, place cars adversarially.
+4. **Danger-relative simultaneity metric — DONE 2026-06-29 (`--danger-tau`).** Per base
+   tick, count cars with delivered age_path ≥ `τ·A(zone_now)` (`K_age`) **unioned** with
+   state-critical cars (TTPNR<`--tau-crit`) → `K`; one run sweeps a fixed τ grid → the
+   one-run `K(τ)` curve; adversarial placement via `--align-offsets`. Replaces the
+   TTPNR-under-held gauge that saturates for unstable plants (PAPER_NOTES 2026-06-25
+   Finding 3). **Result:** the two failure axes are *orthogonal* — RM `K_age≈0` (served
+   cars fresh) but `K=7/14,12/18` (unserved/past-PNR, state term); aguard `K=K_age=3/14,
+   6/18`, zero state-critical (over-budget but recoverable). `K ⊇ --tau-crit` by
+   construction (the superset check caught an early build that skipped never-actuated
+   cars). New accessor `currentDataAgeOldestTicks` plumbed exactly as `recentLatchAgeTicks`;
+   A(zone) hard-coded {z0:290,z1:400,z2:290,z3:140} ms (V10, lateral). Measurement-only;
+   baselines byte-identical. THEOREM_BRIEF §3.6 / PREDICTOR §5d / PAPER_NOTES 2026-06-29.
 
-Instruments built: `--tau-crit`, `--align-offsets`, `--zone-target`/`--zone-extra-ms`
-(causal A(zone)), `tools/zone_sweep.py`, `tools/tolerance_sweep.py`. **Immediate next
-code: the danger-relative metric (leg 4) — redefine `k` = delivered-age vs `A(zone)`
-(per-vehicle, via `zoneAt`), so the empirical `k` matches the theorem's; then re-run
-it swept over τ + adversarial placement as the shadow of the route-map bound.**
-   **Cold-agent-verified heads-up for whoever builds this:** (a) needs a small new
-   hook — a per-vehicle *instantaneous* applied-age accessor; the value is computed in
-   `TaskModel.cpp::endTick` (~L354, the `age_path` convention) but only max'd, so add
-   `currentDataAgeOldestTicks()` through Scheduler→PolicyScheduler→TaskChainModel
-   (mirror `recentLatchAgeTicks`). (b) the `A(zone)` table {z0:290, z1:400, z2:290,
-   z3:140} ms is hard-coded from `zone_tolerance.csv` (V10 only), lateral-only.
-   (c) Add the metric *alongside* `--tau-crit` (don't replace) to keep baselines
-   byte-identical. (d) Start from the age-vs-`A(zone)` reading as a sound, conservative base, **but fold
-   in the car's actual state/margin (or TTPNR)** — `A(zone)` assumes the car *enters
-   the zone well-tracked*, and accumulated error makes a car critical even with a
-   fresh-ish command (THEOREM_BRIEF §3.2 "Load-bearing assumption + wrinkle";
-   PAPER_NOTES 2026-06-29). The occupancy count needs state too, not just age-vs-budget.
+Instruments built: `--tau-crit`, `--danger-tau`, `--align-offsets`,
+`--zone-target`/`--zone-extra-ms` (causal A(zone)), `tools/zone_sweep.py`,
+`tools/tolerance_sweep.py`. **Immediate next code: leg 2 — worst-case zone *occupancy***
+(given the map + `F_spaced`, how many cars are simultaneously in tight zones at horizon θ;
+prototype with `--align-offsets` + zone-aware placement). The leg-4 `K(τ)` curve is the
+empirical shadow it composes against. Note (THEOREM_BRIEF §3.2 + the leg-4 honesty notes):
+the occupancy count, like `K`, needs **state** (TTPNR), not just age-vs-budget — a
+never-actuated/degraded car is dangerous even with no measurable delivered age.
 
 The items below (0–6) are retained as recorded state; this PLAN supersedes the
 "simultaneity ≤ k" framing in the existential-gate block and reprioritizes around
@@ -464,7 +472,7 @@ for s in rm context ttu aguard; do ./build/cps --headless --vehicles 14 --schedu
 Flags: `--scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard`, `--vehicles
 N`, `--cores N`, `--profile 10|12.5|15`, `--duration SEC`, `--exec
 avg|worst|best|pert`, `--overrun kill|skip`, `--guard MS` (hybrid), `--floor MS`
-(aguard), `--tau-crit MS` (sim-criticality, §5 item 0 / PREDICTOR §5d), `--align-offsets FRAC` (adversarial car phasing for leg A, 0=spread default..1=all aligned; PAPER_NOTES 2026-06-25), `--pred-staleness MS`/`--pred-margin MS` (honest predictor, §5 item 3 / PREDICTOR §5e), `--triage`, `--delta-max RAD`, `--u-max N`/`--shove-force N`/`--theta-max RAD` (cartpole calibration, GENERALIZATION §4), `--net-delay MS`, `--validate-predictor`,
+(aguard), `--tau-crit MS` (sim-criticality, §5 item 0 / PREDICTOR §5d), `--danger-tau FRAC` (danger-relative criticality, lateral; delivered age vs `τ·A(zone)` ∪ state; §5 leg 4 / PREDICTOR §5d / PAPER_NOTES 2026-06-29), `--align-offsets FRAC` (adversarial car phasing for leg A, 0=spread default..1=all aligned; PAPER_NOTES 2026-06-25), `--pred-staleness MS`/`--pred-margin MS` (honest predictor, §5 item 3 / PREDICTOR §5e), `--triage`, `--delta-max RAD`, `--u-max N`/`--shove-force N`/`--theta-max RAD` (cartpole calibration, GENERALIZATION §4), `--net-delay MS`, `--validate-predictor`,
 `--csv FILE`, `--save/--replay FILE`, `--select N`, `--speed X`, `--screenshot[-at]`.
 
 ## 7. Key files

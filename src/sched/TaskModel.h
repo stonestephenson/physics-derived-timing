@@ -120,6 +120,13 @@ public:
     // sensor-to-actuation round-trip including scheduling delay, unlike the
     // per-tick max above which also accrues hold time. -1 = no latch yet.
     long recentLatchAgeTicks(long step) const;
+    // Instantaneous (this-tick) oldest-direct applied-command age in base ticks
+    // (-1 if nothing applied yet) — the per-tick value endTick maxes into
+    // maxDataAgeOldestTicks (age_path), exposed live for the danger-relative
+    // criticality metric (delivered age vs A(zone)). See Simulation::step.
+    long currentDataAgeOldestTicks(long step) const {
+        return actOutOldStamp_ < 0 ? -1 : step - actOutOldStamp_;
+    }
 
     // State machine for a single periodic task (public so the tick-advance
     // helper in TaskModel.cpp can operate on it).

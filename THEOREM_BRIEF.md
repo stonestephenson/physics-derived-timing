@@ -176,12 +176,20 @@ case:**
   phases are unconstrained"). Then `Occ` can reach **`N`** if the route's tight zones
   can hold them.
 
-### 3.6 Concurrent demand k **[measured proxy exists]**
+### 3.6 Concurrent demand k **[measured — danger-relative metric built 2026-06-29]**
 
 `k(R, F) = Occ(R, F)` evaluated at horizon `θ` — the peak number of loops that
 simultaneously *need a core* to stay safe. This is the number the scheduling half must
-serve. Our empirical proxy is the simultaneous-criticality count (`--tau-crit`), to be
-**redefined danger-relative** (age vs `A(zone)`) and swept over `τ`.
+serve. The empirical proxy is now **danger-relative** (`--danger-tau FRAC`): per base
+tick, count cars whose delivered age_path ≥ `τ·A(zone_now)` (`K_age`, the age-budget
+term) **unioned** with the state-critical cars TTPNR < `θ` (`K`, folding in actual state
+per §3.2). One run sweeps a fixed `τ` grid → the `K(τ)` demand curve. `K ⊇` the old
+`--tau-crit` count by construction. **Finding (car, worst, 3 cores):** the two failure
+axes are *orthogonal* — physics-blind RM scores `K_age ≈ 0` (its *served* cars are fresh)
+but `K = 7/14, 12/18` via the state term (its danger is *unserved / past-PNR* cars);
+aguard scores `K = K_age = 3/14, 6/18` with *zero* state-critical (its danger is purely
+*age-over-budget but recoverable*). Neither single term is sound alone; the union `K` is
+the conservative danger count (PAPER_NOTES 2026-06-29).
 
 > **User note (the most important box in the document).** Here's the chain of ideas:
 > a car can be stale up to `A(zone)` and survive — **lots** on a straightaway, almost

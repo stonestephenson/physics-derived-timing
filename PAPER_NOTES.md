@@ -10,6 +10,67 @@ Newest first.
 
 ---
 
+## 2026-06-29 — Danger-relative criticality metric: the two failure axes are orthogonal
+
+**What it is.** THE PLAN leg 4 built: a danger-relative simultaneous-criticality metric
+(`--danger-tau FRAC`, lateral) that replaces the saturated TTPNR-under-held gauge (Finding
+3, 2026-06-25) with a per-zone budget reading. Per base tick it counts cars whose delivered
+age_path ≥ `τ·A(zone of the car NOW)` — the age-budget term `K_age` — and unions that with
+the state-critical cars (TTPNR < `--tau-crit`) — `K`, folding in actual state per the
+good-entry wrinkle (THEOREM_BRIEF §3.2). One run sweeps a fixed τ grid → the `K(τ)` demand
+curve. Added ALONGSIDE `--tau-crit` (baselines byte-identical: N=6 90.5/100.5, 0 missed;
+fidelity 1.490e-08). A(zone) table hard-coded from `zone_tolerance.csv` (V10, lateral):
+{z0:290, z1:400, z2:290, z3:140} ms.
+
+**The finding — the two policies fail on ORTHOGONAL axes, and neither single metric sees
+both** (car, worst, 3 cores, 30 s, τ=1.0):
+
+| policy | sim-crit (TTPNR) | K_age (age budget) | K (union) |
+|---|---|---|---|
+| RM N=14 | 7 | **0** | 7 |
+| RM N=18 | 12 | **0** | 12 |
+| aguard N=14 | **0** | 3 | 3 |
+| aguard N=18 | **0** | 6 | 6 |
+
+- **RM (physics-blind) is INVISIBLE to K_age.** Its *served* cars are fresh (age ≤ 110 ms
+  < the 140 ms tightest budget ⇒ K_age = 0); its danger is the *unserved* cars — at N=18
+  vehicles 6–17 never actuate (age_path = n/a) and sit past PNR (min_pnr = 0). The state
+  term catches them (K = 12, > cores for 98 % of the run); a pure age-vs-budget reading
+  would call RM SAFE.
+- **aguard is INVISIBLE to sim-crit.** Zero cars near PNR (it rotates cores to whoever is
+  closest), but it deliberately runs cars far over the age budget (age 0.7–26.8 s ≫
+  A(zone)) — recoverably. K_age = 6 exposes that; sim-crit alone calls aguard perfectly
+  safe. K > cores only 0–12 % of the run.
+
+**Why it matters.** Concrete proof the danger-relative `k` needs BOTH terms: the
+age-budget term and the state/TTPNR term measure different failures (staleness pressure
+vs recoverability), and each policy is invisible to one of them. The union `K` is the
+sound conservative count and a strict superset of the old `--tau-crit`. This is the
+empirical instrument that matches the theorem's `k` (THEOREM_BRIEF §3.6); the `K(τ)` curve
+(one run) answers "a count at one τ is a saturated gauge" (2026-06-25).
+
+**Honesty notes.** (1) `K_age` excludes never-actuated cars (no delivered command = a "no
+service" failure, surfaced by the state term + the age=n/a summary row, not the age
+budget) — so `K_age` is a *decomposition component*, not a standalone danger count; `K`
+(the union) is the conservative object. Caught by the K ⊇ sim-crit superset check (an
+early build skipped never-actuated cars before the state check, giving K=2 < sim-crit=12
+— the sim, as adversary, flagged the gap). (2) A(zone) is the clean-entry table
+(good-entry assumption, §3.2); the metric folds in actual TTPNR to cover degraded entry.
+(3) Measurement-only — no scheduler reads it; baselines byte-identical.
+
+**Evidence / repro.** `for n in 14 18; do for s in rm aguard; do ./build/cps --headless
+--vehicles $n --scheduler $s --exec worst --duration 30; done; done` (read the
+`danger-relative criticality` + `K(tau) curve` lines); `--danger-tau FRAC` moves the
+primary point; `--align-offsets 1` for adversarial placement; CSV cols
+`danger_tau,max_k_age,max_k_danger`. Code: `currentDataAgeOldestTicks` accessor
+(TaskModel/Scheduler/PolicyScheduler) + the metric loop (`Simulation.cpp` step 3c).
+
+**Where it lands.** The lead-contribution experiment: the danger-relative `K(τ)` demand
+curve as the empirical shadow of the route-map bound's `k`, with the orthogonal-axes
+finding as "why a single criticality metric won't do."
+
+---
+
 ## 2026-06-29 — A(zone) is conditioned on good entry: tolerance is state-dependent, errors carry across zones
 
 **What it is.** A user question exposed a load-bearing assumption inside the causal

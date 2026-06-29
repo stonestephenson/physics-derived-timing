@@ -100,6 +100,10 @@ public:
     // Recent latch-time path age (~2 s window) — the live command round-trip
     // estimate consumed by adaptive policies. -1 if untracked / no latch yet.
     virtual long recentLatchAgeTicks(int /*vehicle*/, long /*step*/) const { return -1; }
+    // Instantaneous oldest-direct (age_path) applied-command age in base ticks
+    // for `vehicle` this tick; -1 if untracked / nothing applied. Live per-tick
+    // twin of maxDataAgeOldestTicks, for the danger-relative criticality metric.
+    virtual long currentDataAgeOldestTicks(int /*vehicle*/, long /*step*/) const { return -1; }
 };
 
 }  // namespace cps

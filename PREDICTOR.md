@@ -344,6 +344,20 @@ or by hand: `for s in rm ttu aguard; do for n in 6 14 18; do ./build/cps --headl
 add `--tau-crit 50|150`; cart-pole: `--plant cartpole`; CSV cols
 `tau_crit_ms,max_sim_crit,sim_crit_over_cores_pct` via `--csv`).
 
+**Companion — danger-relative criticality (`--danger-tau FRAC`, 2026-06-29).** The
+TTPNR-under-held count above saturates for unstable plants and conflates instability with
+danger (PAPER_NOTES 2026-06-25 Finding 3). The danger-relative metric reframes "in danger"
+as **delivered age vs the car's current-zone budget**: per base tick it counts cars with
+age_path ≥ `τ·A(zone_now)` (`K_age`; A(zone) = the causal table {z0:290, z1:400, z2:290,
+z3:140} ms) **unioned** with the state-critical cars (TTPNR < `--tau-crit`) → `K`, which is
+a strict superset of the sim-crit count. One run sweeps a fixed τ grid → the `K(τ)` curve.
+Lateral only (zones are a track concept); measurement-only (baselines byte-identical). **The
+finding:** the two failure axes are orthogonal — RM scores `K_age ≈ 0` (served cars fresh)
+but `K = 12/18` (unserved/past-PNR, state term); aguard scores `K = K_age = 6/18` with zero
+state-critical (over-budget but recoverable). Neither term alone is sound; the union `K` is
+the conservative count. Full writeup PAPER_NOTES 2026-06-29; CSV cols
+`danger_tau,max_k_age,max_k_danger`.
+
 ## 5e. Honest predictor: oracle vs delayed-state information (2026-06-22)
 
 Every predictive policy above ranks on TTPNR/TTV seeded from the **true** plant

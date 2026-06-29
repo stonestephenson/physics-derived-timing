@@ -56,7 +56,11 @@ calibration aid" with the observed demand for re-deriving `--u-max`) +
 + `--pred-margin MS` + `--validate-predictor` (prediction system, see PREDICTOR.md;
 `--tau-crit` = simultaneous-criticality threshold §5d (default 100; the sim-crit
 summary line + CSV cols `tau_crit_ms,max_sim_crit,sim_crit_over_cores_pct` are
-always reported, not opt-in); `--align-offsets FRAC` aligns vehicle start phases for
+always reported, not opt-in); `--danger-tau FRAC` = danger-relative criticality
+(lateral; default 1.0): a car is "in danger" when delivered age_path ≥ FRAC·A(zone of
+the car now), unioned with TTPNR<tau-crit; reports K_age/K + a K(τ) curve + CSV cols
+`danger_tau,max_k_age,max_k_danger` (THE PLAN leg 4 / PREDICTOR §5d / THEOREM_BRIEF §3.6);
+`--align-offsets FRAC` aligns vehicle start phases for
 the leg-(A) simultaneity experiment (lateral only; 0 = even spread default, 1 = all
 cars on one lap phase = adversarial worst case; PAPER_NOTES 2026-06-25); `--pred-staleness`/
 `--pred-margin` = honest-predictor delayed-state age + safety margin §5e)

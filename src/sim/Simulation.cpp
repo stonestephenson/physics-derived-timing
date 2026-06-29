@@ -13,6 +13,18 @@
 
 namespace cps {
 
+namespace {
+// Danger-relative criticality (THE PLAN leg 4 / THEOREM_BRIEF §3.6): per-zone
+// tolerable data age A(zone) in ms — the causal table (zone_tolerance.csv, V10,
+// lateral only; z3 lane-change is binding). Indexed by TrackZone {z0,z1,z2,z3}.
+constexpr double kAZoneMs[4] = {290.0, 400.0, 290.0, 140.0};
+// One-run K(tau) curve: fraction-of-budget thresholds swept within a single run,
+// so one run yields the whole demand curve (PAPER_NOTES 2026-06-25: a count at one
+// tau is a saturated gauge; the curve is the object).
+constexpr double kDangerTauGrid[] = {0.25, 0.5, 0.75, 1.0, 1.25, 1.5};
+constexpr int    kDangerTauN = 6;
+}  // namespace
+
 Simulation::Simulation(const SimParams& params, std::unique_ptr<Scheduler> scheduler,
                        std::shared_ptr<FmuLibrary> lib)
     : params_(params), scheduler_(std::move(scheduler)), lib_(std::move(lib)) {
@@ -122,6 +134,12 @@ void Simulation::start() {
     maxSimCrit_ = 0;
     simCritHist_.assign(static_cast<size_t>(n) + 1, 0);
     simCritTicks_ = 0;
+    maxKAgePrimary_ = 0;
+    maxKDangerPrimary_ = 0;
+    kDangerHist_.assign(static_cast<size_t>(n) + 1, 0);
+    kDangerTicks_ = 0;
+    maxKAgeGrid_.assign(kDangerTauN, 0);
+    maxKDangerGrid_.assign(kDangerTauN, 0);
     predWallSeconds_ = 0.0;
     predCount_ = 0;
 
@@ -328,6 +346,60 @@ bool Simulation::step() {
     if (simCrit < static_cast<int>(simCritHist_.size())) ++simCritHist_[simCrit];
     if (simCrit > maxSimCrit_) maxSimCrit_ = simCrit;
 
+    // 3c. Danger-relative criticality (THE PLAN leg 4): count cars whose delivered
+    // age_path has eaten fraction tau of their CURRENT zone's A(zone) budget
+    // (K_age), unioned with the state-critical (TTPNR<tauCrit) cars (K). A(zone)
+    // assumes the car enters the zone well-tracked, so accumulated error is folded
+    // in via TTPNR (THEOREM_BRIEF §3.2 wrinkle). Swept over a fixed tau grid in one
+    // run for the K(tau) curve; the primary point is params_.dangerTau. Lateral
+    // only (zones are a track concept); measurement only -- no scheduler reads it.
+    if (params_.plant == PlantKind::Lateral) {
+        int kAgePrimary = 0, kDangerPrimary = 0;
+        int kAgeGrid[kDangerTauN] = {0};
+        int kDangerGrid[kDangerTauN] = {0};
+        for (size_t v = 0; v < vehicles_.size(); ++v) {
+            // State term, evaluated for EVERY car (incl. never-actuated/starved):
+            // this car's actual TTPNR-under-held (oracle rollout) -- the same signal
+            // --tau-crit uses, so K(+state) is a strict superset of sim-crit. A
+            // past-PNR starved car (no command ever delivered) is caught here even
+            // though it has no measurable delivered age below. A degraded car near
+            // PNR also counts even with a fresh-ish command (THEOREM_BRIEF §3.2).
+            bool stateCrit = false;
+            if (predBaseStep_[v] >= 0) {
+                long ttv, ttpnr;
+                currentPredTicks(static_cast<int>(v), ttv, ttpnr);
+                stateCrit = (ttpnr * dt_ * 1000.0) < params_.tauCritMs;
+            }
+            // Age term: delivered age_path vs the car's current-zone budget. Only
+            // defined once a command has actually reached the actuator (age >= 0);
+            // a never-actuated car has no delivered command (a "no service" failure,
+            // surfaced by the state term + the age=n/a summary row, not here), so it
+            // is left out of K_age but caught by K via the state term above.
+            double ratio = -1.0;
+            const long ageTicks =
+                scheduler_->currentDataAgeOldestTicks(static_cast<int>(v), step_);
+            const int z = static_cast<int>(vehicles_[v].traj->zoneAt(step_ + offsets_[v]));
+            if (ageTicks >= 0 && z >= 0 && z <= 3)
+                ratio = (ageTicks * dt_ * 1000.0) / kAZoneMs[z];
+            const bool ageCritPrimary = ratio >= params_.dangerTau;
+            if (ageCritPrimary) ++kAgePrimary;
+            if (ageCritPrimary || stateCrit) ++kDangerPrimary;
+            for (int g = 0; g < kDangerTauN; ++g) {
+                const bool ageCritG = ratio >= kDangerTauGrid[g];
+                if (ageCritG) ++kAgeGrid[g];
+                if (ageCritG || stateCrit) ++kDangerGrid[g];
+            }
+        }
+        if (kAgePrimary > maxKAgePrimary_) maxKAgePrimary_ = kAgePrimary;
+        if (kDangerPrimary > maxKDangerPrimary_) maxKDangerPrimary_ = kDangerPrimary;
+        if (kDangerPrimary < static_cast<int>(kDangerHist_.size())) ++kDangerHist_[kDangerPrimary];
+        ++kDangerTicks_;
+        for (int g = 0; g < kDangerTauN; ++g) {
+            if (kAgeGrid[g] > maxKAgeGrid_[g]) maxKAgeGrid_[g] = kAgeGrid[g];
+            if (kDangerGrid[g] > maxKDangerGrid_[g]) maxKDangerGrid_[g] = kDangerGrid[g];
+        }
+    }
+
     // 4. Record a decimated frame.
     if (step_ % params_.decimation == 0) recordFrame(t);
 
@@ -442,6 +514,9 @@ void Simulation::finalizeSummary() {
     rec_.maxSimCrit   = maxSimCrit_;
     rec_.simCritHist  = simCritHist_;
     rec_.simCritTicks = simCritTicks_;
+    rec_.dangerTau    = params_.dangerTau;
+    rec_.maxKAge      = maxKAgePrimary_;
+    rec_.maxKDanger   = maxKDangerPrimary_;
     finalized_ = true;
 }
 
@@ -512,6 +587,27 @@ void Simulation::runToCompletion(bool verbose) {
                             "cores -- more critical loops than cores at some instant "
                             "(candidate (A) counterexample; investigate) **\n",
                             maxSimCrit_, params_.nCores);
+        }
+        // Danger-relative criticality (THE PLAN leg 4): delivered age vs A(zone),
+        // folding in actual state (TTPNR). Lateral only (zones are a track concept).
+        if (params_.plant == PlantKind::Lateral && kDangerTicks_ > 0) {
+            long over = 0;
+            for (int c = params_.nCores + 1; c < static_cast<int>(kDangerHist_.size()); ++c)
+                over += kDangerHist_[c];
+            const double fracOver =
+                100.0 * static_cast<double>(over) / static_cast<double>(kDangerTicks_);
+            std::printf("  danger-relative criticality (age vs A(zone), tau=%.2f): "
+                        "K_age max %ld / K(+state) max %ld of %d | cores=%d | "
+                        "K>cores for %.2f%% of run\n",
+                        params_.dangerTau, maxKAgePrimary_, maxKDangerPrimary_,
+                        rec_.nVehicles, params_.nCores, fracOver);
+            std::printf("    K(tau) curve [age-only]:");
+            for (int g = 0; g < kDangerTauN; ++g)
+                std::printf(" %.2f:%ld", kDangerTauGrid[g], maxKAgeGrid_[g]);
+            std::printf("\n    K(tau) curve [+state] :");
+            for (int g = 0; g < kDangerTauN; ++g)
+                std::printf(" %.2f:%ld", kDangerTauGrid[g], maxKDangerGrid_[g]);
+            std::printf("\n");
         }
         if (predCount_ > 0) {
             const double usPer  = predWallSeconds_ * 1e6 / static_cast<double>(predCount_);

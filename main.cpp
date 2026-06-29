@@ -92,7 +92,8 @@ void appendCsv(const std::string& path, const RunRecording& rec,
         std::fprintf(f, "scheduler,profile,vehicles,cores,exec,overrun,net_delay_ms,seed,"
                         "duration_s,missed_jobs,veh,avg_perf,max_roll,soft_pct,hard,"
                         "max_age_fresh_ms,max_age_path_ms,min_ttpnr_ms,past_pnr_ms,"
-                        "tau_crit_ms,max_sim_crit,sim_crit_over_cores_pct\n");
+                        "tau_crit_ms,max_sim_crit,sim_crit_over_cores_pct,"
+                        "danger_tau,max_k_age,max_k_danger\n");
     // Per-run simultaneous-criticality scalars, repeated on each vehicle row
     // (like missed_jobs / duration_s). fracOver = % of ticks with > nCores critical.
     long simOver = 0;
@@ -102,7 +103,7 @@ void appendCsv(const std::string& path, const RunRecording& rec,
         ? 100.0 * static_cast<double>(simOver) / static_cast<double>(rec.simCritTicks) : 0.0;
     for (int v = 0; v < rec.nVehicles; ++v) {
         const VehicleSummary& s = rec.summary[v];
-        std::fprintf(f, "%s,%s,%d,%d,%s,%s,%.2f,%llu,%.3f,%ld,%d,%.6f,%.6f,%.4f,%d,%.2f,%.2f,%.2f,%.1f,%.0f,%ld,%.2f\n",
+        std::fprintf(f, "%s,%s,%d,%d,%s,%s,%.2f,%llu,%.3f,%ld,%d,%.6f,%.6f,%.4f,%d,%.2f,%.2f,%.2f,%.1f,%.0f,%ld,%.2f,%.2f,%ld,%ld\n",
                      scheduler.c_str(), profileName(static_cast<Profile>(rec.profile)),
                      rec.nVehicles, rec.nCores, exec.c_str(), overrun.c_str(),
                      netDelayMs, static_cast<unsigned long long>(seed), rec.duration(),
@@ -110,7 +111,8 @@ void appendCsv(const std::string& path, const RunRecording& rec,
                      s.soft_violation_pct, s.hard_violations,
                      s.max_data_age_ms, s.max_data_age_oldest_ms,
                      s.min_ttpnr_ms, s.past_pnr_ticks * rec.baseStep * 1000.0,
-                     rec.tauCritMs, rec.maxSimCrit, fracOver);
+                     rec.tauCritMs, rec.maxSimCrit, fracOver,
+                     rec.dangerTau, rec.maxKAge, rec.maxKDanger);
     }
     std::fclose(f);
 }
@@ -160,6 +162,11 @@ void usage() {
         "  --tau-crit MS                simultaneous-criticality threshold: a car is\n"
         "                               'critical' when TTPNR < MS (~1 round-trip; default\n"
         "                               100). Reports max # critical at once vs cores.\n"
+        "  --danger-tau FRAC            lateral only: danger-relative criticality. A car is\n"
+        "                               'in danger' when delivered age_path >= FRAC * A(zone\n"
+        "                               of car now) (default 1.0 = at the zone budget). Also\n"
+        "                               folds in TTPNR<tau-crit. Reports K_age/K + a K(tau)\n"
+        "                               curve. THE PLAN leg 4 / THEOREM_BRIEF §3.6.\n"
         "  --align-offsets FRAC         lateral only: align vehicle start phases for the\n"
         "                               simultaneity experiment. 0 = even spread (default);\n"
         "                               1 = all on the same lap phase (adversarial). See\n"
@@ -227,6 +234,7 @@ int main(int argc, char** argv) {
         params.cpShoveForce  = std::atof(argValue(argc, argv, "--shove-force", "-1"));
         params.cpThetaHard   = std::atof(argValue(argc, argv, "--theta-max", "-1"));
         params.tauCritMs     = std::atof(argValue(argc, argv, "--tau-crit", "100"));
+        params.dangerTau     = std::atof(argValue(argc, argv, "--danger-tau", "1.0"));
         params.alignOffsets  = std::atof(argValue(argc, argv, "--align-offsets", "0"));
         params.zoneTarget    = std::atoi(argValue(argc, argv, "--zone-target", "-1"));
         params.zoneExtraMs   = std::atof(argValue(argc, argv, "--zone-extra-ms", "0"));
