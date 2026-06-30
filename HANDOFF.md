@@ -1,6 +1,6 @@
 # Session Handoff — CPS Challenge Visualizer
 
-Resume point for a fresh agent. Last updated **2026-06-29**.
+Resume point for a fresh agent. Last updated **2026-06-30**.
 
 **Read order:** `CLAUDE.md` (stable bootstrap: invariants, reading map, rules) →
 this file (what's true *now*) → the owning design docs as your task needs them
@@ -108,14 +108,23 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   aguard crashes (honest `F_adversarial` degradation). CSV cols
   `pack_zone,min_spacing_ms,max_occ_packed`. Committed `bd6e5e1` (local; push held).
   The Kurt-facing leg-3 brief is `THEOREM_BRIEF §9`, committed `a2b6d6d` (local; push held).
-- **Immediate next (THE PLAN): legs 1, 2, 4 done → leg 3 (Kurt) is the only remaining leg**
-  — schedulability composition (can `m` cores meet the `A(zone)` deadlines of the measured
-  `Occ`; the `Occ(s)` + `K(τ)` curves are the empirical inputs). **The leg-3 brief packet for
-  Kurt is drafted — `THEOREM_BRIEF §9`** (the precise Lemma-2 question, the Occ+K curve tables,
-  the achievability witness, and the crux: the §4 age bound 151.6 ms already exceeds
-  `A(z3)=140 ms` at certified N=5, so per-zone + occupancy is load-bearing; the limited-carry-in
-  RTA re-derivation is the gating sub-task). Flags added: `--zone-target`, `--zone-extra-ms`,
-  `--danger-tau`, `--pack-zone`, `--min-spacing`.
+- **Next steps by owner (2026-06-30) — the theorem is now Kurt-gated.** Legs 1, 2, 4 done;
+  leg-3 sub-task **2a (limited-carry-in RTA) prototyped** (certified 5→8, cross-check-sound,
+  CANDIDATE). The leg-3 brief packet is drafted + current: **`THEOREM_BRIEF §9`**.
+  - **Kurt (the theorem — AI cannot own):** Lemma 2a *soundness proof* (the candidate is
+    empirical-only) + optional tighter form to close the last gap of 2; Lemma 2b (compose the
+    RTA bound vs `A(zone)` under `Occ`); the soft spots (PNR rigor, the `A(zone)` good-entry
+    induction + cross-zone carry budget — §9.5); the related-work delta (clears Sudvarg /
+    Kundu–Quevedo?).
+  - **Lead (Stone — not AI, not strictly Kurt):** draft **Lemma 1** (the occupancy geometry —
+    a counting argument with the `Occ` curve as backstop; `THEOREM_BRIEF §6` ask #1).
+  - **AI (optional, paper-strengthening, NON-BLOCKING — nothing on the critical path):** the
+    parked-work block in §5 — v12.5/v15 generalization (highest value; kills the "v10 artifact"
+    critique), cross-zone carry measurement (feeds Kurt's §3.2 soft spot), `reproduce.py` +
+    sweep `--out` housekeeping.
+  - **Nothing AI *must* do before Kurt picks up — the §9 packet is ready to hand him today.**
+  Flags added across the legs: `--zone-target`, `--zone-extra-ms`, `--danger-tau`,
+  `--pack-zone`, `--min-spacing`; `rta_solve.py --workload limited`.
 - Builds clean: `cmake --build build -j`. Fidelity gate passes — `max |dev| =
   1.490e-08 m` on the trust anchor (`--vehicles 1 rm --exec worst --duration 120
   --validate-predictor`); the value **scales with lap coverage**, so use that exact
@@ -361,9 +370,12 @@ existential risk (unconstrained disturbance ⇒ k = N).
 Instruments built: `--tau-crit`, `--danger-tau` (leg 4), `--pack-zone`/`--min-spacing`
 (leg 2), `--align-offsets`, `--zone-target`/`--zone-extra-ms` (causal A(zone)),
 `tools/zone_sweep.py`, `tools/occupancy_sweep.py`, `tools/tolerance_sweep.py`. **All AI-ownable
-legs (1, 2, 4) are done; the critical path is now Kurt's leg 3** — compose the measured
-`Occ(R, F_spaced)` (leg 2) against the `A(zone)` deadlines over the BOUND §7 RTA (limited
-carry-in re-derivation). The `Occ(s)` + `K(τ)` curves are his empirical inputs. Note
+legs (1, 2, 4) are done + leg-3 sub-task 2a prototyped (`rta_solve.py --workload limited`,
+certified 5→8); the critical path is now Kurt's** — Lemma 2a *soundness* (the candidate is
+empirical-only) + Lemma 2b: compose the measured `Occ(R, F_spaced)` (leg 2) against the
+`A(zone)` deadlines over the BOUND §7 RTA. **Lead's leg (Stone, not AI):** draft **Lemma 1**
+(the occupancy geometry — a counting argument with the `Occ` curve as backstop, THEOREM_BRIEF
+§6 #1). The `Occ(s)` + `K(τ)` curves are Kurt's empirical inputs. Note
 (THEOREM_BRIEF §3.2): the occupancy count, like `K`, ultimately needs **state** (TTPNR) for
 the degraded-entry case — the current `Occ` is the clean geometric count (the conservative
 worst case for placement); the danger pairing (RM-crashes/aguard-safe) supplies the state side.
