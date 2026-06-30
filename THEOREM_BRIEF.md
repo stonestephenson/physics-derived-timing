@@ -507,6 +507,17 @@ Lemma 2 builds on the discrete-time, unit-quantum, `m`-core global-FP response-t
   carry-in (`m − 1`, Guan RTA-LC):** *re-deriving that workload for this discrete synchronized-
   quantum model — not the arithmetic — is the critical path* (§7.4 items 2–3). It would place the
   certified capacity in `(5, 10]` and is the prerequisite for composing a *tight* per-zone bound.
+- **Prototyped (CANDIDATE, UNVERIFIED — 2026-06-30, `rta_solve.py --workload limited`).** A
+  sound-leaning `m−1` Guan-RTA-LC candidate (`none ≤ limited ≤ full` by construction; soundness
+  guarded by the sim cross-check, not proven) lifts the **certified capacity 5 → 8** (gap to
+  empirical 10 halved), cross-check clean (certified 8 ≤ empirical 10, no age-bound violation).
+  **But it does *not* move the safety crossover:** the fleet-max age bound crosses `A(z3)=140 ms`
+  at **N=4 under *both* full and limited** — because the bounds coincide at small N, where the
+  *uncontended chain* (N=1 bound = **124 ms**, just under 140) already nearly saturates the
+  lane-change tolerance. **Implication:** tightening buys *schedulability* (the certified
+  substrate 5→8), not *uniform z3-safety* — so the per-zone + occupancy decomposition is
+  load-bearing across the whole **N=4…10** range. Kurt's job is the *sound* re-derivation (the
+  candidate's NC/CI form + jitter handling are exactly what he must verify/tighten).
 
 So Lemma 2 has two coupled sub-tasks: **(i)** re-derive the limited-carry-in workload (tightens
 the age bound toward measured), then **(ii)** compose that bound against the `A(zone)` deadlines

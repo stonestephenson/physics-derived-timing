@@ -13,6 +13,12 @@ is Kurt's re-derivation (section 7.4 item 2). The age-soundness cross-check
 partially guards soundness: an unsound (too-small-R) formula yields a bound the
 sim violates, which is flagged loudly.
 
+  --workload limited is a CANDIDATE limited-carry-in (Guan RTA-LC) workload,
+  prototyped to de-risk Kurt's re-derivation -- UNVERIFIED; its soundness is
+  exactly what he must prove. The cross-check is its arbiter (certified <=
+  empirical, bound >= measured). Treat any "limited" number as provisional until
+  he signs off. Default stays full carry-in (byte-identical to before this mode).
+
 Model (verified against code, 2026-06-17):
   - Params:    TaskModel.cpp:38-52 challengeDefault() == examples/parameters.md
   - Priority:  RateMonotonic.cpp:26-32  (period_ms, vehicle, kind), cloud-only
@@ -52,6 +58,14 @@ PARAMS_MS = {
 NET_DELAY_MS = (1.0, 8.0, 16.0)  # netSC == netCA  (bcet, avet, wcet)
 EXEC_IDX = {"best": 0, "avg": 1, "worst": 2}
 CLOUD_KINDS = ("Estimator", "Controller", "Feedforward", "Merger")
+
+# Causal A(zone) deadlines (ms), v10 lateral -- zone_tolerance.csv / THEOREM_BRIEF
+# section 3.2. z3 (lane-change) is the binding deadline; the bound-vs-N sweep flags
+# where the fleet-max age bound crosses each (so we see how much the per-zone +
+# occupancy decomposition has to do).
+A_ZONE_MS = {"z3 lane-change (binding)": 140.0,
+             "z0/z2 straight/sharp": 290.0,
+             "z1 slight": 400.0}
 
 # BOUND.md section 7.3 R (ticks), machine-verified & corrected 2026-06-17. The v5
 # values were originally hand-iterated WRONG (B5/F5/M5 = 107/129/117); this solver
@@ -101,12 +115,41 @@ def workload(i, x, wl_mode):
       none: no carry-in, ceil(x/T_i)*C_i -- the synchronous-release form. Lower
             pessimism; used here only to DIAGNOSE the section 7.3 hand numbers.
     Limited carry-in (only m-1 tasks, Guan RTA-LC -- the section 7.2
-    "refinement") is deliberately NOT implemented: it needs Kurt's re-derivation
-    (7.4 item 2). Adding an unverified formula here would defeat the purpose.
+    "refinement") lives in hp_interference() below, as a CANDIDATE (UNVERIFIED --
+    Kurt's re-derivation, 7.4 item 2); its soundness is guarded by the sim
+    cross-check, not proven here.
     """
     if wl_mode == "none":
         return ceil_div(x, i.T) * i.C
     return ceil_div(x + i.R - i.C, i.T) * i.C
+
+
+def hp_interference(hp, x, m, wl_mode):
+    """Total higher-priority interference in a window of length x ticks.
+
+      full / none: Sum_{i in hp} workload(i, x, wl_mode)  -- unchanged.
+      limited:     CANDIDATE limited carry-in (Guan RTA-LC, UNVERIFIED). Only m-1
+        higher-priority tasks may carry in at the start of the busy window, so each
+        task contributes its NO-carry-in workload (NC = ceil(x/T)*C, the 'none'
+        form) and only the m-1 largest carry-in SURPLUSES (CI - NC, where CI = the
+        'full' jitter form) are added back. Hence  none <= limited <= full  by
+        construction: limited is bounded above by the already-sound full form (so
+        it is sound-leaning), and tighter than it. v1 has NO per-task interference
+        cap (a further Guan tightening) -- add only if the cross-check shows v1 is
+        sound but loose. The NC/CI choice + the jitter<->carry-in interaction are
+        the exact subtleties Kurt must verify.
+    """
+    if wl_mode != "limited":
+        return sum(workload(i, x, wl_mode) for i in hp)
+    nc_total = 0
+    surplus = []
+    for i in hp:
+        nc = workload(i, x, "none")   # ceil(x/T)*C        -- no carry-in
+        ci = workload(i, x, "full")   # ceil((x+R-C)/T)*C  -- with carry-in/jitter
+        nc_total += nc
+        surplus.append(ci - nc)       # >= 0  (R >= C)
+    surplus.sort(reverse=True)
+    return nc_total + sum(surplus[:max(0, m - 1)])
 
 
 class Task:
@@ -145,7 +188,7 @@ def solve_rta(tasks, m, wl_mode="full", cap=1000000):
         hp = tasks[:idx]  # everything strictly higher priority
         x = k.C
         for _ in range(cap):
-            interf = sum(workload(i, x, wl_mode) for i in hp)
+            interf = hp_interference(hp, x, m, wl_mode)
             nx = k.C + interf // m
             if nx == x:
                 break          # converged
@@ -198,7 +241,9 @@ def report_table(n, m, exec_idx, fails, wl_mode):
         key = (t.kind, t.vehicle)
         doc = DOC_R.get(key)
         status = ""
-        if key in SELF_CHECK:
+        if wl_mode == "limited":
+            status = "(limited-CI candidate -- UNVERIFIED)"   # full-CI oracles N/A
+        elif key in SELF_CHECK:
             ok = (t.R == SELF_CHECK[key])
             status = "self-verified OK" if ok else "SELF-CHECK FAIL!"
             if not ok:
@@ -218,14 +263,14 @@ def report_table(n, m, exec_idx, fails, wl_mode):
     return tasks
 
 
-def report_bounds(tasks, n, exec_idx, fails):
+def report_bounds(tasks, n, exec_idx, fails, wl_mode="full"):
     print("\nLayer-1 per-vehicle data-age bound (BOUND section 4), ms:")
     pv = per_vehicle_bounds(tasks, n, exec_idx)
     fleet = max(b for b, _ in pv.values())
     for v in range(n):
         b, hf = pv[v]
         chk = ""
-        if v in SELF_CHECK_BOUND_MS:
+        if wl_mode != "limited" and v in SELF_CHECK_BOUND_MS:
             exp = SELF_CHECK_BOUND_MS[v]
             ok = abs(b - exp) < 0.05
             chk = ("  [self-check %.1f OK]" % exp) if ok else \
@@ -235,6 +280,33 @@ def report_bounds(tasks, n, exec_idx, fails):
         print("  v%-2d  age_path <= %6.1f ms   (hold-free %6.1f)%s" % (v, b, hf, chk))
     print("  fleet-max bound: %.1f ms" % fleet)
     return pv
+
+
+def bound_vs_n(m, exec_idx, max_n, wl_mode):
+    """Fleet-max age bound (BOUND section 4) vs N, flagging A(zone) crossovers.
+
+    The headline of Lemma 2a: below the z3 crossover every car meets the binding
+    140 ms deadline UNIFORMLY (occupancy unneeded); above it, only the <= Occ cars
+    in z3 must -- so the gap between the z3 crossover and the certified capacity is
+    exactly what the occupancy lemma (Lemma 1) has to earn. Past P1 (R>T) the
+    section-4 bound no longer holds; rows are tagged.
+    """
+    print("\n" + "=" * 72)
+    print("Fleet-max age bound vs N  (workload=%s)  -- A(zone) crossovers" % wl_mode)
+    print("=" * 72)
+    crossed = set()
+    for n in range(1, max_n + 1):
+        tasks = solve_rta(build_cloud_tasks(n, exec_idx), m, wl_mode)
+        over = any(t.R > t.T for t in tasks)
+        fleet = max(b for b, _ in per_vehicle_bounds(tasks, n, exec_idx).values())
+        flags = []
+        for name, a in sorted(A_ZONE_MS.items(), key=lambda kv: kv[1]):
+            if fleet > a and name not in crossed:
+                crossed.add(name)
+                flags.append("<-- crosses A(%s)=%.0f" % (name, a))
+        tag = "  [OVERRUN R>T: P1 fails, bound void]" if over else ""
+        print("  N=%-2d  fleet-max bound = %6.1f ms%s   %s"
+              % (n, fleet, tag, " ".join(flags)))
 
 
 def certified_capacity(m, exec_idx, max_n, wl_mode):
@@ -336,8 +408,10 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--cores", type=int, default=3)
     ap.add_argument("--exec", choices=list(EXEC_IDX), default="worst")
-    ap.add_argument("--workload", choices=["full", "none"], default="full",
-                    help="full = BOUND 7.2 as written (carry-in); none = no carry-in (diagnostic)")
+    ap.add_argument("--workload", choices=["full", "none", "limited"], default="full",
+                    help="full = BOUND 7.2 as written (carry-in, default); none = no "
+                         "carry-in (diagnostic); limited = Guan RTA-LC m-1 carry-in "
+                         "(CANDIDATE, UNVERIFIED -- soundness guarded by --cross-check)")
     ap.add_argument("--max-n", type=int, default=24, help="analytic capacity sweep ceiling")
     ap.add_argument("--cross-check", action="store_true", help="also run ./build/cps")
     ap.add_argument("--max-sim-n", type=int, default=18, help="cross-check capacity sweep ceiling")
@@ -352,7 +426,7 @@ def main():
 
     # 1+2. Reproduce section 7.3 table + Layer-1 bounds at N=6.
     tasks6 = report_table(6, m, exec_idx, fails, wl_mode)
-    report_bounds(tasks6, 6, exec_idx, fails)
+    report_bounds(tasks6, 6, exec_idx, fails, wl_mode)
 
     # 3. Certified-capacity sweep.
     cert, fail_n, fail_task = certified_capacity(m, exec_idx, args.max_n, wl_mode)
@@ -363,6 +437,9 @@ def main():
         print("Certified capacity (all R<=T): N = %d" % cert)
         print("  first overrun at N=%d, task %s (R>T)" % (fail_n, fail_task))
     print("=" * 72)
+
+    # 3b. Fleet-max age bound vs N + A(zone) crossovers (the Lemma-2a headline).
+    bound_vs_n(m, exec_idx, min(args.max_n, 14), wl_mode)
 
     # 4. Simulator cross-check.
     if args.cross_check:

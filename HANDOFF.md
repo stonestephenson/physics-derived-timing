@@ -370,14 +370,14 @@ worst case for placement); the danger pairing (RM-crashes/aguard-safe) supplies 
 
 **Parked AI-ownable work (NON-BLOCKING — none gates Kurt or fixes anything broken; pick up
 while leg 3 is with Kurt).** Recorded 2026-06-29; the critical path is Kurt's leg 3.
-1. **Prototype the limited-carry-in RTA** (highest leverage; de-risks leg 3 directly).
-   Implement a candidate `m−1` Guan RTA-LC workload in `tools/rta_solve.py` (the full-carry-in
-   `W_i(x)` is at `BOUND.md §7.2`), see if it closes the **certified-5 → empirical-10** gap, and
-   cross-check it sound vs the sim (`--cross-check`). Feeds `THEOREM_BRIEF §9.4` (the gating
-   sub-task) / `BOUND.md §7.4` items 2–3. **CAVEAT (invariant #5):** the *derivation's
-   soundness* is Kurt's — this is a labeled-**unverified** candidate to machine-check, NOT a
-   proof. Genuine tension on whether to do it now vs. let Kurt drive the derivation and we
-   machine-check his version (avoids anchoring) — lead deferred it pending Kurt.
+1. **Limited-carry-in RTA — PROTOTYPED 2026-06-30 (`rta_solve.py --workload limited`).** A
+   sound-leaning `m−1` Guan-RTA-LC candidate (`none ≤ limited ≤ full`; UNVERIFIED, cross-check-
+   guarded) lifts **certified capacity 5 → 8** (gap to empirical 10 halved), cross-check clean.
+   **Key finding:** it does NOT move the `A(z3)=140 ms` crossover (N=4 for both workloads — the
+   uncontended chain bound is already 124 ms), so tightening buys *schedulability* not *uniform
+   z3-safety* ⇒ occupancy is load-bearing N=4…10 (PAPER_NOTES 2026-06-30; THEOREM_BRIEF §9.4).
+   **Remaining (Kurt, invariant #5):** the formula's *soundness* + a tighter form (interference
+   cap / exact NC) to close the last gap of 2 — that's his derivation, not our prototype.
 2. **Generalize the curves to v12.5 / v15** (most paper value; not Kurt-gated). The `A(zone)`
    table, `Occ` curve, and danger metric are **v10-only** — `kAZoneMs` is hard-coded
    `{290,400,290,140}` in `Simulation.cpp`. Run `tools/zone_sweep.py` + `tools/occupancy_sweep.py`

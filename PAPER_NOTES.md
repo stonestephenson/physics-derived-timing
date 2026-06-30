@@ -10,6 +10,48 @@ Newest first.
 
 ---
 
+## 2026-06-30 — Limited-carry-in RTA (candidate): tightening buys schedulability, NOT uniform z3-safety — so occupancy is load-bearing N=4…10
+
+**What it is.** Leg-3 sub-task 2a, prototyped as a **labeled-UNVERIFIED candidate** to de-risk
+Kurt's re-derivation (`rta_solve.py --workload limited`). A sound-leaning `m−1` Guan-RTA-LC form:
+each higher-priority task contributes its no-carry-in workload (`NC = ceil(x/T)·C`, the existing
+`none` form) and only the `m−1` largest carry-in *surpluses* (`CI−NC`, `CI` = the `full` jitter
+form) are added back — so `none ≤ limited ≤ full` by construction (bounded above by the
+already-sound full form). No per-task interference cap in v1. **Soundness is guarded by the sim
+cross-check, not proven** (the NC/CI choice + jitter↔carry-in interaction stay Kurt's).
+
+**Result (cross-check clean — `RESULT: all checks passed`):**
+- **Certified capacity 5 → 8** (the 2× full-carry-in gap to empirical 10 halved to 2);
+  cross-check sound: certified `8 ≤ empirical 10`, `missed=0` at N=8, no age-bound violation.
+  Still conservative (sim runs clean to 10), as a sound-leaning candidate should be.
+- **The crux survives tightening.** The fleet-max age bound crosses `A(z3)=140 ms` at **N=4
+  under *both* full and limited** — the per-vehicle bounds coincide at small N (the `m−1` cap only
+  bites once there are many interferers, N≥6). Root cause: the **uncontended chain already nearly
+  saturates the lane-change tolerance** — N=1 bound = **124 ms**, only 16 ms under 140. So `z3` is
+  binding because the chain is *long relative to its tolerance*, not because of contention.
+
+**Why it matters (the headline for Kurt).** Provable-to-N by guarantee: **uniform z3-safety → 3**
+(both workloads); **schedulability/P1 → 8** (limited) vs 5 (full); **empirical safety → 10**. So
+limited carry-in does **not** reduce the need for occupancy — it *extends the certified-schedulable
+substrate (5→8)* that the per-zone + occupancy argument (Lemma 1) then builds safety on. The two
+compose exactly as the theorem says, and **the occupancy lemma is quantified as load-bearing across
+N=4…10.** A tighter candidate (the interference cap, exact NC forms) could close the last gap of 2
+toward 10 — but tighter = higher unsoundness risk, so that is Kurt's derivation, not our prototype.
+
+**Honesty.** Empirical (30 s cross-check) soundness only, not proof; Lemma 2a's formal soundness +
+Lemma 2b's composition remain Kurt's (invariant #5). Default `--workload full` is byte-identical
+(diff = only the added bound-vs-N sweep). THEOREM_BRIEF §9.4 carries this.
+
+**Evidence / repro.** `python3 tools/rta_solve.py --workload limited --cross-check` (read certified
+capacity + the "Fleet-max age bound vs N" crossover sweep); `python3 tools/rta_solve.py` for the
+full-carry-in A/B.
+
+**Where it lands.** The Lemma-2 schedulability section: the limited-carry-in tightening (capacity
+5→8) and the finding that it doesn't move the 140 ms crossover, motivating the per-zone + occupancy
+composition as essential for N≥4.
+
+---
+
 ## 2026-06-29 — Worst-case zone occupancy `Occ(R, F_spaced)`: the route admits `Occ < N`, and a scheduler converts occupancy into safety
 
 **What it is.** THE PLAN leg 2 built: a zone-aware placement instrument (`--pack-zone Z`
