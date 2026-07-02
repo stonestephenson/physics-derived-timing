@@ -104,6 +104,7 @@ Then by task:
 ## Quick reference
 
     cmake -B build -S . -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
+    bash .claude/verify.sh   # fast G1+G2 gate vs golden (add --full for G3); the done-gate runs this
     ./build/cps --headless --vehicles 6 --scheduler rm --exec worst --duration 30
     ./build/cps --headless --plant cartpole --vehicles 8 --scheduler aguard --exec worst
     ./build/cps --headless --vehicles 1 --scheduler rm --exec worst --duration 120 --validate-predictor  # gate: 1.490e-08 m (scales w/ run length -> use 120 s)

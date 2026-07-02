@@ -272,6 +272,11 @@ def main():
     ap.add_argument("--out-dir", default=".")
     args = ap.parse_args()
     QUICK = args.quick
+    if QUICK:
+        # Smoke grids must never overwrite the committed baseline CSVs.
+        args.out_dir = os.path.join(args.out_dir, ".reproduce_quick")
+        os.makedirs(args.out_dir, exist_ok=True)
+        print("[--quick] smoke grids -> %s/ (committed CSVs untouched)" % args.out_dir)
 
     if args.list:
         for name, (_, desc) in REGISTRY.items():

@@ -41,9 +41,16 @@ def main():
     ap.add_argument("--duration", type=int, default=120)
     ap.add_argument("--max-extra", type=int, default=450)
     ap.add_argument("--step", type=int, default=50)
+    ap.add_argument("--out", default="zone_tolerance.csv",
+                    help="output CSV (refuses to overwrite an existing file unless --force)")
+    ap.add_argument("--force", action="store_true",
+                    help="allow overwriting an existing --out file")
     args = ap.parse_args()
     if not BIN.exists():
         sys.exit(f"build first: {BIN} not found")
+    if Path(args.out).exists() and not args.force:
+        sys.exit(f"refusing to overwrite existing {args.out}; pass --force to "
+                 f"regenerate it, or --out PATH to write elsewhere")
 
     grid = list(range(0, args.max_extra + 1, args.step))
     rows, table = [], []
@@ -60,7 +67,7 @@ def main():
             print(f"  z{z} {ZONES[z]:<12} +{extra:<4}ms  age={age:<8} hard={total}")
         table.append((z, a_zone, first_breach))
 
-    with open("zone_tolerance.csv", "w", newline="") as f:
+    with open(args.out, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["zone", "zone_name", "extra_ms", "age_path_ms", "total_hard",
                     "z0_hard", "z1_hard", "z2_hard", "z3_hard"])
@@ -72,7 +79,7 @@ def main():
         fbtxt = "none in range" if fb is None else \
             f"{fb[0]} ms  [z0={fb[1][0]} z1={fb[1][1]} z2={fb[1][2]} z3={fb[1][3]}]"
         print(f"  z{z} {ZONES[z]:<12} {str(a_zone):<12} {fbtxt}")
-    print("\n  wrote zone_tolerance.csv")
+    print(f"\n  wrote {args.out}")
 
 
 if __name__ == "__main__":

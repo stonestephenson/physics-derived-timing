@@ -58,9 +58,16 @@ def main():
     ap.add_argument("--duration", type=int, default=30)
     ap.add_argument("--schedulers", default="rm,aguard")
     ap.add_argument("--spacings", default="0,250,500,750,1000,1500,2000,3000,4000")
+    ap.add_argument("--out", default="occupancy_sweep.csv",
+                    help="output CSV (refuses to overwrite an existing file unless --force)")
+    ap.add_argument("--force", action="store_true",
+                    help="allow overwriting an existing --out file")
     args = ap.parse_args()
     if not BIN.exists():
         sys.exit(f"build first: {BIN} not found")
+    if Path(args.out).exists() and not args.force:
+        sys.exit(f"refusing to overwrite existing {args.out}; pass --force to "
+                 f"regenerate it, or --out PATH to write elsewhere")
 
     grid = [int(s) for s in args.spacings.split(",")]
     scheds = args.schedulers.split(",")
@@ -77,12 +84,12 @@ def main():
             print(f"  {sp:<11} {sched:<8} {str(occ)+'/'+str(n):<6} {geo:<14} "
                   f"{k:<10} {hard}")
 
-    with open("occupancy_sweep.csv", "w", newline="") as f:
+    with open(args.out, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["zone", "min_spacing_ms", "scheduler", "vehicles", "max_occ",
                     "geo_predict", "zone_len_ticks", "max_k_danger", "total_hard"])
         w.writerows(rows)
-    print("\n  wrote occupancy_sweep.csv")
+    print(f"\n  wrote {args.out}")
     print("  Occ < N for realistic spacing = the F_spaced slack (Lemma 1); the same"
           " Occ is fatal under rm but safe under aguard (occupancy -> schedulability).")
 

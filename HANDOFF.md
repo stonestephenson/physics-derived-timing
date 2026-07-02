@@ -404,12 +404,11 @@ while leg 3 is with Kurt).** Recorded 2026-06-29; the critical path is Kurt's le
 4. **Reproducibility housekeeping.** Fold `occupancy_sweep` + the danger metric into
    `tools/reproduce.py` so the new CSVs regenerate one-command (Guo directive). `occupancy_sweep.csv`
    is already committed; `--danger-tau` has no dedicated sweep yet.
-5. **Sweep-tool safety (footgun, from the 2026-06-29 handoff audit).** `tools/reproduce.py`
-   defaults `--out-dir .` (repo root) and `--quick` overwrites the committed baseline CSVs with
-   smoke data; `tools/zone_sweep.py` / `tools/occupancy_sweep.py` hard-code their output names in
-   CWD with **no `--out` flag** and unconditionally clobber committed data. Give the latter two an
-   `--out`, and make `reproduce.py` refuse to overwrite committed CSVs (or default to a scratch
-   dir). Documented as a warning in USAGE §Reproducing.
+5. **Sweep-tool safety — DONE (2026-07-02, `harness-readiness`).** `zone_sweep.py` /
+   `occupancy_sweep.py` now take `--out` and refuse to overwrite an existing file without
+   `--force`; `reproduce.py --quick` writes to git-ignored `./.reproduce_quick/` so smoke
+   data can't clobber committed baselines (a full `reproduce.py` still regenerates them — G4).
+   See USAGE §Reproducing.
 
 The items below (0–6) are retained as recorded state; this PLAN supersedes the
 "simultaneity ≤ k" framing in the existential-gate block and reprioritizes around
@@ -529,6 +528,7 @@ task (0) below (**DONE 2026-06-22** — the empirical instrument). Cart-pole cal
 
 ```sh
 cmake --build build -j
+bash .claude/verify.sh                  # fast gate: G1+G2 vs golden (~5s); add --full for G3 (RTA)
 python3 tools/reproduce.py              # regenerate ALL scheduling CSVs + print tables (one command)
 python3 tools/reproduce.py --list       # experiments (capacity/simcrit/honest/floor/tolerance) + which doc table each backs
 ./build/cps --headless --vehicles 14 --scheduler aguard --exec worst --duration 30

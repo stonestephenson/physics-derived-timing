@@ -1,0 +1,8 @@
+# This project is hand-formatted (aligned constants, ASCII comment banners).
+# No stock clang-format style matches it — the closest still rewrites ~83% of
+# lines — so we DISABLE machine formatting rather than churn the codebase.
+# This also keeps automated per-edit format checks (e.g. the agentic
+# verify-on-edit hook) quiet on C/C++ files. Remove this file if you ever adopt
+# a machine style (and expect a large one-time reformat commit).
+DisableFormat: true
+SortIncludes: false

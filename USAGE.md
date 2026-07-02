@@ -208,6 +208,16 @@ behavior** (tie-break, `--overrun`, periods/WCETs, the `Plant` seam), the golden
 §7 in the same commit** (CLAUDE.md invariant 4). There is no separate golden file to bless;
 the prose in those docs *is* the baseline of record.
 
+**Automated gate runner.** `.claude/verify.sh` runs G1+G2 and checks the golden numbers
+(fast, ~5 s); `.claude/verify.sh --full` also runs G3 (the RTA solver, ~15–100 s). The
+agentic *done-gate* runs the fast form on every finish and blocks on failure; run `--full`
+before committing a scheduling-visible change. It is read-only — it never touches the
+reproduce/sweep CSVs.
+
+**Formatting.** The code is hand-formatted; `.clang-format` sets `DisableFormat: true` on
+purpose (no stock style matches — the closest still rewrites ~83% of lines). Don't add a
+machine style unless you intend a large one-time reformat.
+
 ## Reproducing the results
 
 One command regenerates the **scheduling** results CSVs and prints the table each backs:
@@ -219,16 +229,14 @@ python3 tools/reproduce.py floor      # just one (e.g. re-derives PREDICTOR.md �
 python3 tools/reproduce.py --quick    # SMALL grids (fast smoke) -- see warning below
 ```
 
-> ⚠️ **CSV-overwrite footgun.** `reproduce.py` writes its CSVs into `--out-dir`, which
-> **defaults to the repo root (`.`)**, so a bare run — and especially `--quick` —
-> **overwrites the committed baseline CSVs in place** (`--quick` replaces them with
-> *small-grid smoke data*, no warning). `tools/zone_sweep.py` and
-> `tools/occupancy_sweep.py` are worse: they hard-code their output names
-> (`zone_tolerance.csv`, `occupancy_sweep.csv`) in the CWD with **no `--out` flag at all**,
-> so they unconditionally clobber committed data. To experiment safely, run `reproduce.py`
-> with `--out-dir /tmp/...`, and treat `zone_sweep`/`occupancy_sweep` as
-> commit-or-discard. (Fixing the tools to take `--out` / refuse to overwrite is a tracked
-> follow-up — HANDOFF §5.)
+> **CSV-overwrite safety (fixed 2026-07-02).** Experimental runs can no longer clobber
+> committed baselines by accident:
+> - `reproduce.py --quick` writes its smoke-grid CSVs to `./.reproduce_quick/` (git-ignored),
+>   never the committed files. A *full* `reproduce.py` (no `--quick`) still regenerates the
+>   committed CSVs — that is its job (G4).
+> - `tools/zone_sweep.py` / `tools/occupancy_sweep.py` now take `--out PATH` and **refuse to
+>   overwrite an existing file unless `--force`**. Regenerate a committed baseline on purpose
+>   with `--force`; experiment with `--out /tmp/...`.
 
 **The reproduce surface is split (not one command for everything):** `reproduce.py` covers
 only the *scheduling* CSVs (`capacity_sweep.csv`, `simcrit_sweep.csv`, `honest_sweep.csv`,
