@@ -10,6 +10,118 @@ Newest first.
 
 ---
 
+## 2026-07-04 — Execution round: the cliff is 170 not 140; F-demotion alone certifies 8; v15 is the applicability boundary; the A-table does NOT compose
+
+**What it is.** All seven queued decisive experiments ran (HANDOFF §5 queue; full record
+PROOF_DRAFT §8). Five paper-shaping results:
+
+1. **The 50 ms grid hid 30 ms of physics.** Fine-grid causal sweeps (10 ms = the
+   instrument's true resolution — delivered ages quantize in T_E steps): **A(z3) = 170
+   (v10), 160 (v12.5), 90 (v15)**. z3 stays binding on every profile; A falls with speed.
+2. **At the refined 170, occupancy stops being load-bearing on v10:** fleet-wide
+   **F-demotion alone** (drop the age-path-irrelevant Feedforward below everyone's E/B/M —
+   a one-line priority tweak) certifies **N=8 uniformly** (fleet-max 151.6 ≤ 170, P1 OK) vs
+   classical 5–6. The honest general statement: *occupancy earns capacity exactly when the
+   binding budget < the uniform F-demoted bound at P1 capacity (~151.6)* — true at the
+   conservative 140 table, at v12.5's 160 (barely), for ff-adjusted regimes, and for tighter
+   plants. The paper should present this boundary explicitly, not a single operating point.
+3. **The theorem's envelope is validated; the A-table is refuted as a composite.** Per-zone
+   delay vector runs (new `--zone-extra-vector` + ZB-F-X flag emulation): the ZB-F-X
+   guarantee envelope (≤137 flagged / ≤195 elsewhere) → **0 hard, K_age(τ=1)=0** over a
+   full lap (A1 retired at the operating point); every zone at its own budget
+   simultaneously → **9,402 hard frames** (budgets non-composable at amplitude — the
+   good-entry induction fails exactly where the skeptic predicted; the theorem's tighter
+   envelope is what saves it).
+4. **v15 = the approach's applicability boundary:** A(z3)=90 < the uncontended chain bound
+   (124), so *no scheduler* can certify v15's lane change at these periods — the physics
+   budget must exceed the uncontended chain latency for any scheduling result to exist.
+   A crisp negative result for the paper's scope section.
+5. **The proof-object scheduler now exists and survived its adversary:** `--scheduler
+   zband` (release-stamped bands, exactly the analyzed ZB-F-X) — 0 missed / 0 hard /
+   K_age=0 in and slightly beyond the certified region (worst age 120.5 vs 196.0 bound),
+   0 missed where aguard drops ~6,000 jobs, honest collapse at N=18. A2 also closed with a
+   number: the F-demotion delta (+13.5 ms ff staleness, `--ff-extra-ms`) costs one 10 ms
+   grid step of cliff (170→160), leaving ≥22 ms margin at the operating point.
+
+**Instrument honesty items:** pack-zone pass-2 spacing now enforced against all placed
+cars (Occ column unchanged everywhere; aguard s=1.5 s row 0→27 hard under corrected
+placements); `reproduce.py zones|occupancy` regenerate every zone/occupancy CSV for all
+three profiles one-command.
+
+**Where it lands.** The corollary section (boundary statement, item 2), the validation
+section (item 3), scope/limitations (item 4), and the witness table (item 5). Remaining
+top risk moves to the band-transient formal induction + the injected-vs-scheduler-induced
+staleness distinction near the cliff (PROOF_DRAFT §8.7).
+
+**Evidence / repro.** PROOF_DRAFT §8 (all commands inline); `reproduce.py zones occupancy`;
+`rta_solve.py --band K --band-n 8 --band-demote-f --workload limited-t`; gates re-verified
+after every code change (`verify.sh --full` ALL PASS; limited cross-check PASS).
+
+**Addendum (same day) — the injected-vs-scheduler-induced staleness gap CLOSED, with a
+bonus overload finding.** Core-starvation sweeps (1 core N=1–3, 2 cores N=2–7, zband):
+every P1-holding config pins scheduler-induced age ≤ 110.5 ms — **the task set is bimodal
+under kill-and-hold: keep up (~uncontended+30 ms) or collapse P1; no feasible schedule can
+even reach the 140–180 cliff region**, so injection is strictly harsher than reality and
+the A(zone) instrument is conservative by construction. The collapse mode itself is
+paper-worthy: at 2 cores/N=7 (5,999 missed) the fb age stays FRESH (100.5) while z2-heavy
+hard breaches explode — the kills land on F (longest C), i.e. **stale feedforward, not
+stale feedback, is the first casualty of overload** — the same F-axis the demotion result
+exploits, seen from the failure side. (PROOF_DRAFT §8.7 #3.)
+
+---
+
+## 2026-07-03 — Candidate fleet-safety theorem drafted end-to-end (PROOF_DRAFT.md): 8 cars @ ≥4 s certified vs classical 3 — and what the red-team found
+
+**What it is.** `PROOF_DRAFT.md` (CANDIDATE/UNVERIFIED) composes the whole leg-A chain:
+Lemma 1 (occupancy counting, proven + brute-forced on 17,176 cases), Lemma 2a (the
+limited-CI RTA audited step-by-step; cross-check PASS as-found and post-patch), and a
+new Lemma 2b — a **two-band zone scheduler ZB-F-X** (elevate flagged cars' E/B/M;
+**F stays base** — F carries no sensor data, and demoting it is exactly what makes the
+composition close; without it the certified top band (2–3) is below the route's K=4
+arc floor and the theorem admits nothing). Machine-instantiated verdict (v10, worst,
+m=3, assumption-free Θ=T workload): **N=8 at s ≥ 4 s headway, all zones in budget —
+2.7× the strongest classical uniform test (N=3), 4× the same-workload one (N=2)**,
+collapsing honestly to classical as s → 0. The proof object is **prediction-free**
+(no PNR/TTPNR in the trusted base — that soft spot moves to the witness only).
+
+**Paper-worthy findings along the way:**
+- **v10 z3 = 4 arcs** (probe of `Trajectory.cpp`; docs said "several"), and the
+  committed `occupancy_sweep.csv` values equal the **exact F_spaced optimum** at every
+  spacing (anchored-greedy = brute force; a Python replica of `packZoneOffsets`
+  reproduces every CSV row from geometry alone) — the instrument realizes the true
+  worst case, so Lemma 1's `min(N, ⌊L/s⌋+K)` is the right object and the per-arc form
+  is tight at 4 of 9 grid points.
+- **Independent 4-lens red-team (fresh-context agents) found two CRITICALs the
+  author missed**, both repaired same-session: (1) an *own-task band carry* — under
+  band-at-release priorities, a base job's top-stamped predecessor is strictly higher
+  priority and its ≤C ticks were uncounted (classic mode-change trap; fix: +C_κ per
+  base E/B/M task; +1.2 ms, no verdict flip); (2) the **inflated z3 arcs wrap the lap
+  boundary** on all three profiles and the exact-optimum scan silently undercounts
+  wrapped arcs (fix: rotation normalization; table values unchanged). Plus the
+  sharpest physics attack: **the danger window outlives the zone** — at the first
+  failing z3 sweep point, 60/136 hard frames land in z0 *after exit*
+  (`zone_tolerance.csv`), so ZB-F-X now holds exiting cars top-band for 240 ms
+  (machine-checked free at the operating point: Occ⁺ stays 4 @ 4 s), and a decisive
+  per-zone-envelope experiment is queued before Kurt invests (PROOF_DRAFT §6 A1).
+- A 91-schedule adversarial two-band simulator battery (exact replica; N=11
+  missed=4497 reproduced) found **zero violations** of the band bounds, ≥11 % margin,
+  including premise-violating probes — evidence, not proof; the harness `zband`
+  policy is the missing real adversary.
+
+**Where it lands.** The theorem section skeleton + the honesty ledger (grid
+granularity: A(z3)=140 passes at 140.5 / fails at 190.5, a 50 ms grid vs a 2.6 ms
+admission margin — state both). Top-3 open risks ranked in PROOF_DRAFT §7 (A1
+envelope > band transients formal induction > S3 general form). Kurt re-derives;
+nothing here is claimed proven (invariant #5).
+
+**Evidence / repro.** PROOF_DRAFT §5 command block; `rta_solve.py --band 4 --band-n 8
+--band-demote-f --workload limited-t`; scratchpad `lemma1_check.py` /
+`lemma2a_check.py` / `redteam_band.py`. Gates re-run after all edits:
+`--workload limited --cross-check` PASS; `verify.sh --full` ALL GATES PASS
+(uniform solver paths byte-identical, diffed).
+
+---
+
 ## 2026-06-30 — Limited-carry-in RTA (candidate): tightening buys schedulability, NOT uniform z3-safety — so occupancy is load-bearing N=4…10
 
 **What it is.** Leg-3 sub-task 2a, prototyped as a **labeled-UNVERIFIED candidate** to de-risk

@@ -1,6 +1,6 @@
 # Session Handoff — CPS Challenge Visualizer
 
-Resume point for a fresh agent. Last updated **2026-06-30**.
+Resume point for a fresh agent. Last updated **2026-07-04**.
 
 **Read order:** `CLAUDE.md` (stable bootstrap: invariants, reading map, rules) →
 this file (what's true *now*) → the owning design docs as your task needs them
@@ -54,10 +54,14 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
 
 ## 2. Current state
 
-- **Active branch `paper-generalization`** (off `main`, pushed to **`tempbosch`**:
-  `github.com/stonestephenson/tempboschchall`). `main` holds through the RTA
+- **Active branch `paper-generalization`** (off `main`, pushed to
+  **`physics-derived-timing`**: `github.com/stonestephenson/physics-derived-timing`
+  — **repo + local remote renamed 2026-07-06** from `tempboschchall`/`tempbosch`;
+  older entries below say "pushed to tempbosch", same remote. Do NOT create a new
+  repo under the old name (it would kill GitHub's redirect for teammates who
+  haven't updated their remotes). `main` holds through the RTA
   solver (`4f49f46`); the cart-pole generalization (Plant seam + second plant +
-  Phase-3 evidence, 4 commits) lives on the branch. **Push only to `tempbosch`.
+  Phase-3 evidence, 4 commits) lives on the branch. **Push only to `physics-derived-timing`.
   NEVER push to `origin`** (the Bosch upstream). `relatedPapers/` untracked.
 - **This session (2026-06-25/26), committed + pushed:** `--align-offsets FRAC` knob
   (`Simulation.{h,cpp}`, `main.cpp`) + the leg-(A) route-map reframe (PAPER_NOTES,
@@ -103,11 +107,24 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   simultaneous `Occ`; off by default ⇒ byte-identical. **Result (§5 leg 2 / PAPER_NOTES):
   measured `Occ` tracks `ceil(zone_len/spacing)` within +1–2** (z3 = 8.9 % of lap);
   `Occ < N` for realistic spacing (N=18: 1 s gap → 12; 2 s → 7; 4 s → 4), `→ N` stacked.
-  The *same* `Occ` is policy-independent yet **fatal under RM / safe (0 hard) under aguard**
-  at spacing ≥ 500 ms — the occupancy→schedulability link; at full stack (`Occ=N`) even
-  aguard crashes (honest `F_adversarial` degradation). CSV cols
+  The *same* `Occ` is policy-independent yet **fatal under RM / near-safe under aguard**
+  at spacing ≥ 500 ms (0 hard with the original packer; ≤ 27 hard under the 2026-07-04
+  corrected strictly-F_spaced placements — PROOF_DRAFT §8.6) — the occupancy→schedulability
+  link; at full stack (`Occ=N`) even aguard crashes (honest `F_adversarial` degradation). CSV cols
   `pack_zone,min_spacing_ms,max_occ_packed`. Committed `bd6e5e1` (local; push held).
   The Kurt-facing leg-3 brief is `THEOREM_BRIEF §9`, committed `a2b6d6d` (local; push held).
+- **This session (2026-07-03): `PROOF_DRAFT.md` (NEW, CANDIDATE/UNVERIFIED; committed + pushed 2026-07-06 on the lead's instruction)** — end-to-end fleet-safety theorem candidate for Kurt: Lemma 1 proven+machine-checked (17,176-case brute force; v10 z3 = **4 arcs**; measured Occ = exact optimum), Lemma 2a audited (limited cross-check PASS as-found & post-patch), Lemma 2b two-band **ZB-F-X** composition machine-instantiated (**N=8 @ s≥4 s certified vs classical 3**; F-demotion is load-bearing); 4-agent council red-team found + same-session-repaired 2 CRITICALs (own-task band carry; wrapped inflated arcs) and flagged the zone-exit/envelope physics gap as top risk (decisive experiment queued in PROOF_DRAFT §6 A1); `rta_solve.py` gained `--band/--band-n/--band-demote-f`, `--workload limited-t`, own-carry, and a sound stopping rule (uniform `full`/`limited` byte-identical, diffed; `verify.sh --full` ALL PASS).
+- **This session (2026-07-04): the §5 AI queue EXECUTED** — refined cliffs A(z3) = 170/160/90
+  (v10/12.5/15; 10 ms instrument resolution), envelope validated + A-table non-composability
+  demonstrated (A1 retired at the operating point), `zband` proof-object scheduler built and
+  attacked (no counterexample; 0 missed in-region), A2 quantified (−10 ms cliff), v15 exposed
+  as the applicability boundary (90 < 124 uncontended), F-demotion-alone certifies N=8 at the
+  refined cliff (occupancy's necessity is now stated as a boundary, PROOF_DRAFT §8.5), pass-2
+  spacing fixed (Occ unchanged), `reproduce.py zones|occupancy` added. Full record:
+  **PROOF_DRAFT §8**; paper framing: PAPER_NOTES 2026-07-04. New flags: `--zone-extra-vector`,
+  `--zone-flag-window`, `--ff-extra-ms`, `--scheduler zband`; new CSVs per §8.6. All
+  committed + pushed 2026-07-06 with the 07-03 proof-draft set (lead's instruction;
+  the review-hold that kept the 07-03/07-04 work staged-only is released).
 - **Next steps by owner (2026-06-30) — the theorem is now Kurt-gated.** Legs 1, 2, 4 done;
   leg-3 sub-task **2a (limited-carry-in RTA) prototyped** (certified 5→8, cross-check-sound,
   CANDIDATE). The leg-3 brief packet is drafted + current: **`THEOREM_BRIEF §9`**.
@@ -344,9 +361,9 @@ existential risk (unconstrained disturbance ⇒ k = N).
    simultaneous `Occ` (all-arc greedy placement; the route has several lane-change arcs).
    **Result:** measured `Occ` tracks `ceil(zone_len/spacing)` within +1–2 (z3 = 8.9 % of
    lap), `< N` for realistic spacing (N=18: 1 s gap → 12; 2 s → 7; 4 s → 4), `→ N` stacked.
-   The *same* `Occ` is policy-independent yet **fatal under RM / safe (0 hard) under aguard**
-   at spacing ≥ 500 ms (occupancy→schedulability), degrading honestly to classical at full
-   stack. `tools/occupancy_sweep.py` → `occupancy_sweep.csv`; THEOREM_BRIEF §3.5/§6.1,
+   The *same* `Occ` is policy-independent yet **fatal under RM / near-safe under aguard**
+   at spacing ≥ 500 ms (≤ 27 hard under the corrected 2026-07-04 placements, PROOF_DRAFT §8.6)
+   (occupancy→schedulability), degrading honestly to classical at full stack. `tools/occupancy_sweep.py` → `occupancy_sweep.csv`; THEOREM_BRIEF §3.5/§6.1,
    PAPER_NOTES 2026-06-29. Measurement-only; baselines byte-identical.
 3. **Schedulability composition** — can m cores meet the A(zone) deadlines of the
    worst-case occupancy (builds on BOUND §7 RTA). **Kurt** (the one leg neither user
@@ -379,6 +396,54 @@ empirical-only) + Lemma 2b: compose the measured `Occ(R, F_spaced)` (leg 2) agai
 (THEOREM_BRIEF §3.2): the occupancy count, like `K`, ultimately needs **state** (TTPNR) for
 the degraded-entry case — the current `Occ` is the clean geometric count (the conservative
 worst case for placement); the danger pairing (RM-crashes/aguard-safe) supplies the state side.
+
+### AI execution queue (2026-07-03 — post-PROOF_DRAFT council; **EXECUTED 2026-07-04**)
+
+All items 1–7 ran to a verdict on 2026-07-04 — full results in **PROOF_DRAFT §8** (the
+authoritative record); one-line outcomes inline below. Item 8 (paper prose) remains
+queued behind Kurt. The follow-up (scheduler-induced ages near the cliff) also ran
+to a verdict: **CLOSED — P1-feasible schedules cannot reach the cliff region at all
+(≤ 110.5 ms across 1/2-core starvation sweeps); injection is strictly harsher; the
+overload damage channel is killed-F/stale-ff, not fb age** (PROOF_DRAFT §8.7 #3).
+Two optional hardenings remain queued, deliberately unbuilt: a zband golden G4 row in
+verify.sh --full, and a --band-deadlines override in rta_solve (only if the v12.5
+composed instance goes in the paper). Open lead decision: normative A(z3) = 140
+(conservative, current) vs 170 (refined).
+
+Ordered by decision value; each item has a decision rule so the outcome is a verdict,
+not just data. Items 2–4 of the old parked block below are absorbed here.
+
+1. **DONE — envelope PASSES (A1 retired at the operating point); full A-table envelope FAILS (budgets non-composable at amplitude). Envelope experiment (A1 — decisive for the theorem).** Extend `--zone-extra-ms`
+   to a per-zone vector + a z3 flag-window override (±240 ms, 3-point `zoneAt` check —
+   exact since z3 arcs ≥ 1.94 s). Two N=1 full-lap runs: (a) the ZB-F-X *guaranteed*
+   envelope (age ≈196.5 non-flagged / ≈137.5 flagged); (b) the full A-table envelope
+   (each zone at its own budget — this is also the cross-zone-carry composability
+   test, absorbing old parked item 3). **Rule:** (a) zero hard ⇒ A1 retired at the
+   operating point; any breach ⇒ PROOF_DRAFT theorem falsified — report loudly.
+2. **DONE — cliff = 170 (v10) / 160 (v12.5) / 90 (v15); 10 ms = instrument resolution; reframes the corollary (PROOF_DRAFT §8.5). Refine A(z3) below the 50 ms grid.** The committed cliff is [140.5, 190.5);
+   extras 60–90 pin it to ±5 ms (new CSV; committed grid untouched). **Rule:** if the
+   true cliff ≥ ~151, the Occ⁺=5 row (141.0) flips to PASS ⇒ admissible spacing drops
+   to 3 s and the headline strengthens; update PROOF_DRAFT margins either way.
+3. **DONE — zband exists (release-stamped), no counterexample in the certified region; 0 missed vs aguard's ~6k; honest collapse at N=18. `zband` in the harness (the missing Lemma-2b adversary).** Release-stamped bands
+   (council constraint: never recompute from current position), E/B/M elevate while
+   the car is in z3±240 ms, F always base, key (band, period, vehicle, kind).
+   Attack: packed z3 at 4 s/3 s spacing, N=8 — **rule:** `missed=0`, 0 hard, and
+   `K_age(τ=1.0)=0` (delivered age never exceeds A(zone_now)) = the theorem's exact
+   guarantee; any excursion is a counterexample. Stacked run for honest degradation.
+4. **DONE — z3 binding everywhere; v15 = applicability boundary (90 < 124 uncontended). v12.5/v15 A(zone) + Occ tables** (old parked item 2; generality leg; geometry
+   already probed: K=4/4/3 arcs). **Rule:** z3 stays binding and A scales sensibly ⇒
+   the route-family claim (THEOREM_BRIEF §8.2) generalizes; else v10-specific caveat.
+5. **DONE — demotion delta costs one 10 ms grid step (cliff 170→160); ≥22 ms margin retained; A2 closed. `--ff-extra-ms` knob (A2 close).** Delay F's publish visibility by D (default 0
+   ⇒ byte-identical; F carries no age stamps). Re-run z3 rows at D=16 ms (the ZB-F
+   demotion delta). **Rule:** A(z3) unchanged ⇒ A2 closed empirically.
+6. **DONE — Occ column unchanged on every row; aguard hard/K columns shifted (s=1.5s: 0→27). Pack-zone pass-2 spacing fix** (instrument honesty; PROOF_DRAFT §1 caveat).
+   Enforce spacing vs all placed cars; regenerate `occupancy_sweep.csv`; predict Occ
+   column unchanged.
+7. **DONE — `reproduce.py zones` / `occupancy` (all profiles + fine grids). Fold zone/occupancy/danger/fine/profile sweeps into `reproduce.py`** (old parked
+   item 4; Guo one-command directive).
+8. **Paper prose — QUEUED BEHIND KURT, not executing:** no theorem prose until he
+   re-derives (invariant #5); the empirical/framework sections can be drafted once
+   items 1–4 land.
 
 **Parked AI-ownable work (NON-BLOCKING — none gates Kurt or fixes anything broken; pick up
 while leg 3 is with Kurt).** Recorded 2026-06-29; the critical path is Kurt's leg 3.
@@ -530,7 +595,7 @@ task (0) below (**DONE 2026-06-22** — the empirical instrument). Cart-pole cal
 cmake --build build -j
 bash .claude/verify.sh                  # fast gate: G1+G2 vs golden (~5s); add --full for G3 (RTA)
 python3 tools/reproduce.py              # regenerate ALL scheduling CSVs + print tables (one command)
-python3 tools/reproduce.py --list       # experiments (capacity/simcrit/honest/floor/tolerance) + which doc table each backs
+python3 tools/reproduce.py --list       # experiments (capacity/simcrit/honest/floor/tolerance/zones/occupancy) + which doc table each backs
 ./build/cps --headless --vehicles 14 --scheduler aguard --exec worst --duration 30
 # the tournament (read hard / worst soft% / min_pnr per row):
 for s in rm context ttu aguard; do ./build/cps --headless --vehicles 14 --scheduler $s --exec worst --duration 30; done
@@ -538,7 +603,8 @@ for s in rm context ttu aguard; do ./build/cps --headless --vehicles 14 --schedu
 ./build/cps --headless --vehicles 14 --scheduler ttu --exec worst --duration 60 --save ttu14.cpsr
 ./build/cps --replay ttu14.cpsr --speed 16     # press ] to cycle cars; watch the error strip
 ```
-Flags: `--scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard`, `--vehicles
+Flags: `--scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard|zband` (zband = the
+PROOF_DRAFT §3.1 proof-object ZB-F-X; USAGE has the one-paragraph spec), `--zone-extra-vector A,B,C,D`/`--zone-flag-window MS` (envelope experiment, PROOF_DRAFT §8.2), `--ff-extra-ms D` (A2, §8.3), `--vehicles
 N`, `--cores N`, `--profile 10|12.5|15`, `--duration SEC`, `--exec
 avg|worst|best|pert`, `--overrun kill|skip`, `--guard MS` (hybrid), `--floor MS`
 (aguard), `--tau-crit MS` (sim-criticality, §5 item 0 / PREDICTOR §5d), `--danger-tau FRAC` (danger-relative criticality, lateral; delivered age vs `τ·A(zone)` ∪ state; §5 leg 4 / PREDICTOR §5d / PAPER_NOTES 2026-06-29), `--pack-zone Z`/`--min-spacing MS` (worst-case zone occupancy, lateral; pack zone Z's arcs at the F_spaced gap; §5 leg 2 / THEOREM_BRIEF §3.5 / PAPER_NOTES 2026-06-29), `--align-offsets FRAC` (adversarial car phasing for leg A, 0=spread default..1=all aligned; PAPER_NOTES 2026-06-25), `--pred-staleness MS`/`--pred-margin MS` (honest predictor, §5 item 3 / PREDICTOR §5e), `--triage`, `--delta-max RAD`, `--u-max N`/`--shove-force N`/`--theta-max RAD` (cartpole calibration, GENERALIZATION §4), `--net-delay MS`, `--validate-predictor`,

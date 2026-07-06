@@ -7,7 +7,9 @@ timing requirement (Challenge Q4) that the age-aware scheduler will enforce,
 and the empirical port of the Wilson et al. (MEMOCODE 2024) zone methodology
 from UPPAAL to the Bosch FMU.
 
-**Status 2026-06-26: Phase-1 + Phase-2 are now IMPLEMENTED.** Per-zone breach
+**Status 2026-07-04: Phase-1 + Phase-2 IMPLEMENTED; fine-grid cliffs + v12.5/v15
+tables MEASURED (see the 2026-07-04 block below); a zone-consuming scheduler
+(`zband`) now EXISTS.** *(Original status 2026-06-26: Phase-1 + Phase-2 implemented.)* Per-zone breach
 attribution lives in `Simulation` (buckets frame breaches/occupancy by
 `Trajectory::zoneAt`); causal in-zone injection is `--zone-target Z` /
 `--zone-extra-ms D`; `tools/zone_sweep.py` runs the causal sweep → `zone_tolerance.csv`.
@@ -81,12 +83,21 @@ for v10, with no formal derivation:**
 | `kZoneLaneOraclePadTicks` | `1000` (±100 ms) | pad around each Z3 seed |
 | `kZoneLaneOracleBridgeTicks` | `3500` (350 ms) | fill gaps between Z3 seeds |
 
-The headline **A(z3)=140 ms binding result rests entirely on this partition.** The
+The headline **A(z3) binding result rests entirely on this partition.** The
 A(zone) deadline table itself is hard-coded **v10-only** as `kAZoneMs={290,400,290,140}`
-at `src/sim/Simulation.cpp` (leg-4 danger metric) — if the partition is re-tuned, that
-table must change **in lockstep**. **For the parked v12.5/v15 generalization (HANDOFF §5):
-these thresholds were tuned to v10's curvature scale; re-examine/re-derive them per profile
-(from that profile's own curvature distribution) before trusting per-profile A(zone).**
+at `src/sim/Simulation.cpp` (leg-4 danger metric; twin copy `A_ZONE_MS` in
+`tools/rta_solve.py`) — if the partition is re-tuned, both copies must change **in
+lockstep**. **2026-07-04 measurements (PROOF_DRAFT §8.1):** fine 10 ms grids (the
+instrument's true resolution — delivered ages quantize in T_E steps) refine the z3
+cliff to **170 (v10) / 160 (v12.5) / 90 (v15)**; full coarse tables for v12.5/v15 are
+measured (`zone_tolerance_v12.5.csv`, `zone_tolerance_v15.csv`; regenerate via
+`reproduce.py zones`). **Standing caveat, now load-bearing:** these thresholds were
+tuned to v10's curvature scale and were NOT re-derived per profile — the published
+v12.5/v15 A(zone) tables inherit v10-tuned segmentation constants (they still resolve
+sensible per-profile zone maps: K=4/4/3 arcs, ~9 % of lap — `tools/proofchecks/
+zone_probe.cpp`), so **re-examine the partition per profile before any v12.5/v15
+number becomes normative in the paper**. The conservative v10 A(z3)=140 remains the
+value the Kurt packet and the danger metric use.
 
 ## Phase 1 — whole-run delay sweeps, zone-attributed violations
 
@@ -137,14 +148,17 @@ causality: delay only inside the zone.
 ## Deliverables (feed both papers)
 
 1. `A(zone)` table per profile + the violation-vs-age curves (Route A §"age ↔
-   control performance"; Route B's requirement model). **(Done for v10:
-   `zone_tolerance.csv`; v12.5/v15 parked, HANDOFF §5.)**
+   control performance"; Route B's requirement model). **(Done for ALL profiles
+   2026-07-04: `zone_tolerance.csv` + `_v12.5` + `_v15` + fine z3 grids; one
+   command: `reproduce.py zones`. Partition caveat above applies to v12.5/v15.)**
 2. ~~The zone array as a CSV checked into `examples/` — the scheduler consumes it for
    mode switching.~~ **CORRECTION (2026-06-29): not built, and not the current design.**
    The zone array is computed **at runtime** in `Trajectory::computeTrackZones` and read
-   **in-process** via `zoneAt` by the measurement instruments only — it is **not exported
-   to a CSV** (nothing under `examples/` holds one) and **no scheduler consumes it**
-   (`grep zoneAt` → only `Trajectory` + `Simulation`). A per-zone mode-switching scheduler
-   is plausible future work; it does not exist. If a CSV export is ever wanted, add it to
-   the runtime build, don't check in a static one (it must track the constants above).
+   **in-process** via `zoneAt` — it is **not exported to a CSV** (nothing under
+   `examples/` holds one). **UPDATE 2026-07-04: a zone-consuming scheduler now EXISTS** —
+   `--scheduler zband` (PROOF_DRAFT §3.1/§8.4): `Simulation` computes a per-car z3±240 ms
+   flag from `zoneAt` (`VehicleView.zone_flagged`), and jobs are band-stamped at release.
+   The measurement instruments read `zoneAt` as before. If a CSV export is ever wanted,
+   add it to the runtime build, don't check in a static one (it must track the constants
+   above).
 3. A two-paragraph methods write-up (goes nearly verbatim into the papers).

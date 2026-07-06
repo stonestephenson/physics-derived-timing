@@ -83,7 +83,8 @@ Then by task:
    the `Plant` seam (`src/sim/Plant.h`) as `LateralPlant`; a new plant is a new
    `Plant` implementation, never a change to that path — re-run the HANDOFF
    baselines after touching the seam (the refactor was verified byte-identical).
-7. Git: push to `tempbosch` only. NEVER push to `origin` (the Bosch
+7. Git: push to `physics-derived-timing` only (the remote formerly named
+   `tempbosch`; GitHub repo renamed 2026-07-06). NEVER push to `origin` (the Bosch
    upstream). `relatedPapers/` stays untracked.
 
 ## How to work here
@@ -109,7 +110,7 @@ Then by task:
     ./build/cps --headless --plant cartpole --vehicles 8 --scheduler aguard --exec worst
     ./build/cps --headless --vehicles 1 --scheduler rm --exec worst --duration 120 --validate-predictor  # gate: 1.490e-08 m (scales w/ run length -> use 120 s)
     python3 tools/reproduce.py            # regenerate all scheduling CSVs + tables (one command)
-    # schedulers: rm | prm | edf | context(oracle) | honest | ttu | hybrid | aguard
+    # schedulers: rm | prm | edf | context(oracle) | honest | ttu | hybrid | aguard | zband(proof-object)
     #   (+ ttu/hybrid/aguard-honest: predict from delayed state, not ground truth)
     # plants: lateral (FMU car) | cartpole    other: --overrun, --net-delay MS,
     #   --guard/--floor MS, --tau-crit MS, --danger-tau FRAC, --pack-zone Z/--min-spacing MS,
@@ -123,6 +124,6 @@ Then by task:
    (`DATA_AGE` / `BOUND` / `PREDICTOR` / `GENERALIZATION` / `ZONE_TOLERANCE` /
    `USAGE` / this file) in the same commit as the code change.
 3. Commit in the existing log style (imperative summary + bullet body).
-   Push to `tempbosch` when asked.
+   Push to `physics-derived-timing` when asked.
 4. Keep this file stable and short (≤ ~150 lines). Detail belongs in the
    owning docs; state belongs in `HANDOFF.md`.

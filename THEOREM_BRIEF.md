@@ -117,7 +117,21 @@ has a **zone map**: the sequence/fraction of track length in each zone.
     A(z2 sharp turn)  = 290 ms
     A(z1 slight turn) = 400 ms
 
-The lane-change is ~2–3× tighter than the rest. **Honest status / nuances:** (1)
+The lane-change is ~2–3× tighter than the rest.
+
+**Refined + generalized (2026-07-04; PROOF_DRAFT §8.1).** The 50 ms grid hid
+margin: delivered ages quantize in T_E = 10 ms steps (the instrument's true
+resolution), and finer grids give **A(z3) = 170 (v10), 160 (v12.5), 90 (v15)**
+(`zone_tolerance_z3_fine*.csv`, `zone_tolerance_v12.5/v15.csv`; non-z3 v12.5 =
+{290, 240, 240}, v15 = {240, 240, 190}). z3 stays binding on every profile.
+Two consequences: (1) **v15 is an applicability boundary** — its 90 ms budget
+is below the uncontended chain bound (124 ms), so no scheduling policy can
+certify v15's lane change at these periods; (2) at v10's refined 170 the
+occupancy decomposition stops being load-bearing (fleet-wide F-demotion alone
+certifies N = 8 — PROOF_DRAFT §8.5); the conservative 140 remains the value
+this brief's Lemma-2 packet is stated against. Also measured: +13.5 ms of
+feedforward staleness (the ZB-F demotion delta) moves the v10 cliff 170 → 160
+(`--ff-extra-ms`; PROOF_DRAFT §8.3). **Honest status / nuances:** (1)
 empirical, no closed form (contrast Sudvarg RTAS'25, who *derive* a safe delay via
 CBF + sum-of-squares); (2) non-monotonic in instantaneous curvature — `A(z1 slight) >
 A(z0 straight)` because straights often *precede* curves, so staling there delays the
@@ -182,8 +196,9 @@ gap and reports the realized worst-case `Occ`. For the v10 route, **z3 (binding)
 ticks ≈ 8.9 % of the lap**, and measured `Occ` **tracks `ceil(zone_len / spacing)` within
 +1–2** (per-arc boundary terms) — confirming the `(tight-zone length)/spacing` form. `Occ < N`
 for realistic spacing (N=18: 1 s gap → `Occ=12`; 2 s → 7; 4 s → 4), degrading to `Occ=N` only
-when stacked. **The same `Occ` is policy-independent (geometry) yet fatal under RM and safe
-under aguard** (0 hard at spacing ≥ 500 ms) — the occupancy→schedulability link for Lemma 2.
+when stacked. **The same `Occ` is policy-independent (geometry) yet fatal under RM and near-safe
+under aguard** (≤ 27 hard at spacing ≥ 500 ms under the corrected strictly-F_spaced
+placements — see §9.2d note; the original packer read 0) — the occupancy→schedulability link for Lemma 2.
 At the fully-stacked extreme (`Occ=N`) even aguard crashes — the honest `F_adversarial`
 degradation (§5 Corollary). (PAPER_NOTES 2026-06-29.)
 
@@ -356,7 +371,7 @@ All `--exec worst`, `m = 3` cores, reproducible via `tools/reproduce.py` /
    parameterized zone map? Affects how general the claim reads.
 3. **PNR rigor (§3.3)** and **A(zone) derivation (§3.2)** — take as measured, or invest
    in a control-theoretic derivation? Trades effort for reviewer-proofness.
-4. **Metric redefinition** — fold `A(zone)` into the simultaneity instrument
+4. **Metric redefinition — DONE 2026-06-29 (`--danger-tau`, §3.6)** — fold `A(zone)` into the simultaneity instrument
    (delivered age vs `A(zone)`) so the empirical `k` matches the theorem's `k`.
 
 > **User note.** These are *your* calls (with my help), and they gate Kurt — he can't
@@ -461,13 +476,21 @@ RM does not (N=18, pack z3, 30 s; `total_hard` = breaches summed over the fleet)
 | 1000 | 12 | 26,003 | **0** |
 | 2000 | 7 | 26,464 | **0** |
 | 4000 | 4 | 34,207 | **0** |
+
+*(Numbers above are the original 2026-06-29 packer's; the 2026-07-04 regenerated
+`occupancy_sweep.csv` — strictly-F_spaced placements — shifts hard counts slightly,
+e.g. RM@4000 = 34,209, aguard@1500 = 27; the `Occ` column is unchanged on every row.)*
 | 0 (full stack, `Occ=N`) | 18 | 22,512 | 36,012 |
 
 So **3 cores empirically keep up to `Occ = 12` binding-zone cars (out of N=18) safe** under a
 realistic spacing — the existence evidence for Lemma 2. At the fully-stacked `Occ = N = 18`
 extreme even aguard fails: the bound *honestly* degrades to classical when the route/placement
 is tight-everywhere (`F_adversarial`, §5 Corollary). aguard is the **achievability witness**,
-not the proof object (§4).
+not the proof object (§4). *(2026-07-04: the packer now enforces spacing across both placement
+passes — a latent F_spaced violation fixed; `Occ` unchanged on every row, aguard's s=1.5 s row
+reads 27 hard instead of 0 under the corrected placements — still ~10³ below RM. There is now
+also a **direct proof-object witness**: `--scheduler zband` holds every deadline with 0 missed
+jobs in the certified region — PROOF_DRAFT §8.4.)*
 
 ### 9.3 The crux — why a uniform RTA does *not* close (the reason occupancy is load-bearing)
 
@@ -542,7 +565,9 @@ test, of which the §9.2d aguard run is the existence witness.
 
 ### 9.6 Reproduce every number above
 
-    python3 tools/occupancy_sweep.py        # Occ(s) + aguard-vs-RM hard  -> occupancy_sweep.csv  (§9.2b,d)
+    python3 tools/occupancy_sweep.py --out /tmp/occ_repro.csv   # Occ(s) + aguard-vs-RM hard (§9.2b,d)
+    #   (the tool refuses to overwrite the committed occupancy_sweep.csv without --force;
+    #    use `python3 tools/reproduce.py occupancy` to regenerate the committed files)
     python3 tools/rta_solve.py --cross-check # §7 RTA fixed points + sim cross-check  (§9.4)
     ./build/cps --headless --vehicles 18 --scheduler aguard --exec worst --duration 30   # K(tau) curve (§9.2c)
     ./build/cps --headless --vehicles 1  --scheduler rm     --exec worst --duration 30   # round-trip 90.5 ms (§9.3)

@@ -50,7 +50,12 @@ needs the usual GL/X11 dev headers. macOS note: the filesystem is case-insensiti
 ```
 
 Key options: `--scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard|ttu-honest|
-hybrid-honest|aguard-honest`, `--plant
+hybrid-honest|aguard-honest|zband` (`zband` = the PROOF_DRAFT §3.1 proof-object
+zone-band scheduler ZB-F-X: job priority (band, period, vehicle, kind) with the band
+stamped at release — band 0 iff the car is within ±240 ms of a z3 arc and the kind is
+E/B/M; F never elevates; prediction-free; equals rm when nothing is flagged; the ±240 ms
+θ is `kZbFlagTicks` in `src/sim/Simulation.cpp` — constexpr, no CLI knob, coupled to the
+band-RTA inflation constant per PROOF_DRAFT §3.2), `--plant
 lateral|cartpole` (controlled system: lateral = Bosch FMU car, cartpole = inverted
 pendulum — see `GENERALIZATION.md`), `--vehicles N`,
 `--cores N`, `--profile 10|12.5|15`, `--duration SEC`,
@@ -75,7 +80,13 @@ report max simultaneous Occ vs ceil(zone_len/spacing) + CSV cols
 THEOREM_BRIEF §3.5); `--align-offsets FRAC` aligns vehicle start phases for
 the leg-(A) simultaneity experiment (lateral only; 0 = even spread default, 1 = all
 cars on one lap phase = adversarial worst case; PAPER_NOTES 2026-06-25); `--pred-staleness`/
-`--pred-margin` = honest-predictor delayed-state age + safety margin §5e)
+`--pred-margin` = honest-predictor delayed-state age + safety margin §5e;
+`--zone-extra-vector A,B,C,D` = envelope experiment (PROOF_DRAFT §8.2): per-zone extra
+netCA delay (ms) {z0,z1,z2,z3} applied by each car's current zone, overriding
+`--zone-target`; `--zone-flag-window MS` uses the z3 entry whenever the car is within
+±MS of a z3 arc (ZB-F-X flag emulation); `--ff-extra-ms D` = A2 experiment (PROOF_DRAFT
+§8.3): delay every Feedforward publish by D ms, clamped before F's next release —
+age_path untouched by construction, 0 = off)
 `--seed N`, `--headless`, `--csv FILE` (append per-vehicle summary rows for
 sweeps), `--save FILE`, `--replay FILE`, `--screenshot FILE` with
 `--screenshot-at N`, `--select N`, `--speed X` (aim scripted screenshots).
@@ -220,11 +231,12 @@ machine style unless you intend a large one-time reformat.
 
 ## Reproducing the results
 
-One command regenerates the **scheduling** results CSVs and prints the table each backs:
+One command regenerates the results CSVs (scheduling AND the zone/occupancy physics
+tables, all three profiles) and prints the table each backs:
 
 ```sh
-python3 tools/reproduce.py            # all scheduling experiments (--exec worst)
-python3 tools/reproduce.py --list     # capacity / simcrit / honest / floor / tolerance
+python3 tools/reproduce.py            # every experiment (--exec worst)
+python3 tools/reproduce.py --list     # capacity / simcrit / honest / floor / tolerance / zones / occupancy
 python3 tools/reproduce.py floor      # just one (e.g. re-derives PREDICTOR.md §5c)
 python3 tools/reproduce.py --quick    # SMALL grids (fast smoke) -- see warning below
 ```
