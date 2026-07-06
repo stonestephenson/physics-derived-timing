@@ -62,7 +62,9 @@ CLOUD_KINDS = ("Estimator", "Controller", "Feedforward", "Merger")
 # Causal A(zone) deadlines (ms), v10 lateral -- zone_tolerance.csv / THEOREM_BRIEF
 # section 3.2. z3 (lane-change) is the binding deadline; the bound-vs-N sweep flags
 # where the fleet-max age bound crosses each (so we see how much the per-zone +
-# occupancy decomposition has to do).
+# occupancy decomposition has to do). CONSERVATIVE 50 ms-grid values (fine-grid
+# cliff = 170, PROOF_DRAFT section 8.1). TWIN: src/sim/Simulation.cpp kAZoneMs --
+# change both in lockstep.
 A_ZONE_MS = {"z3 lane-change (binding)": 140.0,
              "z0/z2 straight/sharp": 290.0,
              "z1 slight": 400.0}
@@ -138,40 +140,65 @@ def hp_interference(hp, x, m, wl_mode):
         cap (a further Guan tightening) -- add only if the cross-check shows v1 is
         sound but loose. The NC/CI choice + the jitter<->carry-in interaction are
         the exact subtleties Kurt must verify.
+      limited-t:   like limited, but the carry-in form uses jitter T - C instead
+        of R - C: CI = ceil((x + T - C)/T)*C. Kill-and-hold guarantees every
+        job's execution lies in [release, release + T) MECHANICALLY, so this CI
+        needs no response-time induction at all -- the variant the PROOF_DRAFT
+        Lemma-2b band composition uses (its interferers' R's are not statically
+        knowable). Looser than 'limited' (T >= R), still tighter than 'full'
+        at small x.
     """
-    if wl_mode != "limited":
+    if wl_mode not in ("limited", "limited-t"):
         return sum(workload(i, x, wl_mode) for i in hp)
     nc_total = 0
     surplus = []
     for i in hp:
         nc = workload(i, x, "none")   # ceil(x/T)*C        -- no carry-in
-        ci = workload(i, x, "full")   # ceil((x+R-C)/T)*C  -- with carry-in/jitter
+        if wl_mode == "limited-t":    # ceil((x+T-C)/T)*C  -- mechanical jitter
+            ci = ceil_div(x + i.T - i.C, i.T) * i.C
+        else:
+            ci = workload(i, x, "full")  # ceil((x+R-C)/T)*C -- carry-in/jitter
         nc_total += nc
-        surplus.append(ci - nc)       # >= 0  (R >= C)
+        surplus.append(ci - nc)       # >= 0  (R >= C; T >= C)
     surplus.sort(reverse=True)
     return nc_total + sum(surplus[:max(0, m - 1)])
 
 
 class Task:
-    __slots__ = ("kind", "vehicle", "T", "C", "R")
+    __slots__ = ("kind", "vehicle", "T", "C", "R", "band")
 
-    def __init__(self, kind, vehicle, exec_idx):
+    def __init__(self, kind, vehicle, exec_idx, band=0):
         self.kind = kind
         self.vehicle = vehicle
         self.T = t_ticks(kind)
         self.C = c_ticks(kind, exec_idx)
         self.R = None
+        self.band = band  # 0 = elevated/top (or the whole fleet), 1 = base
 
-    def key(self):  # RateMonotonic.cpp:29-31 -> (period, vehicle, kind)
-        return (self.T, self.vehicle, KIND_RANK[self.kind])
+    def key(self):  # RateMonotonic.cpp:29-31 -> (period, vehicle, kind);
+        return (self.band, self.T, self.vehicle, KIND_RANK[self.kind])
 
     def label(self):
         return "%s_%d" % (self.kind[0], self.vehicle)
 
 
-def build_cloud_tasks(n, exec_idx):
-    """All cloud tasks for n vehicles, sorted highest-priority first."""
-    tasks = [Task(k, v, exec_idx) for v in range(n) for k in CLOUD_KINDS]
+def build_cloud_tasks(n, exec_idx, top_k=0, demote_f=False):
+    """All cloud tasks for n vehicles, sorted highest-priority first. With
+    top_k > 0 (the Lemma-2b band mode) vehicles 0..top_k-1 form the elevated
+    band: every task of theirs outranks every base-band task (band-major
+    order); top_k=0 leaves the order byte-identical to the uniform system.
+    demote_f keeps elevated vehicles' Feedforward tasks in the BASE band
+    (ZB-F variant): F is not on the age path (BOUND section 4 uses R_E/R_B/R_M
+    only), so demoting it sheds 25 of the 46 ticks/car of top-band load; F's
+    own P1 (R <= T) is still checked in the base band."""
+    def band_of(kind, v):
+        if top_k <= 0:
+            return 0
+        if v >= top_k or (demote_f and kind == "Feedforward"):
+            return 1
+        return 0
+    tasks = [Task(k, v, exec_idx, band=band_of(k, v))
+             for v in range(n) for k in CLOUD_KINDS]
     tasks.sort(key=Task.key)
     return tasks
 
@@ -186,12 +213,25 @@ def solve_rta(tasks, m, wl_mode="full", cap=1000000):
     """
     for idx, k in enumerate(tasks):
         hp = tasks[:idx]  # everything strictly higher priority
+        # Own-task band carry (council referee finding, PROOF_DRAFT section 3.3):
+        # in the two-band system a BASE job's same-task predecessor may be
+        # top-stamped (strictly higher priority than this job) and execute
+        # inside the busy window; hp excludes the own task, so charge the
+        # predecessor's full C unconditionally. Top-band jobs are immune (a
+        # base-stamped predecessor ranks below; a top-stamped one is killed at
+        # this job's release). F never elevates, so its predecessor never
+        # outranks it. Inert outside band mode (band == 1 requires top_k > 0).
+        own_carry = k.C if (k.band == 1 and k.kind != "Feedforward") else 0
         x = k.C
         for _ in range(cap):
-            interf = hp_interference(hp, x, m, wl_mode)
+            interf = hp_interference(hp, x, m, wl_mode) + own_carry
             nx = k.C + interf // m
-            if nx == x:
-                break          # converged
+            if nx <= x:
+                break          # fixed point -- or, for the non-monotone limited
+                               # interference, a dip: any x with C + I(x)//m <= x
+                               # is a sound stop (PROOF_DRAFT Lemma 2a, step S5).
+                               # Monotone workloads (full/none) never dip, so
+                               # this is byte-identical to `nx == x` for them.
             x = nx
             if x > k.T:
                 break          # overrun: R > T, unschedulable (stop before divergence)
@@ -322,6 +362,47 @@ def certified_capacity(m, exec_idx, max_n, wl_mode):
     return last_ok, None, None
 
 
+def band_report(n, top_k, m, exec_idx, wl_mode, demote_f=False):
+    """Lemma-2b two-band instantiation (PROOF_DRAFT.md): vehicles 0..top_k-1
+    elevated (their whole cloud chain outranks every base task), the rest base.
+    The composition's admission test is
+        top-band  fleet-max age bound <= A(z3)      = 140 ms, and
+        base-band fleet-max age bound <= A(z0/z2)   = 290 ms, and
+        all R <= T (P1 for the two-band system).
+    By vehicle symmetry the numbers depend only on (n, top_k), not identities.
+    Default workload for this mode should be 'limited-t' (assumption-free
+    jitter; see hp_interference) -- 'limited' R-jitter is reported for
+    comparison but its cross-band induction is exactly what Kurt must bless."""
+    print("=" * 72)
+    print("Lemma-2b band mode  (N=%d, top band = %d vehicles%s, m=%d, exec=%s, "
+          "workload=%s)" % (n, top_k, " minus their F's (ZB-F)" if demote_f
+                            else "", m, list(EXEC_IDX)[exec_idx], wl_mode))
+    print("=" * 72)
+    tasks = solve_rta(build_cloud_tasks(n, exec_idx, top_k=top_k,
+                                        demote_f=demote_f), m, wl_mode)
+    over = [t for t in tasks if t.R > t.T]
+    pv = per_vehicle_bounds(tasks, n, exec_idx)
+    top = max(pv[v][0] for v in range(top_k)) if top_k else 0.0
+    base = max(pv[v][0] for v in range(top_k, n)) if top_k < n else 0.0
+    for v in range(n):
+        print("  v%-2d %-4s  age_path <= %6.1f ms" %
+              (v, "top" if v < top_k else "base", pv[v][0]))
+    a_top, a_base = A_ZONE_MS["z3 lane-change (binding)"], \
+        A_ZONE_MS["z0/z2 straight/sharp"]
+    p1 = "P1 OK (all R<=T)" if not over else \
+        "P1 FAILS (%s R=%d > T=%d)" % (over[0].label(), over[0].R, over[0].T)
+    t_ok = top <= a_top and not over
+    b_ok = base <= a_base and not over
+    print("  top-band  fleet-max %6.1f ms vs A(z3)=%.0f    -> %s"
+          % (top, a_top, "PASS" if t_ok else "FAIL"))
+    print("  base-band fleet-max %6.1f ms vs A(z0/z2)=%.0f -> %s"
+          % (base, a_base, "PASS" if b_ok else "FAIL"))
+    print("  %s" % p1)
+    print("  ADMITTED (N=%d, Occ+=%d)" % (n, top_k) if (t_ok and b_ok)
+          else "  NOT ADMITTED (N=%d, Occ+=%d)" % (n, top_k))
+    return t_ok and b_ok
+
+
 # --------------------------------------------------------------------------- #
 # Simulator cross-check
 # --------------------------------------------------------------------------- #
@@ -408,10 +489,22 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--cores", type=int, default=3)
     ap.add_argument("--exec", choices=list(EXEC_IDX), default="worst")
-    ap.add_argument("--workload", choices=["full", "none", "limited"], default="full",
+    ap.add_argument("--workload", choices=["full", "none", "limited", "limited-t"],
+                    default="full",
                     help="full = BOUND 7.2 as written (carry-in, default); none = no "
                          "carry-in (diagnostic); limited = Guan RTA-LC m-1 carry-in "
-                         "(CANDIDATE, UNVERIFIED -- soundness guarded by --cross-check)")
+                         "(CANDIDATE, UNVERIFIED -- soundness guarded by --cross-check); "
+                         "limited-t = m-1 carry-in with mechanical T-jitter (no "
+                         "response-time induction; the Lemma-2b band-mode workload)")
+    ap.add_argument("--band", type=int, default=0, metavar="K",
+                    help="Lemma-2b two-band mode: elevate vehicles 0..K-1 (the Occ+ "
+                         "in-binding-zone cars) above the rest, print both bands' "
+                         "age bounds vs A(zone), and exit (PROOF_DRAFT.md)")
+    ap.add_argument("--band-n", type=int, default=18, metavar="N",
+                    help="fleet size for --band mode (default 18)")
+    ap.add_argument("--band-demote-f", action="store_true",
+                    help="ZB-F variant: keep elevated vehicles' Feedforward "
+                         "tasks in the base band (F is off the age path)")
     ap.add_argument("--max-n", type=int, default=24, help="analytic capacity sweep ceiling")
     ap.add_argument("--cross-check", action="store_true", help="also run ./build/cps")
     ap.add_argument("--max-sim-n", type=int, default=18, help="cross-check capacity sweep ceiling")
@@ -423,6 +516,13 @@ def main():
     exec_idx = EXEC_IDX[args.exec]
     wl_mode = args.workload
     fails = []
+
+    # Lemma-2b band mode: report the two-band instantiation and exit (the
+    # uniform-system oracles below do not apply to a band-elevated order).
+    if args.band > 0:
+        ok = band_report(args.band_n, args.band, m, exec_idx, wl_mode,
+                         demote_f=args.band_demote_f)
+        sys.exit(0 if ok else 1)
 
     # 1+2. Reproduce section 7.3 table + Layer-1 bounds at N=6.
     tasks6 = report_table(6, m, exec_idx, fails, wl_mode)

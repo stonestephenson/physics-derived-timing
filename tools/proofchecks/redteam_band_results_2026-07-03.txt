@@ -1,0 +1,215 @@
+== validation of the two-band replica ==
+  no-flag N=11 missed=4497 (expect 4497): PASS
+  no-flag N=8 obs {'E': 33, 'B': 138, 'F': 161, 'M': 143} <= uniform limited-t R {'E': 44, 'B': 162, 'F': 183, 'M': 172}, missed=0: PASS
+
+== group V: static membership (sanity + tightness) ==
+static-0123                inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+static-4567                inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:77/162 F:158/183 M:82/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+static-0257                inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:98/162 F:162/183 M:138/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+
+== group T: same-set toggling (premise trivially satisfied) ==
+toggle-p1                  inst=4 w238=476 w400=800 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+toggle-p2                  inst=4 w238=240 w400=404 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+toggle-p5                  inst=4 w238=100 w400=164 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+toggle-p10                 inst=4 w238=52 w400=84 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+toggle-p20                 inst=4 w238=28 w400=44 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+toggle-p25                 inst=4 w238=24 w400=36 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+toggle-p50                 inst=4 w238=12 w400=20 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+toggle-p100                inst=4 w238=8 w400=12 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+toggle-p137                inst=4 w238=8 w400=8 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+toggle-p200                inst=4 w238=8 w400=8 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+toggle-p100-ph1            inst=4 w238=8 w400=12 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+toggle-p100-ph99           inst=4 w238=8 w400=12 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+toggle-p200-ph1            inst=4 w238=8 w400=8 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+toggle-p200-ph199          inst=4 w238=8 w400=8 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+toggle-p25-ph13            inst=4 w238=24 w400=36 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+statics+car3-toggle100     inst=4 w238=5 w400=6 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 11, 'B': 26, 'M': 26}
+
+== group H: slot handoffs car3->4->..., 3 statics ==
+slot-D2400-g400            inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 11, 'B': 26, 'M': 26}
+slot-D2400-g300            inst=4 w238=4 w400=5 TOP-PREMISE-OK    missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 11, 'B': 26, 'M': 26}
+slot-D2400-g240            inst=4 w238=4 w400=5 TOP-PREMISE-OK    missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 11, 'B': 26, 'M': 26}
+slot-D2400-g238            inst=4 w238=4 w400=5 TOP-PREMISE-OK    missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 11, 'B': 26, 'M': 26}
+slot-D2400-g237            inst=4 w238=4 w400=5 TOP-PREMISE-OK    missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 11, 'B': 26, 'M': 26}
+slot-D2400-g236            inst=4 w238=5 w400=5 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 11, 'B': 26, 'M': 26}
+slot-D2400-g200            inst=4 w238=5 w400=5 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 11, 'B': 26, 'M': 26}
+slot-D2400-g100            inst=4 w238=5 w400=5 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 11, 'B': 26, 'M': 26}
+slot-D2400-g37             inst=4 w238=5 w400=5 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 11, 'B': 26, 'M': 26}
+slot-D2400-g1              inst=4 w238=5 w400=5 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 11, 'B': 26, 'M': 26}
+slot-D2400-g0              inst=4 w238=5 w400=5 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 11, 'B': 26, 'M': 26}
+slot-D200-g0               inst=4 w238=6 w400=6 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 11, 'B': 26, 'M': 26}
+slot-D100-g0               inst=4 w238=7 w400=8 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 11, 'B': 26, 'M': 26}
+slot-D2400-g240-t0=137     inst=4 w238=4 w400=5 TOP-PREMISE-OK    missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 11, 'B': 26, 'M': 26}
+slot-D2401-g239-odd        inst=4 w238=4 w400=5 TOP-PREMISE-OK    missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 11, 'B': 26, 'M': 26}
+pulse-1tick-at-200s        inst=4 w238=5 w400=5 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 11, 'B': 26, 'M': 26}
+pulse-1tick-at-100s        inst=4 w238=6 w400=7 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 11, 'B': 26, 'M': 26}
+pulse-40tick-at-400s       inst=4 w238=4 w400=5 TOP-PREMISE-OK    missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 11, 'B': 26, 'M': 26}
+
+== group F: full-set swaps {0123}<->{4567} ==
+fullswap-D2400-g400        inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+fullswap-D2400-g240        inst=4 w238=4 w400=8 TOP-PREMISE-OK    missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+fullswap-D2400-g238        inst=4 w238=4 w400=8 TOP-PREMISE-OK    missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+fullswap-D2400-g200        inst=4 w238=8 w400=8 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+fullswap-D2400-g100        inst=4 w238=8 w400=8 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+fullswap-D2400-g0          inst=4 w238=8 w400=8 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+rotate-all-p2000           inst=4 w238=5 w400=5 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+rotate-all-p1000           inst=4 w238=5 w400=5 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+rotate-all-p400            inst=4 w238=5 w400=5 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+rotate-all-p200            inst=4 w238=6 w400=6 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+rotate-all-p100            inst=4 w238=7 w400=8 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+rotate-all-p50             inst=4 w238=9 w400=12 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+rotate-all-p25             inst=4 w238=14 w400=20 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+rotate-all-p10             inst=4 w238=28 w400=44 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+rotate-all-p5              inst=4 w238=52 w400=84 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+rotate-all-p1              inst=4 w238=241 w400=403 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+
+== group S: single swap events (K+1 distinct in 200 ticks) ==
+swaponce-3to4-t100000      inst=4 w238=5 w400=5 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+swaponce-3to4-t100001      inst=4 w238=5 w400=5 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+swaponce-3to4-t100037      inst=4 w238=5 w400=5 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+swaponce-3to4-t100100      inst=4 w238=5 w400=5 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+swaponce-3to4-t100199      inst=4 w238=5 w400=5 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+swaponce-full-t100000      inst=4 w238=5 w400=5 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:163/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+swaponce-0123to4567-t100100 inst=4 w238=8 w400=8 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+
+== group E: entries/exits (premise satisfied; transient attack) ==
+entry-car3-t100000         inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+entry-car3-t100001         inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+entry-car3-t100099         inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+entry-car3-t100137         inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+entry-car3-t100199         inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+entry-all4-t100037         inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+exit-all4-t100000          inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:138/162 F:161/183 M:143/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+
+== group R: randomized schedules ==
+rnd-legal-s1               inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+rnd-legal-s2               inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+rnd-legal-s3               inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+rnd-legal-s4               inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+rnd-legal-s5               inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+rnd-legal-s6               inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+rnd-legal-s7               inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+rnd-legal-s8               inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+rnd-legal-s9               inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'B': 27, 'M': 31, 'E': 22}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+rnd-legal-s10              inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'B': 27, 'M': 31, 'E': 22}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+rnd-legal-s11              inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+rnd-legal-s12              inst=4 w238=4 w400=4 DRAFT-PREMISE-OK  missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {'E': 22, 'B': 27, 'M': 31}
+rnd-viol-s1                inst=4 w238=11 w400=14 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'B': 27, 'M': 31, 'E': 22}   steady-top max: {}
+rnd-viol-s2                inst=4 w238=11 w400=14 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'B': 27, 'M': 31, 'E': 22}   steady-top max: {}
+rnd-viol-s3                inst=4 w238=11 w400=13 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'B': 27, 'M': 31, 'E': 22}   steady-top max: {}
+rnd-viol-s4                inst=4 w238=11 w400=14 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'B': 27, 'M': 31, 'E': 22}   steady-top max: {}
+rnd-viol-s5                inst=4 w238=10 w400=14 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'B': 27, 'M': 31, 'E': 22}   steady-top max: {}
+rnd-viol-s6                inst=4 w238=11 w400=14 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'E': 22, 'B': 27, 'M': 31}   steady-top max: {}
+rnd-viol-s7                inst=4 w238=13 w400=16 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'B': 27, 'M': 31, 'E': 22}   steady-top max: {}
+rnd-viol-s8                inst=4 w238=12 w400=16 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'B': 27, 'M': 31, 'E': 22}   steady-top max: {}
+rnd-viol-s9                inst=4 w238=12 w400=16 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'B': 27, 'M': 31, 'E': 22}   steady-top max: {}
+rnd-viol-s10               inst=4 w238=11 w400=15 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'B': 27, 'M': 31, 'E': 22}   steady-top max: {}
+rnd-viol-s11               inst=4 w238=13 w400=14 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'B': 27, 'M': 31, 'E': 22}   steady-top max: {}
+rnd-viol-s12               inst=4 w238=11 w400=15 PREMISE-VIOL      missed=0   top E:22/29 B:27/37 M:31/38  base E:48/57 B:139/162 F:163/183 M:144/172
+      transient-top max: {'B': 27, 'M': 31, 'E': 22}   steady-top max: {}
+
+====================================================================================================
+SUMMARY
+runs: 91
+REFUTATIONS (draft premise satisfied, bound broken): 0
+TOP-premise refutations (w238<=4<w400): 0
+premise-violating probes with excursions: 0
+
+max observed/bound over premise-satisfying runs:
+   base/B    0.858  (rnd-legal-s1 obs 139 / 162)
+   base/E    0.842  (static-0123 obs 48 / 57)
+   base/F    0.891  (slot-D2400-g400 obs 163 / 183)
+   base/M    0.837  (rnd-legal-s1 obs 144 / 172)
+   top/B     0.730  (static-0123 obs 27 / 37)
+   top/E     0.759  (static-0123 obs 22 / 29)
+   top/M     0.816  (static-0123 obs 31 / 38)
