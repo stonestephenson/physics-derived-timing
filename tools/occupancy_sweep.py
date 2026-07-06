@@ -24,11 +24,11 @@ OCC_RE = re.compile(
 K_RE = re.compile(r"K\(\+state\) max (\d+) of")
 
 
-def run(zone, spacing_ms, sched, n, duration):
+def run(zone, spacing_ms, sched, n, duration, profile="10"):
     """One packed-zone run; return (occ, n, zone_len, geo, k_danger, total_hard)."""
     out = subprocess.run(
         [str(BIN), "--headless", "--vehicles", str(n), "--scheduler", sched,
-         "--exec", "worst", "--duration", str(duration),
+         "--exec", "worst", "--duration", str(duration), "--profile", profile,
          "--pack-zone", str(zone), "--min-spacing", str(spacing_ms)],
         capture_output=True, text=True).stdout
     occ = OCC_RE.search(out)
@@ -58,6 +58,8 @@ def main():
     ap.add_argument("--duration", type=int, default=30)
     ap.add_argument("--schedulers", default="rm,aguard")
     ap.add_argument("--spacings", default="0,250,500,750,1000,1500,2000,3000,4000")
+    ap.add_argument("--profile", default="10", choices=["10", "12.5", "15"],
+                    help="velocity profile (default 10)")
     ap.add_argument("--out", default="occupancy_sweep.csv",
                     help="output CSV (refuses to overwrite an existing file unless --force)")
     ap.add_argument("--force", action="store_true",
@@ -79,7 +81,8 @@ def main():
     for sp in grid:
         for sched in scheds:
             occ, n, zlen, geo, k, hard = run(args.zone, sp, sched,
-                                             args.vehicles, args.duration)
+                                             args.vehicles, args.duration,
+                                             args.profile)
             rows.append([args.zone, sp, sched, args.vehicles, occ, geo, zlen, k, hard])
             print(f"  {sp:<11} {sched:<8} {str(occ)+'/'+str(n):<6} {geo:<14} "
                   f"{k:<10} {hard}")

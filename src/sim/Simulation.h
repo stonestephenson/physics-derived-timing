@@ -43,6 +43,17 @@ struct SimParams {
     // (lateral only). Off -> baselines byte-identical.
     int      zoneTarget    = -1;
     double   zoneExtraMs   = 0.0;
+    // Envelope experiment (PROOF_DRAFT §6 A1 / HANDOFF §5 queue #1): per-zone
+    // extra netCA delay vector {z0,z1,z2,z3} in ms, applied by the vehicle's
+    // CURRENT zone every tick (lateral only; empty = off -> byte-identical).
+    // Takes precedence over zoneTarget/zoneExtraMs when non-empty.
+    // `zoneFlagWindowMs` > 0 emulates the ZB-F-X flag: whenever the car is
+    // within +/-window of a z3 arc (3-point zoneAt check, exact because z3
+    // arcs are >= 1.94 s >> window), the z3 entry is used instead.
+    std::vector<double> zoneExtraVecMs;
+    double   zoneFlagWindowMs = 0.0;
+    // A2 experiment: delay every Feedforward publish by this (ms); 0 = off.
+    double   ffExtraMs     = 0.0;
     ExecMode execMode      = ExecMode::Average;
     OverrunPolicy overrun  = OverrunPolicy::KillAndHold;
     // If >= 0, override BOTH network delays with this fixed value (ms),

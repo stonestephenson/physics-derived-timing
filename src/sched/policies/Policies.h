@@ -93,4 +93,11 @@ std::unique_ptr<CorePolicy> makeHybridPolicy(double guardMs, bool triage,
 std::unique_ptr<CorePolicy> makeAdaptiveGuardPolicy(double floorMs, bool triage,
                                                    InfoSet info = InfoSet::Oracle);
 
+// ZoneBand ("zband"): the PROOF_DRAFT §3.1 proof-object scheduler ZB-F-X —
+// strict job-level FP on (band, period, vehicle, kind), band stamped at
+// release (0 = car within ±240 ms of a z3 arc, kinds E/B/M only; F never
+// elevates). Prediction-free. Exists so the simulator can attack the Lemma-2b
+// band bounds. See ZoneBand.cpp.
+std::unique_ptr<CorePolicy> makeZoneBandPolicy();
+
 }  // namespace cps

@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <sstream>
 #include <string>
 
 #include "fmu/FmuVariables.h"
@@ -51,6 +52,8 @@ std::unique_ptr<CorePolicy> makePolicy(const std::string& name, bool triage,
                            return makeAdaptiveGuardPolicy(floorMs, triage);
     if (name == "aguard-honest" || name == "haguard")
                            return makeAdaptiveGuardPolicy(floorMs, triage, InfoSet::Remote);
+    if (name == "zband" || name == "zone-band")
+                           return makeZoneBandPolicy();  // PROOF_DRAFT ZB-F-X
     return makeRateMonotonicPolicy();  // "rm" / default
 }
 
@@ -133,7 +136,7 @@ bool hasFlag(int argc, char** argv, const char* key) {
 void usage() {
     std::printf(
         "CPS Challenge Visualizer\n"
-        "  --scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard   scheduling\n"
+        "  --scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard|zband   scheduling\n"
         "                               policy (default rm; context = oracle, honest =\n"
         "                               remote metrics only, ttu = predictive\n"
         "                               time-to-unsafe, hybrid = fixed TTPNR guard +\n"
@@ -183,6 +186,15 @@ void usage() {
         "                               only while in curvature zone Z (0=straight 1=slight\n"
         "                               2=sharp 3=lane-change); -1 = off (default)\n"
         "  --zone-extra-ms D            extra netCA delay (ms) injected in --zone-target's zone\n"
+        "  --zone-extra-vector A,B,C,D  envelope experiment (PROOF_DRAFT A1): per-zone extra\n"
+        "                               netCA delay (ms) {z0,z1,z2,z3}, applied by each car's\n"
+        "                               current zone every tick; overrides --zone-target\n"
+        "  --zone-flag-window MS        with --zone-extra-vector: use the z3 entry whenever\n"
+        "                               the car is within +/-MS of a z3 arc (ZB-F-X flag\n"
+        "                               emulation); 0 = off (default)\n"
+        "  --ff-extra-ms D              A2 experiment: delay every Feedforward publish by D ms\n"
+        "                               (clamped before F's next release; age_path untouched\n"
+        "                               by construction); 0 = off (default)\n"
         "  --pred-staleness MS          honest predictor (ttu/hybrid/aguard-honest): age\n"
         "                               of the cloud's delayed state estimate (default 16\n"
         "                               = worst sensor delay)\n"
@@ -248,6 +260,24 @@ int main(int argc, char** argv) {
         params.alignOffsets  = std::atof(argValue(argc, argv, "--align-offsets", "0"));
         params.zoneTarget    = std::atoi(argValue(argc, argv, "--zone-target", "-1"));
         params.zoneExtraMs   = std::atof(argValue(argc, argv, "--zone-extra-ms", "0"));
+        {   // --zone-extra-vector A,B,C,D (ms per zone; exactly 4 or rejected)
+            const std::string vec = argValue(argc, argv, "--zone-extra-vector", "");
+            if (!vec.empty()) {
+                std::stringstream ss(vec);
+                std::string tok;
+                while (std::getline(ss, tok, ','))
+                    params.zoneExtraVecMs.push_back(std::atof(tok.c_str()));
+                if (params.zoneExtraVecMs.size() != 4) {
+                    std::fprintf(stderr,
+                                 "--zone-extra-vector needs exactly 4 comma-separated "
+                                 "values (z0,z1,z2,z3), got %zu\n",
+                                 params.zoneExtraVecMs.size());
+                    return 1;
+                }
+            }
+        }
+        params.zoneFlagWindowMs = std::atof(argValue(argc, argv, "--zone-flag-window", "0"));
+        params.ffExtraMs     = std::atof(argValue(argc, argv, "--ff-extra-ms", "0"));
         params.predStalenessMs = std::atof(argValue(argc, argv, "--pred-staleness", "16"));
         params.predMarginMs  = std::atof(argValue(argc, argv, "--pred-margin", "0"));
         params.triage        = hasFlag(argc, argv, "--triage");

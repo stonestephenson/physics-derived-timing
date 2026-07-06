@@ -150,6 +150,11 @@ void TaskChainModel::releaseIfDue(Job& j, long step) {
     j.started = false;
     j.ranTicks = 0;
     j.execTicks = sampleExecTicks(j.params.exec);
+    // ZoneBand: stamp the job's band at RELEASE from the car's current z3±θ
+    // flag; F never elevates (off the age path — PROOF_DRAFT §3.1). The stamp
+    // is never recomputed during the job's life (release-stamping is what the
+    // band RTA analyzes). band stays 1 for every job unless a zone flag is set.
+    j.band = (zoneFlag_ && j.params.kind != TaskKind::Feedforward) ? 0 : 1;
     j.nextRelease += j.period;
 }
 
@@ -166,7 +171,7 @@ void TaskChainModel::beginTick(long step, std::vector<ReadyJob>& readyOut) {
         const long release = j->nextRelease - j->period;
         readyOut.push_back(ReadyJob{vehicleId_, j->params.kind, j->params.period_ms,
                                     release, j->nextRelease,
-                                    j->execTicks - j->ranTicks, j->started});
+                                    j->execTicks - j->ranTicks, j->started, j->band});
     }
 }
 
@@ -299,8 +304,23 @@ void TaskChainModel::endTick(long step, VehicleTriggers& out) {
         if (out.ctrl_fin) fbOutStamp_  = fbCompStamp_;
     }
     if (feedforward_.grantedThisTick) {
-        advance(feedforward_, out.ff_act, out.ff_fin);
         // Feedforward carries the reference, not sensor data -> no stamp (excluded).
+        if (ffExtraTicks_ <= 0) {
+            advance(feedforward_, out.ff_act, out.ff_fin);
+        } else {
+            // A2 experiment: hold the publish (ff_fin) for ffExtraTicks_,
+            // clamped to the tick before F's next release so the FMU's
+            // finish-before-activate trigger order is preserved.
+            bool fin = false;
+            advance(feedforward_, out.ff_act, fin);
+            if (fin)
+                ffFinDueAt_ = std::min(step + ffExtraTicks_,
+                                       feedforward_.nextRelease - 1);
+        }
+    }
+    if (ffFinDueAt_ >= 0 && step >= ffFinDueAt_) {
+        out.ff_fin = true;
+        ffFinDueAt_ = -1;
     }
     bool mergerFinished = false;
     if (merger_.grantedThisTick) {

@@ -20,6 +20,12 @@ struct SimConfig {
     int    nVehicles = 1;
     int    nCores    = 3;     // shared cloud cores
     double baseStep  = 1e-4;  // seconds per tick (FMU base step)
+    // A2 experiment (PROOF_DRAFT §6 / HANDOFF §5 queue #5): delay each
+    // Feedforward job's publish (ff_fin trigger) by this many ticks, clamped
+    // to just before F's next release (finish-before-activate preserved).
+    // F carries no age stamps, so age_path is untouched by construction.
+    // 0 = off (default) -> byte-identical.
+    long   ffExtraTicks = 0;
 };
 
 // Read-only per-vehicle snapshot the scheduler may use to make context-aware
@@ -69,6 +75,11 @@ struct VehicleView {
     // model should add to commands sent this tick, set by Simulation when the
     // vehicle is in the targeted curvature zone. 0 = none (default) -> no effect.
     long   extra_net_delay_ticks = 0;
+    // ZoneBand flag (PROOF_DRAFT §3.1): true while the car is within ±θ
+    // (240 ms) of a z3 lane-change arc. Set by Simulation every tick (lateral
+    // only; always false otherwise). Consumed by PolicyScheduler to stamp job
+    // bands at release; ignored by every non-zband policy.
+    bool   zone_flagged = false;
 };
 
 class Scheduler {

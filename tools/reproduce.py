@@ -250,12 +250,54 @@ def exp_tolerance(cps, out_dir, dur):
     subprocess.run(cmd, check=True)
 
 
+def exp_zones(cps, out_dir, dur):
+    """Causal A(zone) tables, all profiles + fine z3 grids (THEOREM_BRIEF S3.2,
+    PROOF_DRAFT S0/S6; fine grids pin the z3 cliff to the 10 ms instrument
+    resolution). Delegates to tools/zone_sweep.py (uses ./build/cps)."""
+    base = [sys.executable, os.path.join(HERE, "zone_sweep.py"), "--force"]
+    runs = [
+        (["--profile", "10", "--duration", "120"], "zone_tolerance.csv"),
+        (["--profile", "12.5", "--duration", "95"], "zone_tolerance_v12.5.csv"),
+        (["--profile", "15", "--duration", "79"], "zone_tolerance_v15.csv"),
+        (["--profile", "10", "--duration", "120", "--zones", "3",
+          "--min-extra", "50", "--max-extra", "100", "--step", "5"],
+         "zone_tolerance_z3_fine.csv"),
+        (["--profile", "12.5", "--duration", "95", "--zones", "3",
+          "--min-extra", "50", "--max-extra", "100", "--step", "10"],
+         "zone_tolerance_z3_fine_v12.5.csv"),
+    ]
+    if QUICK:
+        runs = [(["--profile", "10", "--duration", "30", "--zones", "3",
+                  "--max-extra", "100", "--step", "50"], "zone_tolerance.csv")]
+    for extra, out in runs:
+        subprocess.run(base + extra + ["--out", os.path.join(out_dir, out)],
+                       check=True)
+
+
+def exp_occupancy(cps, out_dir, dur):
+    """Packed-z3 worst-case occupancy + rm/aguard safety pairing, all profiles
+    (THEOREM_BRIEF S3.5/S9.2, Lemma 1's empirical backstop). Delegates to
+    tools/occupancy_sweep.py (uses ./build/cps)."""
+    base = [sys.executable, os.path.join(HERE, "occupancy_sweep.py"), "--force"]
+    runs = [([], "occupancy_sweep.csv"),
+            (["--profile", "12.5"], "occupancy_sweep_v12.5.csv"),
+            (["--profile", "15"], "occupancy_sweep_v15.csv")]
+    if QUICK:
+        runs = [(["--spacings", "0,1000,4000", "--duration", "10"],
+                 "occupancy_sweep.csv")]
+    for extra, out in runs:
+        subprocess.run(base + extra + ["--out", os.path.join(out_dir, out)],
+                       check=True)
+
+
 REGISTRY = {
     "capacity":  (exp_capacity,  "capacity tournament vs N -> capacity_sweep.csv (PREDICTOR S5 / GENERALIZATION S3)"),
     "simcrit":   (exp_simcrit,   "simultaneous criticality vs N/tau -> simcrit_sweep.csv (PREDICTOR S5d)"),
     "honest":    (exp_honest,    "oracle-vs-honest A/B -> honest_sweep.csv (PREDICTOR S5e)"),
     "floor":     (exp_floor,     "aguard --floor re-sweep -> aguard_sweep.csv (PREDICTOR S5c)"),
     "tolerance": (exp_tolerance, "per-plant tolerance cliff -> tolerance_sweep.csv (PREDICTOR S5d)"),
+    "zones":     (exp_zones,     "causal A(zone) tables + fine z3 cliffs, all profiles -> zone_tolerance*.csv (THEOREM_BRIEF S3.2)"),
+    "occupancy": (exp_occupancy, "packed-z3 Occ + rm/aguard pairing, all profiles -> occupancy_sweep*.csv (THEOREM_BRIEF S3.5)"),
 }
 
 QUICK = False
@@ -291,12 +333,11 @@ def main():
         sys.exit("cps binary not found at %s (build it, or pass --cps)" % args.cps)
 
     for name in names:
-        print("\n############ %s ############" % name)
+        print("\n############ %s ############" % name, flush=True)
         REGISTRY[name][0](args.cps, args.out_dir, args.duration)
     if os.path.exists(SCRATCH):
         os.remove(SCRATCH)
-    print("\nDone. CSVs written to %s/ (capacity_sweep, simcrit_sweep, honest_sweep, "
-          "aguard_sweep, tolerance_sweep)." % args.out_dir)
+    print("\nDone: %s. CSVs written to %s/." % (", ".join(names), args.out_dir))
 
 
 if __name__ == "__main__":

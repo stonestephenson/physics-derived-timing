@@ -22,11 +22,11 @@ AGE_RE = re.compile(r"([0-9.]+) ms \(path\)")
 HARD_RE = re.compile(r"hard z0=(\d+) z1=(\d+) z2=(\d+) z3=(\d+)")
 
 
-def run(zone, extra_ms, duration):
+def run(zone, extra_ms, duration, profile="10"):
     """Run one N=1 worst-case full-lap sim; return (age_path_ms, [z0..z3 hard])."""
     out = subprocess.run(
         [str(BIN), "--headless", "--vehicles", "1", "--scheduler", "rm",
-         "--exec", "worst", "--duration", str(duration),
+         "--exec", "worst", "--duration", str(duration), "--profile", profile,
          "--zone-target", str(zone), "--zone-extra-ms", str(extra_ms)],
         capture_output=True, text=True).stdout
     age = AGE_RE.search(out)
@@ -39,8 +39,16 @@ def run(zone, extra_ms, duration):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--duration", type=int, default=120)
+    ap.add_argument("--min-extra", type=int, default=0,
+                    help="grid start (ms); default 0 (fine-grid refinement runs "
+                         "set this to the last known-passing extra)")
     ap.add_argument("--max-extra", type=int, default=450)
     ap.add_argument("--step", type=int, default=50)
+    ap.add_argument("--zones", default="0,1,2,3",
+                    help="comma list of zones to sweep (default all)")
+    ap.add_argument("--profile", default="10", choices=["10", "12.5", "15"],
+                    help="velocity profile (default 10); per-profile A(zone) "
+                         "tables are the generality leg (HANDOFF §5 queue #4)")
     ap.add_argument("--out", default="zone_tolerance.csv",
                     help="output CSV (refuses to overwrite an existing file unless --force)")
     ap.add_argument("--force", action="store_true",
@@ -52,12 +60,13 @@ def main():
         sys.exit(f"refusing to overwrite existing {args.out}; pass --force to "
                  f"regenerate it, or --out PATH to write elsewhere")
 
-    grid = list(range(0, args.max_extra + 1, args.step))
+    grid = list(range(args.min_extra, args.max_extra + 1, args.step))
+    zones = [int(z) for z in args.zones.split(",")]
     rows, table = [], []
-    for z in sorted(ZONES):
+    for z in zones:
         a_zone, first_breach = None, None
         for extra in grid:
-            age, hard = run(z, extra, args.duration)
+            age, hard = run(z, extra, args.duration, args.profile)
             total = sum(hard)
             rows.append([z, ZONES[z], extra, age, total, *hard])
             if total == 0:

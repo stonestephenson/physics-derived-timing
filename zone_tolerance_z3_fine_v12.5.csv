@@ -1,0 +1,7 @@
+zone,zone_name,extra_ms,age_path_ms,total_hard,z0_hard,z1_hard,z2_hard,z3_hard
+3,lane-change,50,140.5,0,0,0,0,0
+3,lane-change,60,150.5,0,0,0,0,0
+3,lane-change,70,160.5,0,0,0,0,0
+3,lane-change,80,170.5,26,1,0,0,25
+3,lane-change,90,180.5,58,5,0,0,53
+3,lane-change,100,190.5,86,9,0,0,77

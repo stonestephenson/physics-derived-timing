@@ -16,7 +16,10 @@ namespace cps {
 namespace {
 // Danger-relative criticality (THE PLAN leg 4 / THEOREM_BRIEF §3.6): per-zone
 // tolerable data age A(zone) in ms — the causal table (zone_tolerance.csv, V10,
-// lateral only; z3 lane-change is binding). Indexed by TrackZone {z0,z1,z2,z3}.
+// lateral only; z3 lane-change is binding; the CONSERVATIVE 50 ms-grid values —
+// the fine-grid cliff is 170, PROOF_DRAFT §8.1). Indexed by TrackZone
+// {z0,z1,z2,z3}. TWIN: tools/rta_solve.py A_ZONE_MS — change both in lockstep
+// (and re-tune Trajectory.h's zone partition first if the profile changes).
 constexpr double kAZoneMs[4] = {290.0, 400.0, 290.0, 140.0};
 // One-run K(tau) curve: fraction-of-budget thresholds swept within a single run,
 // so one run yields the whole demand curve (PAPER_NOTES 2026-06-25: a count at one
@@ -62,12 +65,22 @@ std::vector<long> Simulation::packZoneOffsets(int zone, long spacingTicks) {
         if (inZone && sinceZone >= spacingTicks) { offs[static_cast<size_t>(placed++)] = i; sinceZone = 0; }
         else ++sinceZone;
     }
-    // Pass 2: leftover cars onto non-zone ticks at >= spacing (out of the zone count).
-    long sinceAny = spacingTicks;
+    // Pass 2: leftover cars onto non-zone ticks at >= spacing (out of the zone
+    // count) -- enforced against ALL already-placed cars, pass-1 included
+    // (was pass-2-only: the config could silently violate F_spaced across the
+    // passes; PROOF_DRAFT §1 instrument caveat, HANDOFF §5 queue #6).
+    auto minCircGap = [&](long i) {
+        long best = lap;
+        for (long p = 0; p < placed; ++p) {
+            const long d = std::labs(i - offs[static_cast<size_t>(p)]);
+            best = std::min(best, std::min(d, lap - d));
+        }
+        return best;
+    };
     for (long i = 0; i < lap && placed < n; ++i) {
         const bool inZone = static_cast<int>(traj_->zoneAt(i)) == zone;
-        if (!inZone && sinceAny >= spacingTicks) { offs[static_cast<size_t>(placed++)] = i; sinceAny = 0; }
-        else ++sinceAny;
+        if (!inZone && minCircGap(i) >= spacingTicks)
+            offs[static_cast<size_t>(placed++)] = i;
     }
     for (long j = placed; j < n; ++j)         // degenerate overflow: even spread
         offs[static_cast<size_t>(j)] = j * lap / n;
@@ -141,6 +154,8 @@ void Simulation::start() {
     }
 
     SimConfig cfg{n, params_.nCores, dt_};
+    cfg.ffExtraTicks = params_.ffExtraMs > 0.0
+        ? static_cast<long>(params_.ffExtraMs / (dt_ * 1000.0) + 0.5) : 0;
     scheduler_->init(cfg, taskSets);
 
     rec_.profile       = static_cast<int>(params_.profile);
@@ -312,14 +327,50 @@ void Simulation::buildViews() {
                                 ttv * dt_ * 1000.0, ttpnr * dt_ * 1000.0,
                                 predCache_[v].rescueClearanceM,
                                 recent < 0 ? -1.0 : recent * dt_ * 1000.0};
+        // ZoneBand flag (PROOF_DRAFT §3.1): within ±θ (2400 ticks = 240 ms) of a
+        // z3 arc. 3-point check is exact (every z3 arc ≥ 19,400 ticks > 2θ).
+        // Lateral only; unread unless --scheduler zband. θ lives ONLY here
+        // (kZbFlagTicks — no CLI knob; PROOF_DRAFT §3.2's 2,600-tick inflation
+        // constant is derived from it, zero slack: retune both together).
+        // Near-twin logic: the envelope instrument's parameterized window
+        // below — kept separate deliberately (constexpr vs CLI-driven).
+        if (params_.plant == PlantKind::Lateral) {
+            constexpr long kZbFlagTicks = 2400;
+            const long pos = step_ + offsets_[v];
+            const auto& tj = *vehicles_[v].traj;
+            views_[v].zone_flagged =
+                static_cast<int>(tj.zoneAt(pos)) == 3 ||
+                static_cast<int>(tj.zoneAt(pos - kZbFlagTicks)) == 3 ||
+                static_cast<int>(tj.zoneAt(pos + kZbFlagTicks)) == 3;
+        }
         // Phase-2: inject extra netCA delay while this vehicle is in the target zone.
-        views_[v].extra_net_delay_ticks =
-            (params_.zoneTarget >= 0 && params_.zoneExtraMs > 0.0 &&
-             params_.plant == PlantKind::Lateral &&
-             static_cast<int>(vehicles_[v].traj->zoneAt(step_ + offsets_[v])) ==
-                 params_.zoneTarget)
-                ? static_cast<long>(params_.zoneExtraMs / (dt_ * 1000.0) + 0.5)
-                : 0;
+        // Envelope variant (per-zone vector + ZB-F-X flag window) takes precedence.
+        if (params_.zoneExtraVecMs.size() == 4 &&
+            params_.plant == PlantKind::Lateral) {
+            const long pos = step_ + offsets_[v];
+            int z = static_cast<int>(vehicles_[v].traj->zoneAt(pos));
+            if (params_.zoneFlagWindowMs > 0.0) {
+                const long w =
+                    static_cast<long>(params_.zoneFlagWindowMs / (dt_ * 1000.0) + 0.5);
+                // Flagged iff within +/-w of a z3 arc. The 3-point check is exact:
+                // any z3 arc intersecting [pos-w, pos+w] contains one of the three
+                // sample points, since every z3 arc is longer than 2w.
+                if (static_cast<int>(vehicles_[v].traj->zoneAt(pos - w)) == 3 ||
+                    static_cast<int>(vehicles_[v].traj->zoneAt(pos + w)) == 3 || z == 3)
+                    z = 3;
+            }
+            const double ms = params_.zoneExtraVecMs[static_cast<size_t>(z)];
+            views_[v].extra_net_delay_ticks =
+                ms > 0.0 ? static_cast<long>(ms / (dt_ * 1000.0) + 0.5) : 0;
+        } else {
+            views_[v].extra_net_delay_ticks =
+                (params_.zoneTarget >= 0 && params_.zoneExtraMs > 0.0 &&
+                 params_.plant == PlantKind::Lateral &&
+                 static_cast<int>(vehicles_[v].traj->zoneAt(step_ + offsets_[v])) ==
+                     params_.zoneTarget)
+                    ? static_cast<long>(params_.zoneExtraMs / (dt_ * 1000.0) + 0.5)
+                    : 0;
+        }
         if (params_.honestPredictor) {
             long ttvE, ttpnrE;
             currentHonestPredTicks(static_cast<int>(v), ttvE, ttpnrE);

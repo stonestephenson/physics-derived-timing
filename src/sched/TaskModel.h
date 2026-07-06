@@ -74,6 +74,11 @@ struct ReadyJob {
     long     deadlineStep;    // releaseStep + period
     long     remainingTicks;  // execution ticks still to run
     bool     started;         // already activated (running) vs just released
+    // Zone band stamped at RELEASE (ZoneBand policy / PROOF_DRAFT §3.1):
+    // 0 = elevated (car flagged in z3±θ at release, kind ∈ {E,B,M}), 1 = base.
+    // Stamped once per job, never recomputed (release-stamping is load-bearing
+    // for the band RTA); ignored by every other policy.
+    int      band;
 };
 
 // A delayed network packet in flight: the tick it will arrive, plus the
@@ -101,6 +106,13 @@ public:
     // Phase-2 causal A(zone): extra delay (ticks) added to netCA command packets
     // sent while set (Simulation sets it per tick from the vehicle's zone).
     void setExtraNetDelayTicks(long t) { extraNetDelayTicks_ = t; }
+    // ZoneBand: the car's current z3±θ flag; sampled at each job RELEASE to
+    // stamp Job::band (must be set before beginTick each tick). Default false
+    // -> every job band 1 -> no effect on any policy that ignores bands.
+    void setZoneFlag(bool f) { zoneFlag_ = f; }
+    // A2 experiment: delay F's publish (ff_fin) by t ticks, clamped to just
+    // before F's next release. 0 = off (byte-identical). See SimConfig.
+    void setFfExtraTicks(long t) { ffExtraTicks_ = t; }
 
     int vehicleId() const { return vehicleId_; }
     long missedJobs() const { return missed_; }
@@ -139,6 +151,7 @@ public:
         long execTicks = 0;           // sampled execution for the current job
         long ranTicks = 0;            // execution ticks accumulated
         bool grantedThisTick = false;
+        int  band = 1;                // zone band stamped at release (see ReadyJob)
     };
 
 private:
@@ -157,6 +170,9 @@ private:
     Job sensor_, estimator_, controller_, feedforward_, merger_, actuator_;
     NetworkParams netSC_, netCA_;
     long          extraNetDelayTicks_ = 0;  // zone-conditional injection (Phase-2)
+    bool          zoneFlag_ = false;        // z3±θ flag sampled at release (ZoneBand)
+    long          ffExtraTicks_ = 0;        // ff_fin publish delay (A2 experiment)
+    long          ffFinDueAt_   = -1;       // pending delayed ff_fin (-1 = none)
 
     // Pending network "receive" events (arrival tick + carried data-age stamp).
     std::vector<NetPacket> scReceiveAt_;

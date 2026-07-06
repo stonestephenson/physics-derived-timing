@@ -12,13 +12,20 @@ void PolicyScheduler::init(const SimConfig& cfg, const std::vector<TaskSet>& tas
     nCores_ = cfg.nCores;
     models_.clear();
     models_.reserve(taskSets.size());
-    for (int v = 0; v < static_cast<int>(taskSets.size()); ++v)
+    for (int v = 0; v < static_cast<int>(taskSets.size()); ++v) {
         models_.emplace_back(v, taskSets[v], cfg.baseStep);
+        models_.back().setFfExtraTicks(cfg.ffExtraTicks);
+    }
 }
 
 void PolicyScheduler::onTick(double /*t*/, long step,
                              const std::vector<VehicleView>& views,
                              std::vector<VehicleTriggers>& out) {
+    // 0. Push each car's zone flag BEFORE releases, so jobs released this tick
+    //    are band-stamped from the current flag (ZoneBand; no-op otherwise).
+    for (size_t v = 0; v < models_.size() && v < views.size(); ++v)
+        models_[v].setZoneFlag(views[v].zone_flagged);
+
     // 1. Release jobs and collect every vehicle's ready cloud jobs.
     ready_.clear();
     for (auto& m : models_) m.beginTick(step, ready_);
