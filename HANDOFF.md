@@ -1,6 +1,6 @@
 # Session Handoff — CPS Challenge Visualizer
 
-Resume point for a fresh agent. Last updated **2026-07-04**.
+Resume point for a fresh agent. Last updated **2026-07-10**.
 
 **Read order:** `CLAUDE.md` (stable bootstrap: invariants, reading map, rules) →
 this file (what's true *now*) → the owning design docs as your task needs them
@@ -125,6 +125,37 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   `--zone-flag-window`, `--ff-extra-ms`, `--scheduler zband`; new CSVs per §8.6. All
   committed + pushed 2026-07-06 with the 07-03 proof-draft set (lead's instruction;
   the review-hold that kept the 07-03/07-04 work staged-only is released).
+- **This session (2026-07-08): the Guo dossier** (untracked `ContextForGuo/` —
+  lead decided 2026-07-10 it STAYS untracked, like `relatedPapers/`; the
+  Guo-facing tex lives on Overleaf). Context: 2026-07-08 meeting with Dr. Guo (notes:
+  `ContextForGuo/GuoMeetingDocs.md`) — directives: Overleaf paper package by
+  Friday 07-10; paper over reports/posters; rethink zone definitions
+  (dynamic/online context); the general time↔safety↔zone relationship; Bosch +
+  CARLA as case studies. Deliverable built: **`ContextForGuo/main2.tex`
+  rewritten into the single Guo-facing dossier** (Overleaf-ready, self-contained,
+  ~2 h read): status-tagged claims ([V]/[M]/[C]/[N]), NO "contract" terminology
+  (lead's call — the three-assumption structure is now "Conditions"
+  physics/demand/service), every number re-verified against
+  HANDOFF/PROOF_DRAFT §8/BOUND/DATA_AGE/GENERALIZATION, reproduce commands
+  embedded (incl. the §8.2 verbatim envelope run), the EE thermal analytic
+  companion condensed in (as [C] draft), meeting directives as explicitly
+  not-built future work, timeline appendix from git history, glossary.
+  `ContextForGuo/GUO_OVERVIEW_DRAFT.md` marked SUPERSEDED (folded in; kept for
+  reference). `physics_informed_draft.pdf` (EE+AI contract-based note,
+  2026-07-07) remains the thermal section's source. No code changes; verify.sh
+  fast gate re-run green (G1+G2, fidelity 1.490e-08).
+- **Sessions 2026-07-09/10: dossier review + learning aids (no repo code changes).**
+  Lead's Overleaf revision of `main2.tex` reviewed against the repo (the 5
+  recommended edits verified landed; errata list returned to the lead for
+  manual fixes — truncated §3.3 sentence, proposal-tense abstract, over-trimmed
+  §2.2 age conventions, dropped fidelity-gate sentence, TTPNR typo). Built four
+  claude.ai learning artifacts for the lead (visual §6 walkthrough / defense
+  Q&A drill / printable cheat sheet / tick-level schedule animator); the
+  animator's JS engine is a port of `TaskModel.cpp`+rm/zband **validated
+  against `./build/cps` goldens** (rm N=1/6/8/11 + zband N=4/8: 30 per-vehicle
+  age pairs + missed counts, exact) — which is how Finding D (§4: zone_probe
+  rotated arc starts) surfaced. Fix deliberately deferred to its own session
+  (recipe in §4 D).
 - **Next steps by owner (2026-06-30) — the theorem is now Kurt-gated.** Legs 1, 2, 4 done;
   leg-3 sub-task **2a (limited-carry-in RTA) prototyped** (certified 5→8, cross-check-sound,
   CANDIDATE). The leg-3 brief packet is drafted + current: **`THEOREM_BRIEF §9`**.
@@ -306,6 +337,30 @@ finding, deliberately NOT integrated into `PREDICTOR.md §5c`. It is a secondary
 (fairness) result off the critical path; write it up only if the paper needs the
 fairness angle. Repro if/when needed: `ttu` at N=14 30 s vs 120 s vs `--cores 6`,
 and `aguard` N=14.
+
+**D. (2026-07-10) `zone_probe.cpp` prints arc STARTS rotated by the wrap-merged
+tail — no result changes; fix before any position-keyed reuse.** Full analysis:
+PAPER_NOTES 2026-07-10. The circular RLE merge folds the lap-wrapping run into
+the front run, then the start-printing loop re-accumulates positions from 0, so
+every printed start is late by the tail run's length (v10: 147,400 ticks). True
+v10 z3 arcs: **(760800,32000) (797800,32200) (922200,19400) (1008800,21800)**.
+Rotation is an isometry of the occupancy problem ⇒ every Occ/Occ⁺/Lemma-1 value
+is unchanged (re-verified both frames); the harness itself uses the real
+`zoneAt`, so no run/CSV/theorem number is affected. Bites only position-keyed
+consumers of the printed table (caught when a validated JS twin of the
+scheduler matched the binary on rm but not zband — the twin's flags came from
+the rotated table).
+*Fix (one small session, AI-ownable, non-blocking):*
+1. `zone_probe.cpp`: report true starts (RLE with real indices; don't
+   re-accumulate after the merge — or subtract the merged tail length mod lap).
+2. Regenerate `lemma1_check.py::PROFILES` for **all three profiles** (v12.5/v15
+   starts are presumably rotated by their own tail lengths — unverified).
+3. Re-run `lemma1_check.py`: every check must pass with values unchanged
+   (rotation invariance is the prediction; a change = a real bug, report loudly).
+4. Erratum note on PROOF_DRAFT §0's geometry table: starts were frame-rotated;
+   "last arc ends exactly at the lap boundary ⇒ inflated arcs wrap" is a
+   frame artifact (true-frame v10 inflated arcs do NOT wrap); the wrapped-arc
+   handling stays (still correct, still needed in general).
 
 ### Review triage (2026-06-22, ultrareview cloud review of the branch)
 The ultrareview surfaced 3 findings:

@@ -10,6 +10,53 @@ Newest first.
 
 ---
 
+## 2026-07-10 — Instrument honesty: zone_probe reports arc STARTS rotated by the wrap-merged tail (no result changes — rotation is an isometry of the occupancy problem)
+
+**What it is.** `tools/proofchecks/zone_probe.cpp` prints z3 arc start ticks
+that are **rotated late by the length of the lap-wrapping run** (147,400 ticks
+for v10): after its circular RLE merge folds the final run into the first
+(`runs.front().second += runs.back().second`), the printing loop re-accumulates
+`pos` from 0 through the merged list, so every start downstream of the front
+run is shifted by the merged tail's length. True v10 z3 arcs (raw `zoneAt`
+RLE, no merge): **(760800,32000) (797800,32200) (922200,19400)
+(1008800,21800)** — identical lengths and cyclic gaps, rotated −147,400 vs the
+committed table. `lemma1_check.py`'s `PROFILES` table inherits the rotated
+starts (v12.5/v15 presumably rotated by their own tail lengths — not yet
+re-extracted), and PROOF_DRAFT §0's "every profile's last arc ends exactly at
+the lap boundary — so inflated arcs wrap" is an artifact of the rotated frame
+(in the true frame, v10's ±2,600-inflated arcs do NOT wrap; the wrapped-arc
+handling in `lemma1_check.py` remains correct and worth keeping).
+
+**Why no committed result changes.** A uniform rotation of all arcs is an
+isometry of the F_spaced occupancy problem: lengths and cyclic gap structure
+are preserved, so every Occ/Occ⁺/Lemma-1 value is invariant — re-verified
+empirically (v10 raw 12/9/7/5/4 and inflated 8/5/4 identical in both frames).
+The harness's zband/zone instruments use the real `Trajectory::zoneAt`, so
+every run, CSV, and theorem number is untouched. The bug bites only
+**position-keyed** consumers of the printed starts.
+
+**How it surfaced (the cautionary tale).** A learning-aid session built a JS
+tick-level twin of `TaskModel.cpp` + zband and held it to golden per-vehicle
+ages from the binary. rm configs matched exactly; zband didn't — because the
+twin's zone flags used `lemma1_check.py`'s rotated arcs. A standalone C++
+harness linking the repo's own scheduler reproduced the twin (not the binary)
+under the rotated arcs, isolating the flag input; dumping raw `zoneAt` found
+the rotation. Same lesson as manifestation≠cause: a "machine-extracted" table
+is only as good as the extractor's coordinate bookkeeping — and only a
+consumer that depends on the *absolute* frame can catch a rotation, which is
+why every rotation-invariant check passed for a week.
+
+**Evidence / repro.** True arcs: RLE `zoneAt` directly (one-file probe against
+`Trajectory.cpp`, no merge step); compare `zone_probe` output. Scheduler-level
+confirmation: zband N=4/N=8 per-vehicle age goldens match the binary only
+under the true arcs. Fix recipe: HANDOFF §4 Finding D.
+
+**Where it lands.** Not paper prose — instrument honesty for the artifact
+release: fix `zone_probe`'s start reporting, regenerate `PROFILES` for all
+three profiles, erratum note on PROOF_DRAFT §0's geometry table.
+
+---
+
 ## 2026-07-04 — Execution round: the cliff is 170 not 140; F-demotion alone certifies 8; v15 is the applicability boundary; the A-table does NOT compose
 
 **What it is.** All seven queued decisive experiments ran (HANDOFF §5 queue; full record
