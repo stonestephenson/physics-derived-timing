@@ -236,10 +236,17 @@ tables, all three profiles) and prints the table each backs:
 
 ```sh
 python3 tools/reproduce.py            # every experiment (--exec worst)
-python3 tools/reproduce.py --list     # capacity / simcrit / honest / floor / tolerance / zones / occupancy
+python3 tools/reproduce.py --list     # capacity / simcrit / honest / floor / tolerance / zones / occupancy / danger
 python3 tools/reproduce.py floor      # just one (e.g. re-derives PREDICTOR.md §5c)
 python3 tools/reproduce.py --quick    # SMALL grids (fast smoke) -- see warning below
+bash   tools/demo_capacity.sh         # quick rm-vs-aguard capacity table (N=10,12,18) for presentations
 ```
+
+`demo_capacity.sh` is a lightweight *presentation* aid (not part of the CSV-backed
+repro surface): it prints hard breaches / cars stalled / worst-soft% for rate-monotonic
+vs aguard at a few N, showing the headline "zero hard breaches far past the classical
+limit" (N=12 RM = 4519 hard / 2 stalled vs aguard 0). Pass custom N: `bash
+tools/demo_capacity.sh 10 12 18 20`.
 
 > **CSV-overwrite safety (fixed 2026-07-02).** Experimental runs can no longer clobber
 > committed baselines by accident:
