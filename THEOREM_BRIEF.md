@@ -206,11 +206,15 @@ degradation (§5 Corollary). (PAPER_NOTES 2026-06-29.)
 spacing `s` is *constant*; in reality delay-induced braking/drift can compress it. We certify
 at the **effective** spacing `s_eff = s_nominal − Δ` (`Δ` = worst-case compression bound):
 `Occ⁺` is non-increasing in `s` (machine-checked, `lemma1_check.py` [5]), so a buffer is
-strictly conservative. At the certified `s ≥ 4 s` point the `Occ⁺ = 4` band extends down to
-`s_eff = 3.5 s`, so the certification absorbs ≈ 500 ms of compression for free; to tolerate a
-larger bound `Δ`, run `s_nominal ≥ 3.5 s + Δ`. Deriving `Δ` from a longitudinal model is the
-A3 coupling (future work) — the buffer makes the theorem robust to any such `Δ`.
-(PAPER_NOTES 2026-07-17.)
+strictly conservative for *any* route. **General form:** keeping `Occ⁺ ≤ K*` requires
+`s_eff ≥ s*(R)`, i.e. **`s_nominal ≥ s*(R) + Δ`**, where the route's *critical spacing* `s*(R)`
+is the smallest spacing at which occupancy still fits the certified band count `K*` — a function
+of the route's binding-zone geometry, the band inflation ζ, and `K*` (evaluated by check [5]),
+**not a theorem constant**. **v10 instantiation:** `s*(v10) ≈ 3.5 s` (the `Occ⁺ = 4` band
+extends down to `s_eff = 3.5 s`, boundary in (3.0, 3.5]), so the round-number `s ≥ 4 s`
+certification absorbs ≈ 500 ms of compression for free — the 3.5 s and that headroom are v10
+numbers, re-derived per route. Deriving `Δ` from a longitudinal model is the A3 coupling
+(future work) — the buffer makes the theorem robust to any such `Δ`. (PAPER_NOTES 2026-07-17.)
 
 ### 3.6 Concurrent demand k **[measured — danger-relative metric built 2026-06-29]**
 

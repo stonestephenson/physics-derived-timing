@@ -161,7 +161,11 @@ guarantee a larger compression bound `Δ`, pre-pay it in the nominal gap:
 `s_nominal ≥ 3.5 s + Δ` (conservatively `4 s + Δ`). *(Estimating "zero
 tolerance" from the 4 s → 5 s grid step would have been wrong — running check [5]
 surfaced the 3.5 s sub-grid headroom. "The simulator is the adversary — verify,
-never assume," §8.)*
+never assume," §8.)* **Route-scope:** the 3.5 s is **v10-specific**, not a
+theorem constant — the general rule is `s_nominal ≥ s*(R) + Δ`, where the
+critical spacing `s*(R)` (smallest spacing keeping `Occ⁺ ≤ K*`) is re-derived per
+route from its binding-zone geometry, band inflation ζ, and `K*`; `s*(v10) ≈
+3.5 s` is one instantiation (THEOREM_BRIEF §3.5).
 
 **What stays open (honest scope).** Deriving `Δ` from a longitudinal /
 braking model is **not** done here — that is exactly the A3 control↔occupancy
