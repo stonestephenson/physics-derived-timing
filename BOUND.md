@@ -353,8 +353,10 @@ benign-phasing pessimism grows with R too, so the bound may outrun measurement.
    1,4,6,7,8` (age ≤ bound at every certified N, no counterexample). **Citation
    VERIFIED 2026-07-17:** Nan Guan, Martin Stigge, Wang Yi, Ge Yu, "New Response
    Time Bounds for Fixed Priority Multiprocessor Scheduling," RTSS 2009,
-   pp. 387–397 — the origin of RTA-LC and the "at most m−1 carry-in tasks"
-   result (not in `relatedPapers/`; cited from the literature).
+   pp. 387–397 (RTSS'09 Best Paper) — the origin of RTA-LC and the "at most m−1
+   carry-in tasks" result. PDF added 2026-07-17: `relatedPapers/Foundational/
+   Guan_Stigge_Yi_Yu_RTSS2009_New_Response_Time_Bounds_Fixed_Priority_
+   Multiprocessor.pdf`.
 3. Limited carry-in (m−1) refinement, then offset/harmonic-aware sampling
    terms in §4 (these two interact; do them together).
 4. Priority-order optimization over `kind` rank within a vehicle (the B→M

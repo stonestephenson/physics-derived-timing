@@ -80,8 +80,9 @@ verbatim: the release-time gap between adjacent chain jobs is Δ = kψ_i with
 Yu, **"New Response Time Bounds for Fixed Priority Multiprocessor Scheduling,"
 RTSS 2009, pp. 387–397** (IEEE Xplore 5368174). This is the canonical origin of
 RTA-LC and the **"at most m−1 carry-in tasks"** partitioning our Theorem-2
-bridge (§9.4a) uses — confirmed against the literature. Not in `relatedPapers/`
-(cited from the literature); consider adding the PDF.
+bridge (§9.4a) uses — confirmed against the literature (RTSS'09 Best Paper).
+PDF added 2026-07-17 to `relatedPapers/Foundational/` (from Wang Yi's page;
+6 pp., verified title/authors + 21 carry-in mentions).
 
 **Lesson (process).** A citation "handle" (author-year) that doesn't appear in
 the on-disk filename is invisible to a filename-grep survey — the 06-22 survey's
