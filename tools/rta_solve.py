@@ -422,7 +422,8 @@ def run_sim(cps, n, cores, exec_mode, duration):
     return missed, ages
 
 
-def cross_check(cps, cert, m, exec_mode, duration, max_sim_n, exec_idx, fails, wl_mode):
+def cross_check(cps, cert, m, exec_mode, duration, max_sim_n, exec_idx, fails,
+                wl_mode, soundness_grid=None):
     print("\n" + "=" * 72)
     print("SIMULATOR CROSS-CHECK  (./build/cps, exec=%s, %ds, workload=%s)"
           % (exec_mode, duration, wl_mode))
@@ -463,6 +464,28 @@ def cross_check(cps, cert, m, exec_mode, duration, max_sim_n, exec_idx, fails, w
     if cert != 6:
         print("\n[b] age soundness at the documented baseline N=6:")
         age_soundness(6)
+
+    # (b') widened age-soundness grid (Theorem-2 bridge validation, Guo 2a). For
+    # the limited-carry-in CANDIDATE this is the empirical arbiter: at every
+    # certified N the measured age_path must stay under the candidate's per-
+    # vehicle bound (no counterexample = the candidate is sound-leaning across
+    # the whole range, not just at the boundary). Age-vs-bound is only valid
+    # where the analytic RTA certifies P1 (all R <= T); above that the bound is
+    # built from truncated overrun R's and is not a valid ceiling, so only
+    # schedulability (missed) is reported there. Opt-in (empty => the default
+    # cross-check is byte-identical, so verify.sh's G3 is untouched).
+    if soundness_grid:
+        print("\n[b'] widened age-soundness grid (workload=%s): N in {%s}"
+              % (wl_mode, ",".join(str(n) for n in sorted(set(soundness_grid)))))
+        for n in sorted(set(soundness_grid)):
+            tasks_n = solve_rta(build_cloud_tasks(n, exec_idx), m, wl_mode)
+            if all(t.R <= t.T for t in tasks_n):
+                age_soundness(n)                      # certified region: age check valid
+            else:
+                missed, _ = run_sim(cps, n, m, exec_mode, duration)
+                print("    N=%-2d analytic overrun (R>T) -> bound not a valid "
+                      "ceiling; sim missed = %s (schedulability only)"
+                      % (n, missed))
 
     # (c) empirical capacity: sweep up from cert+1 to first missed>0 (empirical >= certified).
     print("\n[c] empirical capacity (first N with missed>0), sweeping up from %d:" % (cert + 1))
@@ -510,6 +533,10 @@ def main():
     ap.add_argument("--max-sim-n", type=int, default=18, help="cross-check capacity sweep ceiling")
     ap.add_argument("--duration", type=int, default=30)
     ap.add_argument("--cps", default="./build/cps")
+    ap.add_argument("--soundness-grid", default="", metavar="N1,N2,...",
+                    help="cross-check: also verify measured age <= per-vehicle "
+                         "bound at these N (Theorem-2 bridge validation for the "
+                         "limited candidate). Empty (default) => G3-identical.")
     args = ap.parse_args()
 
     m = args.cores
@@ -548,8 +575,10 @@ def main():
             fails.append("cross-check requested but %s missing" % args.cps)
         else:
             cc_cert = cert if cert > 0 else 1
+            grid = [int(x) for x in args.soundness_grid.split(",") if x.strip()]
             cross_check(args.cps, cc_cert, m, args.exec, args.duration,
-                        args.max_sim_n, exec_idx, fails, wl_mode)
+                        args.max_sim_n, exec_idx, fails, wl_mode,
+                        soundness_grid=grid)
 
     # Final verdict.
     print("\n" + "=" * 72)

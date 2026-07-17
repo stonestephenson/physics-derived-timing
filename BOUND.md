@@ -336,7 +336,14 @@ benign-phasing pessimism grows with R too, so the bound may outrun measurement.
    corrected §7.3's v5 R-values. Remaining: feed it the limited-carry-in
    workload (item 2/3) for a tight certified number.
 2. Re-derive the workload bound for the discrete synchronized-quantum model
-   rather than citing continuous-time sporadic results (Kurt).
+   rather than citing continuous-time sporadic results (Kurt). **Bridge prepared
+   2026-07-17 (Guo 2a):** the candidate is now stated in standard Guan-RTA-LC
+   (RTSS'09) notation with a proof-step ledger separating what transfers from
+   what needs re-derivation — `THEOREM_BRIEF §9.4a/b`. The two open obligations
+   are the `m−1` carry-in count under synchronous release (#2) and the
+   non-monotone stopping-rule soundness (#6 = Lemma 2a). Empirical arbiter
+   widened: `rta_solve.py --workload limited --cross-check --soundness-grid
+   1,4,6,7,8` (age ≤ bound at every certified N, no counterexample).
 3. Limited carry-in (m−1) refinement, then offset/harmonic-aware sampling
    terms in §4 (these two interact; do them together).
 4. Priority-order optimization over `kind` rank within a vehicle (the B→M

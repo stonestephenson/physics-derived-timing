@@ -557,6 +557,67 @@ the age bound toward measured), then **(ii)** compose that bound against the `A(
 under the occupancy cap `Occ(R, s)` — the mixed-deadline / occupancy-parameterized schedulability
 test, of which the §9.2d aguard run is the existence witness.
 
+### 9.4a Theorem 2 (limited carry-in) in standard Guan-RTA-LC notation — the statement to prove
+
+**Dr. Guo's directive (2026-07-17):** Theorem 2 — the limited-carry-in RTA — carries the headline
+capacity lift (the "2.7× more cars" = ZB-F-X composed **N = 8 @ s ≥ 4 s** certified vs classical
+**3**, §5 Corollary / PROOF_DRAFT §5). It is presently a **candidate** (`rta_solve.py`,
+machine-checked + sim-cross-checked, *not* proven). The remaining publication step is to **bridge
+the brute-force script to a general analytic proof under our tick-quantum model.** Below is the
+candidate as implemented (`rta_solve.py::hp_interference`, modes `limited` / `limited-t`), written
+in the notation of **Guan et al.'s RTA-LC (RTSS 2009, the m−1-carry-in analysis)** so the delta to
+the classical result is explicit. *(Confirm the RTSS'09 citation before submission — same status
+as the Li et al. flag, HANDOFF §4 follow-up (b).)*
+
+For task τ_k on m identical cores, `R_k` is the least fixed point of the discrete iteration
+
+    R_k = C_k + ⌊ (1/m) · Σ_{i ∈ hp(k)} I_i(R_k) ⌋          (exact per tick — §9.4/§7.2)
+
+with each higher-priority τ_i's interference in a window of length `x` split into a **non-carry-in
+(NC)** and a **carry-in (CI)** form, and **at most m−1 tasks charged the carry-in surplus** (Guan's
+RTA-LC bound):
+
+    I(x) = Σ_{i∈hp(k)} W_i^NC(x)  +  Σ_{(m−1) largest} ( W_i^CI(x) − W_i^NC(x) )_+ .
+
+Our instantiations:
+
+    W_i^NC(x) = ⌈x / T_i⌉ · C_i                                (no carry-in; Bertogna upper form)
+    W_i^CI(x) = ⌈(x + J_i) / T_i⌉ · C_i,   J_i = R_i − C_i     (`limited`: response-jitter carry-in)
+                                            J_i = T_i − C_i     (`limited-t`: mechanical carry-in)
+
+`none ≤ limited ≤ full` by construction (each CI surplus ≥ 0, capped at m−1 terms), so `limited`
+is bounded above by the already-sound full-carry-in form of §7.2 — sound-*leaning* and strictly
+tighter. `limited-t` replaces the response jitter `R_i − C_i` with the mechanical jitter
+`T_i − C_i` that kill-and-hold guarantees outright (every job executes within
+`[release, release + T_i)`); it needs no response-time induction and is the form the PROOF_DRAFT
+Lemma-2b band composition uses (band interferers' `R`'s are not statically knowable).
+
+### 9.4b Proof-step ledger — what survives the tick-quantum model, what Kurt must re-derive
+
+Our model — discrete unit quanta, `m` cores, free migration/preemption, **strictly periodic
+synchronous releases**, strict total-order priority, kill-and-hold on overrun — differs from Guan's
+continuous-time *sporadic* setting. Which classical RTA-LC proof obligations transfer, and which
+need re-derivation here:
+
+| # | Guan RTA-LC proof step | status in our tick-quantum model |
+|---|---|---|
+| 1 | **Interference conservation** — a busy-window instant where `J_k` is unserved has all `m` cores on `hp(k)` work | **SURVIVES** — discrete restatement (§9.4/§7.2); exact per tick (no fractional-quantum slop — a rigor win) |
+| 2 | **≤ m−1 carry-in tasks** at the problem-window start | **RE-DERIVE — load-bearing.** Guan's window opens just after an instant with `< m` higher-prio jobs active. Synchronous periodic release + strict total order + kill-and-hold change the carry-in structure — plausibly a *tightening* (synchronous release can void carry-in for some tasks), but the `m−1` count must be re-established for this release model, not cited. |
+| 3 | NC workload `⌈x/T_i⌉·C_i` upper-bounds the no-carry-in contribution | **SURVIVES** — sound (could tighten to `⌊x/T⌋C_i + min(C_i, x mod T_i)`) |
+| 4 | CI via response jitter `J_i = R_i − C_i` (`limited`) | **SURVIVES** modulo the priority-order induction (R_i, i∈hp(k), solved first — standard; re-check under the non-monotone stop, #6) |
+| 5 | CI via mechanical jitter `J_i = T_i − C_i` (`limited-t`) | **SURVIVES trivially** — kill-and-hold ⇒ execution ⊆ `[release, release+T_i)`; model-specific, no induction. (The one step our model makes *easier* than Guan's.) |
+| 6 | Least-fixed-point existence + a valid stopping rule | **RE-DERIVE** — `limited`'s `I(x)` is **non-monotone** (the m−1 surplus selection shifts with `x`), so "iterate up, stop at `x = x_next`" is invalid. PROOF_DRAFT **Lemma 2a step S5** gives a candidate sound stop (any `x` with `C_k + I(x)//m ≤ x`); its soundness for the non-monotone case *is* Lemma 2a — Kurt's. |
+| 7 | The `1/m` interference-to-response relaxation | **SURVIVES + TIGHTER** — exact `⌊·⌋` per tick vs. the continuous relaxation |
+
+**Net:** steps 1, 3, 4, 5, 7 transfer (5 and 7 are *strengthened* by the discrete / kill-and-hold
+model); the two genuine obligations are **#2 (the `m−1` carry-in count under synchronous release)**
+and **#6 (S5 stopping-rule soundness for the non-monotone `limited` interference = Lemma 2a)**.
+Empirically the candidate is **unrefuted**: at the certified capacity 8 and below, the widened
+cross-check (§9.6) finds every measured `age_path ≤` the candidate's per-vehicle bound
+(`N ∈ {1,4,6,7,8}`; tightest margin ≈ **31 ms**, at N=6 v0: 100.5 ≤ 131.6), and certified 8 ≤
+empirical 10. **Empirical non-refutation is not proof (invariant #5)** — #2 and #6 are the analytic
+gaps Kurt closes.
+
 ### 9.5 What is measured / assumed / to-prove (honesty ledger for leg 3)
 
 - **[measured]** `A(zone)` deadlines (§3.2); `Occ(R, F_spaced)` curve (§9.2b); `k(τ)` curve
@@ -568,7 +629,10 @@ test, of which the §9.2d aguard run is the existence witness.
   them. The conservatism shows up concretely: aguard can have cars *over* the `A(zone)` budget
   (`K_age > 0`) yet **0 hard breaches** — the causal `A(zone)` is a conservative deadline, so
   meeting it is sufficient but maybe not necessary.
-- **[to-prove — yours]** (1) the limited-carry-in workload re-derivation (§9.4i); (2) the
+- **[to-prove — yours]** (1) the limited-carry-in workload re-derivation (§9.4i) — now stated in
+  standard Guan-RTA-LC notation with a proof-step ledger (**§9.4a/b**): the two open obligations
+  are the `m−1` carry-in count under synchronous release (ledger #2) and the non-monotone
+  stopping-rule soundness (ledger #6 = Lemma 2a); (2) the
   occupancy-parameterized schedulability composition (§9.1 Lemma 2 / §9.4ii); (3) adjudicate the
   deadline-driven abstraction (§4) as the right proof object with aguard as witness; (4) confirm
   the per-zone + occupancy device clears Sudvarg RTAS'25 / Kundu–Quevedo'19 (§6 #5).
@@ -579,6 +643,9 @@ test, of which the §9.2d aguard run is the existence witness.
     #   (the tool refuses to overwrite the committed occupancy_sweep.csv without --force;
     #    use `python3 tools/reproduce.py occupancy` to regenerate the committed files)
     python3 tools/rta_solve.py --cross-check # §7 RTA fixed points + sim cross-check  (§9.4)
+    python3 tools/rta_solve.py --workload limited --cross-check --soundness-grid 1,4,6,7,8
+    #   ^ Theorem-2 candidate (§9.4a): certified 8, widened age-soundness at every N in the grid
+    #     (measured age_path <= per-vehicle bound, no counterexample) — the bridge validation (§9.4b)
     ./build/cps --headless --vehicles 18 --scheduler aguard --exec worst --duration 30   # K(tau) curve (§9.2c)
     ./build/cps --headless --vehicles 1  --scheduler rm     --exec worst --duration 30   # round-trip 90.5 ms (§9.3)
     # single occupancy point + safety pairing:
@@ -587,5 +654,7 @@ test, of which the §9.2d aguard run is the existence witness.
 > **User note.** Hand Kurt §9 as the leg-3 packet; it stands on §1 (model), §3.2 (`A(zone)`),
 > §3.5 (`Occ`), §3.6 (`k`), §5 (the conjecture) and `BOUND.md §7` (the RTA). Lead with **§9.3**
 > — the 151.6 > 140 crux is what tells him the occupancy decomposition is doing real work — then
-> the two coupled to-proves in **§9.4**. Everything numeric here is reproduced by **§9.6**; if he
-> wants a different `N`/`s`/route, regenerate the curve and re-hand it.
+> **§9.4a/b** (Theorem 2 in Guan-RTA-LC notation + the proof-step ledger — Dr. Guo's headline
+> C→V leg: the two open obligations are ledger #2 and #6) and the coupled composition to-prove in
+> **§9.4**. Everything numeric here is reproduced by **§9.6**; if he wants a different
+> `N`/`s`/route, regenerate the curve and re-hand it.

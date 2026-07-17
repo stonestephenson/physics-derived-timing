@@ -256,8 +256,11 @@ only the *scheduling* CSVs (`capacity_sweep.csv`, `simcrit_sweep.csv`, `honest_s
 `tools/zone_sweep.py` → `zone_tolerance.csv` (leg 1, causal `A(zone)`),
 `tools/occupancy_sweep.py` → `occupancy_sweep.csv` (leg 2, `Occ(s)`), and
 `tools/tolerance_sweep.py` (the per-plant cliff, which `reproduce.py tolerance` delegates
-to). `tools/rta_solve.py` machine-verifies the BOUND.md §7 RTA. **The `--danger-tau` (leg 4)
-metric has no dedicated sweep tool yet** (HANDOFF §5 backlog).
+to). `tools/rta_solve.py` machine-verifies the BOUND.md §7 RTA — `--workload full|limited|
+limited-t` selects the carry-in model (`limited`/`limited-t` = the CANDIDATE Guan-RTA-LC, §9.4a),
+and `--cross-check --soundness-grid N1,N2,...` adds the Theorem-2 bridge validation (measured age
+≤ per-vehicle bound at each certified N; empty grid ⇒ the G3-identical default). **The
+`--danger-tau` (leg 4) metric has no dedicated sweep tool yet** (HANDOFF §5 backlog).
 
 ## Layout
 

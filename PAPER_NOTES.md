@@ -55,6 +55,45 @@ dossier (received 2026-07-17). It reshapes the plan of record in four ways:
 section + Kurt's brief; (2b) a new Condition-I derivation section; (2c) Lemma
 1's statement and limitations paragraph; (3) scope/evaluation framing.
 
+## 2026-07-17 — Theorem-2 bridge (Guo 2a): the limited-carry-in candidate in Guan-RTA-LC notation + a proof-step ledger — 5 of 7 steps transfer, 2 are Kurt's
+
+**What it is.** The scaffold that turns the limited-carry-in RTA from a
+brute-force script into a stated theorem for Kurt to prove (Guo's point 2a — he
+called the capacity lift "the headline empirical result"). The AI owns the
+bridge; the soundness proof stays Kurt's (invariant #5).
+
+**Standard-notation statement (THEOREM_BRIEF §9.4a).** The candidate
+(`rta_solve.py::hp_interference`, modes `limited`/`limited-t`) written in
+Guan-RTA-LC (RTSS'09) form: `R_k = C_k + ⌊(1/m) Σ_{i∈hp} I_i(R_k)⌋` with
+`I(x) = Σ W_i^NC(x) + Σ_{(m−1) largest}(W_i^CI − W_i^NC)_+`, NC = `⌈x/T⌉C`, CI
+jitter `J = R−C` (`limited`) or `J = T−C` (`limited-t`, mechanical from
+kill-and-hold). `none ≤ limited ≤ full` by construction ⇒ sound-leaning + tighter
+than the §7.2 full-carry-in form.
+
+**Proof-step ledger (§9.4b) — the actual contribution of this session.** Adjudicated
+each classical RTA-LC step against our tick-quantum model (discrete unit quanta,
+**synchronous periodic release**, strict total order, kill-and-hold):
+- **Transfer:** #1 interference conservation, #3 NC bound, #4 CI-jitter (`limited`),
+  #5 CI-mechanical (`limited-t`), #7 the 1/m relaxation. #5 and #7 are *strengthened*
+  by our model (kill-and-hold makes CI need no induction; exact per-tick ⌊·⌋ beats
+  the continuous relaxation) — a genuine "our discrete model is more rigorous, not
+  less" point for the paper.
+- **Re-derive (Kurt's two obligations):** **#2** the `m−1` carry-in count under
+  synchronous release (Guan's sporadic window argument doesn't transfer verbatim;
+  synchronous release plausibly *tightens* it), and **#6** the stopping-rule
+  soundness for `limited`'s **non-monotone** `I(x)` (= PROOF_DRAFT Lemma 2a S5).
+
+**Widened empirical arbiter.** Added opt-in `rta_solve.py --soundness-grid` — checks
+measured `age_path ≤` the candidate's per-vehicle bound at every certified N, not
+just the boundary. Validated `N ∈ {1,4,6,7,8}`: no counterexample, tightest margin
+≈ **31 ms** (N=6 v0: 100.5 ≤ 131.6), certified 8 ≤ empirical 10. Empirical
+non-refutation ≠ proof (invariant #5); #2 and #6 are the analytic gaps. The default
+(no grid) cross-check is byte-identical, so verify.sh's G3 is untouched.
+
+**Where it lands.** The Theorem-2 (RTA) section: state it in Guan-RTA-LC notation,
+then the ledger frames the proof as "5 steps cited, 2 re-derived (one a tightening
+opportunity)." Bridge only — the theorem is [C] until Kurt signs off.
+
 ## 2026-07-17 — Lemma-1 spacing buffer (Guo 2c): the s≥4 s certification absorbs ≈500 ms of compression for free; beyond that, run s_nominal ≥ 3.5 s + Δ
 
 **What it is.** The clean answer to Guo's point 2c — `F_spaced` assumes a

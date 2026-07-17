@@ -439,11 +439,19 @@ pulls toward new engineering. The bar: tighten the math on the existing setup.
    CANDIDATE derivation note for Kurt (invariant 5). Likely settles the open
    140-vs-170 normative decision (analytic bound = normative floor; measured
    cliff = documented headroom).
-4. **Theorem-2 bridge prep (Guo 2a; the proof itself stays Kurt's).** The
-   candidate formula in standard Guan-RTA notation + an explicit ledger of
-   which classical proof steps survive the tick-quantum model and which need
-   re-derivation; widen the `rta_solve.py` cross-check grid; refresh
-   THEOREM_BRIEF §9 with Guo's directive.
+4. **Theorem-2 bridge prep (Guo 2a; the proof itself stays Kurt's) — DONE
+   2026-07-17** (commit pending). THEOREM_BRIEF **§9.4a** states the candidate in
+   standard Guan-RTA-LC (RTSS'09) notation (NC/CI decomposition, m−1 carry-in,
+   `limited`/`limited-t` forms); **§9.4b** is the proof-step ledger — steps
+   1/3/4/5/7 transfer (5,7 *strengthened* by the discrete/kill-and-hold model),
+   the two genuine obligations are #2 (m−1 carry-in count under synchronous
+   release) and #6 (non-monotone stopping-rule soundness = Lemma 2a).
+   `rta_solve.py` cross-check widened: opt-in `--soundness-grid` verifies
+   measured age ≤ candidate bound at every certified N (validated N∈{1,4,6,7,8},
+   tightest margin ≈31 ms; no counterexample; certified 8 ≤ empirical 10).
+   Default (no grid) path byte-identical ⇒ verify.sh G3 untouched. BOUND §7.4,
+   USAGE, PAPER_NOTES 2026-07-17. The *soundness proof* stays Kurt's (invariant
+   5). (Citation to confirm: Guan et al. RTSS'09, same flag as Li et al.)
 5. **Strawman paper outline + Guo reply draft** (lead-facing, cheap, before
    the Kurt meeting): sections → evidence status ([V]/[M]/[C]) → proposed
    owner per section.
