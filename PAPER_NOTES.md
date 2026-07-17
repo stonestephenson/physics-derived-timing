@@ -10,6 +10,51 @@ Newest first.
 
 ---
 
+## 2026-07-17 — Guo's dossier response: positioning blessed, CARLA descoped, and three C→V hardening legs become the critical path
+
+**What it is.** Dr. Guo's written response to the `ContextForGuo/main2.tex`
+dossier (received 2026-07-17). It reshapes the plan of record in four ways:
+
+1. **Positioning vs Sudvarg — advisor-confirmed.** Their lever is *sampling
+   periods* adjusted from physical state; ours is *tolerable data age under
+   shared multicore contention* — "physical context dynamically allocates
+   scheduling slack in a multi-task, shared-resource cloud/edge platform."
+   The three-condition decoupling (Physics bounds age / Demand bounds
+   concurrent critical loops / Service guarantees age) is endorsed verbatim as
+   "a highly sellable contribution." This substantially answers the HANDOFF
+   "residual for Kurt" on whether our delta clears Sudvarg's §VII future-work
+   (Kurt still owns related-work rigor, but the framing is now the advisor's
+   own words — near-verbatim paper-intro material).
+2. **The publication gap is [C]→[V], on three named legs:**
+   (a) **Theorem 2 (limited-carry-in RTA):** bridge `rta_solve.py --workload
+   limited` (empirical-only candidate) to a general analytic proof under the
+   tick-quantum model. Guo calls the capacity lift "the headline empirical
+   result" — his "2.7×" is the ZB-F-X composed **N=8 @ s≥4 s certified vs
+   classical 3** (PROOF_DRAFT §5); keep the operating-point qualifiers
+   attached in paper prose.
+   (b) **Condition I formalization (NEW leg):** analytically derive a
+   *conservative lower bound* on the car's A(zone) from simplified lateral
+   dynamics, with the EE thermal analytic note as the blueprint. Until now
+   A(zone) was empirical-by-design; an analytic under-bound that the measured
+   table dominates would upgrade Condition I from measured to derived (with
+   the sweeps as validation, not as the definition).
+   (c) **Lemma 1 spacing assumption:** delays → braking/drift → spacing
+   changes in reality. Note: in the harness this cannot happen — vehicles
+   follow pre-recorded velocity/position reference traces
+   (`src/trace/Trajectory.h`), so temporal spacing is constant by
+   construction; the fix is a clean stated limitation or a safety buffer
+   `s_eff = s − buffer` in the spacing model (+ a cheap sensitivity row from
+   the existing occupancy sweep).
+3. **CARLA descoped** ("too much engineering overhead"); the Bosch FMU +
+   cart-pole pairing is sufficient generality evidence. Kills the 2026-07-08
+   meeting directive's CARLA thread.
+4. **Process:** map the paper outline with Kurt and assign sections; Guo wants
+   the Overleaf when more mature.
+
+**Where it lands.** (1) intro/related-work positioning; (2a) the Theorem-2
+section + Kurt's brief; (2b) a new Condition-I derivation section; (2c) Lemma
+1's statement and limitations paragraph; (3) scope/evaluation framing.
+
 ## 2026-07-10 — Instrument honesty: zone_probe reports arc STARTS rotated by the wrap-merged tail (no result changes — rotation is an isometry of the occupancy problem)
 
 **What it is.** `tools/proofchecks/zone_probe.cpp` prints z3 arc start ticks

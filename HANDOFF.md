@@ -1,6 +1,6 @@
 # Session Handoff — CPS Challenge Visualizer
 
-Resume point for a fresh agent. Last updated **2026-07-10**.
+Resume point for a fresh agent. Last updated **2026-07-17**.
 
 **Read order:** `CLAUDE.md` (stable bootstrap: invariants, reading map, rules) →
 this file (what's true *now*) → the owning design docs as your task needs them
@@ -156,7 +156,23 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   age pairs + missed counts, exact) — which is how Finding D (§4: zone_probe
   rotated arc starts) surfaced. Fix deliberately deferred to its own session
   (recipe in §4 D).
-- **Next steps by owner (2026-06-30) — the theorem is now Kurt-gated.** Legs 1, 2, 4 done;
+- **Session 2026-07-17: Dr. Guo's dossier response received — plan of record
+  reprioritized (docs only).** Positioning vs Sudvarg advisor-confirmed (their
+  lever = sampling periods from physical state; ours = tolerable data age under
+  shared multicore contention; the three-condition decoupling endorsed as
+  "highly sellable" — near-verbatim intro material). The publication gap is
+  named: turn [C] into [V] on three legs — Theorem-2 limited-carry-in analytic
+  proof, a Condition-I analytic A(zone) under-bound (NEW leg), Lemma-1
+  spacing-assumption cleanup. CARLA explicitly descoped; directive to map the
+  paper outline with Kurt and assign sections. Full record: PAPER_NOTES
+  2026-07-17; actionable plan: §5 "Plan of record (2026-07-17)". Spacing note
+  verified against code: vehicles follow pre-recorded velocity/position
+  reference traces (`src/trace/Trajectory.h`), so in-sim temporal spacing is
+  constant by construction — Guo's spacing concern is a model-validity
+  limitation, not a sim gap.
+- **Next steps by owner (2026-06-30) — the theorem is now Kurt-gated.**
+  *(SUPERSEDED 2026-07-17 by §5 "Plan of record (2026-07-17)" — Guo's response
+  re-opened the AI track; this block is kept as record.)* Legs 1, 2, 4 done;
   leg-3 sub-task **2a (limited-carry-in RTA) prototyped** (certified 5→8, cross-check-sound,
   CANDIDATE). The leg-3 brief packet is drafted + current: **`THEOREM_BRIEF §9`**.
   - **Kurt (the theorem — AI cannot own):** Lemma 2a *soundness proof* (the candidate is
@@ -381,6 +397,50 @@ The ultrareview surfaced 3 findings:
 
 Reframed (post-Guo 2026-06-18) around the main-track generalization paper:
 
+### Plan of record (2026-07-17) — Guo's C→V hardening directives
+
+Guo's response to the dossier (full record: PAPER_NOTES 2026-07-17) supersedes
+the "all AI-ownable legs are done; the critical path is only Kurt's" frame:
+two of his three hardening legs have large AI-ownable fractions and one
+(Condition I) is new work. Positioning is blessed; CARLA is descoped — nothing
+pulls toward new engineering. The bar: tighten the math on the existing setup.
+
+**AI track (in order):**
+1. **Finding D fix** (§4 D recipe) — first; hygiene, but it touches
+   `lemma1_check.py::PROFILES` and the arc tables that items 2–3 reuse.
+2. **Lemma-1 spacing cleanup (Guo 2c).** In-sim spacing cannot drift
+   (trace-driven; see the 2026-07-17 session record), so: a cleanly stated
+   limitation + a buffer form `s_eff = s − buffer` in the Lemma-1 statement +
+   an `occupancy_sweep` sensitivity row at buffered spacings. Fully retires
+   the point.
+3. **Condition-I analytic A(zone) under-bound (NEW leg, biggest AI value).**
+   Derive a conservative held-command error-growth bound per zone from the
+   linearized lateral dynamics already in `Predictor.cpp` (verbatim FMU-port
+   matrices); machine-check `A_lb(zone) ≤ measured A(zone)` for every
+   zone × profile. Pulls in the v12.5/v15 A(zone)/Occ generalization (parked
+   item 2, now PROMOTED — it is the validation grid). Output: a CANDIDATE
+   derivation note for Kurt (invariant 5). Likely settles the open 140-vs-170
+   normative decision (analytic bound = normative floor; measured cliff =
+   documented headroom).
+4. **Theorem-2 bridge prep (Guo 2a; the proof itself stays Kurt's).** The
+   candidate formula in standard Guan-RTA notation + an explicit ledger of
+   which classical proof steps survive the tick-quantum model and which need
+   re-derivation; widen the `rta_solve.py` cross-check grid; refresh
+   THEOREM_BRIEF §9 with Guo's directive.
+5. **Strawman paper outline + Guo reply draft** (lead-facing, cheap, before
+   the Kurt meeting): sections → evidence status ([V]/[M]/[C]) → proposed
+   owner per section.
+
+**Lead (Stone):** reply to Guo; schedule the Kurt outline/section-assignment
+session (Guo asked explicitly); bring the 140-vs-170 decision there; Lemma-1
+drafting stays yours.
+
+**Kurt:** unchanged in substance — Lemma 2a *soundness* — now advisor-endorsed
+as THE headline result; receives the item-4 bridge materials.
+
+**Descoped:** CARLA (Guo, explicit); new schedulers; new instruments beyond
+the legs above.
+
 ### THE PLAN (2026-06-25) — the route-map fleet-safety bound (leg A, sharpened)
 
 Working the simultaneous-criticality worst case this session **reshaped what leg
@@ -463,7 +523,8 @@ overload damage channel is killed-F/stale-ff, not fb age** (PROOF_DRAFT §8.7 #3
 Two optional hardenings remain queued, deliberately unbuilt: a zband golden G4 row in
 verify.sh --full, and a --band-deadlines override in rta_solve (only if the v12.5
 composed instance goes in the paper). Open lead decision: normative A(z3) = 140
-(conservative, current) vs 170 (refined).
+(conservative, current) vs 170 (refined) — *2026-07-17: likely settled by the
+Condition-I analytic under-bound (plan of record, §5 top)*.
 
 Ordered by decision value; each item has a decision rule so the outcome is a verdict,
 not just data. Items 2–4 of the old parked block below are absorbed here.
@@ -510,7 +571,9 @@ while leg 3 is with Kurt).** Recorded 2026-06-29; the critical path is Kurt's le
    z3-safety* ⇒ occupancy is load-bearing N=4…10 (PAPER_NOTES 2026-06-30; THEOREM_BRIEF §9.4).
    **Remaining (Kurt, invariant #5):** the formula's *soundness* + a tighter form (interference
    cap / exact NC) to close the last gap of 2 — that's his derivation, not our prototype.
-2. **Generalize the curves to v12.5 / v15** (most paper value; not Kurt-gated). The `A(zone)`
+2. **Generalize the curves to v12.5 / v15** (most paper value; not Kurt-gated;
+   **PROMOTED 2026-07-17** into the Condition-I leg — plan of record, §5 top —
+   as its validation grid). The `A(zone)`
    table, `Occ` curve, and danger metric are **v10-only** — `kAZoneMs` is hard-coded
    `{290,400,290,140}` in `Simulation.cpp`. Run `tools/zone_sweep.py` + `tools/occupancy_sweep.py`
    on `--profile 12.5` and `15` for per-profile `A(zone)` + `Occ`; generalize the danger metric's
