@@ -565,9 +565,10 @@ capacity lift (the "2.7× more cars" = ZB-F-X composed **N = 8 @ s ≥ 4 s** cer
 machine-checked + sim-cross-checked, *not* proven). The remaining publication step is to **bridge
 the brute-force script to a general analytic proof under our tick-quantum model.** Below is the
 candidate as implemented (`rta_solve.py::hp_interference`, modes `limited` / `limited-t`), written
-in the notation of **Guan et al.'s RTA-LC (RTSS 2009, the m−1-carry-in analysis)** so the delta to
-the classical result is explicit. *(Confirm the RTSS'09 citation before submission — same status
-as the Li et al. flag, HANDOFF §4 follow-up (b).)*
+in the notation of **Guan et al.'s RTA-LC** so the delta to the classical result is explicit.
+*(Citation VERIFIED 2026-07-17: N. Guan, M. Stigge, W. Yi, G. Yu, "New Response Time Bounds for
+Fixed Priority Multiprocessor Scheduling," RTSS 2009, pp. 387–397 — the origin of RTA-LC and the
+"at most m−1 carry-in tasks" result.)*
 
 For task τ_k on m identical cores, `R_k` is the least fixed point of the discrete iteration
 

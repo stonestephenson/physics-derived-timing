@@ -43,8 +43,9 @@ Then by task:
 - **Anything touching the age metric**: `DATA_AGE.md` — its §4 conventions
   ARE the definition of the measured quantity.
 - **Theory / the bound**: `BOUND.md` (its status header says what is
-  verified). Literature in `relatedPapers/`: Li et al. RTSS'24 (tightest
-  multi-rate chain bounds) under DirectlyRelated...; Arafat et al. DAC'22
+  verified). Literature in `relatedPapers/`: Li et al. RTSS'24 = tightest
+  multi-rate chain bounds (`DirectlyRelated.../Priority_Optimization_for_
+  Autonomous_Driving_Systems...pdf`; citation verified 2026-07-17); Arafat et al. DAC'22
   (chain RTA machinery) and Wilson et al. MEMOCODE'24 (Route B's prior)
   under GuoLabSpecifics/.
 - **Zone-tolerance experiments**: `ZONE_TOLERANCE.md`.

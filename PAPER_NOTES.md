@@ -55,6 +55,43 @@ dossier (received 2026-07-17). It reshapes the plan of record in four ways:
 section + Kurt's brief; (2b) a new Condition-I derivation section; (2c) Lemma
 1's statement and limitations paragraph; (3) scope/evaluation framing.
 
+## 2026-07-17 — Citation check: Li et al. RTSS'24 and Guan et al. RTSS'09 both VERIFIED (Li was in relatedPapers all along; its Δ=kψ is Lemma 3)
+
+**What it is.** Chased the two citations the docs had flagged unconfirmed. Both
+are real, correctly attributed, and the specific technical claims are accurate.
+
+**Li et al. RTSS'24 — VERIFIED, and it was in `relatedPapers/` the whole time.**
+Full cite: Xisheng Li, Ye Ma, Yuting Chen, Jinghao Sun, Wanli Chang, Nan Guan,
+Liming Chen, Qingxu Deng, **"Priority Optimization for Autonomous Driving Systems
+to Meet End-to-End Latency Constraints," 2024 IEEE RTSS** (DOI
+10.1109/RTSS62706.2024.00041). It formulates the AD system as a multi-rate DAG
+and derives a *novel, tighter* reaction-time bound for critical cause-effect
+chains (its §IV-B "refined bound", claimed to outperform the prior tightest) —
+matching CLAUDE.md's "tightest multi-rate chain bounds" handle. The file is
+`relatedPapers/DirectlyRelatedToYourSpecificProblem/Priority_Optimization_for_
+Autonomous_Driving_Systems_to_Meet_End-to-End_Latency_Constraints.pdf` — the
+**filename never contained "Li"**, which is why the 2026-06-22 survey reported it
+"not in relatedPapers / could not confirm." The specific handle in `BOUND.md
+§5.2` (Δ = k·gcd quantization of chain phase offsets) is the paper's **Lemma 3**
+verbatim: the release-time gap between adjacent chain jobs is Δ = kψ_i with
+ψ_i = gcd(T_i, T_{i+1}), k = 0..⌊(T_{i+1}−1)/ψ_i⌋. Accurate attribution.
+
+**Guan et al. RTSS'09 — VERIFIED (web).** Nan Guan, Martin Stigge, Wang Yi, Ge
+Yu, **"New Response Time Bounds for Fixed Priority Multiprocessor Scheduling,"
+RTSS 2009, pp. 387–397** (IEEE Xplore 5368174). This is the canonical origin of
+RTA-LC and the **"at most m−1 carry-in tasks"** partitioning our Theorem-2
+bridge (§9.4a) uses — confirmed against the literature. Not in `relatedPapers/`
+(cited from the literature); consider adding the PDF.
+
+**Lesson (process).** A citation "handle" (author-year) that doesn't appear in
+the on-disk filename is invisible to a filename-grep survey — the 06-22 survey's
+false negative on Li was purely a naming mismatch, not a missing paper. Fixed by
+making CLAUDE.md's pointer name the actual file. Both verifications are honest
+literature confirmation, **not** the field-judgment scoop check (that stays Kurt's).
+
+**Where it lands.** Related-work + the RTA/Theorem-2 section (Guan) and the §4
+sampling-term future work (Li). Both now [V]-citable.
+
 ## 2026-07-17 — Theorem-2 bridge (Guo 2a): the limited-carry-in candidate in Guan-RTA-LC notation + a proof-step ledger — 5 of 7 steps transfer, 2 are Kurt's
 
 **What it is.** The scaffold that turns the limited-carry-in RTA from a
@@ -1024,7 +1061,10 @@ If either fails, (A) may have no novel leg left.
 **Honesty notes.** Survey is AI-scaffolded; Kurt renders the verdict (missed-scoop
 risk is real — "found nothing closer" is weak evidence). `Li et al. RTSS'24` (cited
 in `BOUND.md §5`) could NOT be independently confirmed to exist as described —
-verify the handle. The 5 must-cite PDFs (Sudvarg, Kundu–Quevedo, Etcibasi,
+verify the handle. **[RESOLVED 2026-07-17: verified — it exists, is correctly
+attributed, and was in `relatedPapers/` all along (the `Priority_Optimization_…`
+filename hid the "Li et al." handle from the survey). See the 2026-07-17
+citation-check entry.]** The 5 must-cite PDFs (Sudvarg, Kundu–Quevedo, Etcibasi,
 Wilson-F1Tenth, Wilson-MEMOCODE) are now in `relatedPapers/`.
 
 **Where it lands.** Related-work section (position vs Sudvarg / Kundu–Quevedo /

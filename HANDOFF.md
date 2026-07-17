@@ -397,9 +397,11 @@ The ultrareview surfaced 3 findings:
   recording bumped v4→v5 (stores PlantKind + bounds) and a dedicated cart-pole view
   renders the right plant. See the cart-pole-visualizer item in §5.
 - **Follow-ups:** (a) proper multi-N `--floor` sweep to re-derive aguard's
-  post-fix headline (supports §5 item 4); (b) **verify the `Li et al. RTSS'24`
-  citation** in `BOUND.md §5` — flagged unconfirmed by the 2026-06-22 survey;
-  chase before any submission (Kurt / formal leg).
+  post-fix headline (supports §5 item 4); (b) ~~verify the `Li et al. RTSS'24`
+  citation~~ **DONE 2026-07-17** — VERIFIED (+ the Guan RTSS'09 citation): both
+  real, correctly attributed, in-scope; Li et al. IS in `relatedPapers/` (the
+  `Priority_Optimization_…` PDF, filename hid it), its Δ=kψ handle is its Lemma
+  3. Full details: BOUND §5.2/§7.4, PAPER_NOTES 2026-07-17 (citation-check).
 
 ## 5. Prioritized next steps
 
@@ -451,7 +453,8 @@ pulls toward new engineering. The bar: tighten the math on the existing setup.
    tightest margin ≈31 ms; no counterexample; certified 8 ≤ empirical 10).
    Default (no grid) path byte-identical ⇒ verify.sh G3 untouched. BOUND §7.4,
    USAGE, PAPER_NOTES 2026-07-17. The *soundness proof* stays Kurt's (invariant
-   5). (Citation to confirm: Guan et al. RTSS'09, same flag as Li et al.)
+   5). Citation VERIFIED 2026-07-17: Guan, Stigge, Yi, Yu, RTSS 2009, pp.
+   387–397 (origin of RTA-LC / m−1 carry-in).
 5. **Strawman paper outline + Guo reply draft** (lead-facing, cheap, before
    the Kurt meeting): sections → evidence status ([V]/[M]/[C]) → proposed
    owner per section.

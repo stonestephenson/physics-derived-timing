@@ -175,10 +175,17 @@ matters more than sharpening R.
    solve the fixed points and re-derive the workload bound for this model.
 2. **Offset/harmonic-aware sampling terms**: replace the (T + R − C) gaps with
    exact phase analysis under synchronous release (Li et al. RTSS'24's Δ = k·gcd
-   quantization applies directly; T_A = 30 vs T_M = 20 gives gcd 10). **NOTE: the
-   "Li et al. RTSS'24" handle is UNVERIFIED** — not in `relatedPapers/`, flagged
-   by the 2026-06-22 survey; confirm or replace it before citing anywhere (Kurt /
-   formal leg; HANDOFF §4 follow-ups).
+   quantization applies directly; T_A = 30 vs T_M = 20 gives gcd 10). **CITATION
+   VERIFIED 2026-07-17:** Xisheng Li, Ye Ma, Yuting Chen, Jinghao Sun, Wanli
+   Chang, Nan Guan, Liming Chen, Qingxu Deng, "Priority Optimization for
+   Autonomous Driving Systems to Meet End-to-End Latency Constraints," 2024 IEEE
+   RTSS (DOI 10.1109/RTSS62706.2024.00041). It **is** in `relatedPapers/`
+   (`DirectlyRelatedToYourSpecificProblem/Priority_Optimization_for_Autonomous_
+   Driving_Systems_to_Meet_End-to-End_Latency_Constraints.pdf` — the filename,
+   not "Li et al.", is why the 2026-06-22 survey missed it). The Δ = kψ handle is
+   the paper's **Lemma 3** exactly: Δ = kψ_i with ψ_i = gcd(T_i, T_{i+1}),
+   k = 0..⌊(T_{i+1}−1)/ψ_i⌋ — a multi-rate cause-effect-chain reaction-time
+   bound (its §IV-B "refined bound"). Attribution is accurate.
 3. **Hold-term sharpening**: the actuator re-latches the *same* stamp if no
    fresher packet arrived; the + T_A term composes with the netCA arrival gap —
    check for double counting (I believe the composition is correct but it is
@@ -343,7 +350,11 @@ benign-phasing pessimism grows with R too, so the bound may outrun measurement.
    are the `m−1` carry-in count under synchronous release (#2) and the
    non-monotone stopping-rule soundness (#6 = Lemma 2a). Empirical arbiter
    widened: `rta_solve.py --workload limited --cross-check --soundness-grid
-   1,4,6,7,8` (age ≤ bound at every certified N, no counterexample).
+   1,4,6,7,8` (age ≤ bound at every certified N, no counterexample). **Citation
+   VERIFIED 2026-07-17:** Nan Guan, Martin Stigge, Wang Yi, Ge Yu, "New Response
+   Time Bounds for Fixed Priority Multiprocessor Scheduling," RTSS 2009,
+   pp. 387–397 — the origin of RTA-LC and the "at most m−1 carry-in tasks"
+   result (not in `relatedPapers/`; cited from the literature).
 3. Limited carry-in (m−1) refinement, then offset/harmonic-aware sampling
    terms in §4 (these two interact; do them together).
 4. Priority-order optimization over `kind` rank within a vehicle (the B→M
