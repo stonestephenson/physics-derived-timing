@@ -21,8 +21,10 @@ and appends to the committed CSV. Determinism: --exec worst has no seed dependen
 so re-runs are byte-stable. `tolerance` delegates to tools/tolerance_sweep.py.
 
 SCOPE: the scheduling figures (capacity / simultaneous-criticality / honest A/B /
-the S5c aguard --floor sweep / the per-plant tolerance cliff). BOUND.md's RTA table
-is verified separately by tools/rta_solve.py.
+the S5c aguard --floor sweep / the per-plant tolerance cliff) plus the route/physics
+sweeps that delegate to standalone tools (zones -> zone_sweep.py, occupancy ->
+occupancy_sweep.py, danger -> danger_sweep.py). BOUND.md's RTA table is verified
+separately by tools/rta_solve.py.
 """
 import argparse
 import csv
@@ -290,6 +292,16 @@ def exp_occupancy(cps, out_dir, dur):
                        check=True)
 
 
+def exp_danger(cps, out_dir, dur):
+    """K(tau) danger-relative criticality, rm vs aguard at N=18 (v10; THE PLAN
+    leg 4, THEOREM_BRIEF S3.6/S9.2c + the orthogonal-axes finding). Delegates to
+    tools/danger_sweep.py (uses ./build/cps)."""
+    base = [sys.executable, os.path.join(HERE, "danger_sweep.py"), "--force"]
+    extra = ["--vehicles", "8", "--duration", "10"] if QUICK else []
+    subprocess.run(base + extra + ["--out", os.path.join(out_dir, "danger_sweep.csv")],
+                   check=True)
+
+
 REGISTRY = {
     "capacity":  (exp_capacity,  "capacity tournament vs N -> capacity_sweep.csv (PREDICTOR S5 / GENERALIZATION S3)"),
     "simcrit":   (exp_simcrit,   "simultaneous criticality vs N/tau -> simcrit_sweep.csv (PREDICTOR S5d)"),
@@ -298,6 +310,7 @@ REGISTRY = {
     "tolerance": (exp_tolerance, "per-plant tolerance cliff -> tolerance_sweep.csv (PREDICTOR S5d)"),
     "zones":     (exp_zones,     "causal A(zone) tables + fine z3 cliffs, all profiles -> zone_tolerance*.csv (THEOREM_BRIEF S3.2)"),
     "occupancy": (exp_occupancy, "packed-z3 Occ + rm/aguard pairing, all profiles -> occupancy_sweep*.csv (THEOREM_BRIEF S3.5)"),
+    "danger":    (exp_danger,    "K(tau) danger-relative criticality, rm vs aguard (v10) -> danger_sweep.csv (THEOREM_BRIEF S3.6/S9.2c)"),
 }
 
 QUICK = False

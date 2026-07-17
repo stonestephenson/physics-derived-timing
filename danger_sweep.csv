@@ -1,0 +1,13 @@
+scheduler,vehicles,danger_tau,max_k_age,max_k_danger
+rm,18,0.25,6,18
+rm,18,0.5,0,12
+rm,18,0.75,0,12
+rm,18,1.0,0,12
+rm,18,1.25,0,12
+rm,18,1.5,0,12
+aguard,18,0.25,18,18
+aguard,18,0.5,9,9
+aguard,18,0.75,7,7
+aguard,18,1.0,6,6
+aguard,18,1.25,6,6
+aguard,18,1.5,6,6

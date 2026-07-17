@@ -612,9 +612,14 @@ while leg 3 is with Kurt).** Recorded 2026-06-29; the critical path is Kurt's le
    breach in z, to quantify how much tighter `A(z)` must be for a worst hand-off. Turns the §3.2
    good-entry wrinkle (PAPER_NOTES 2026-06-29) from a flagged assumption into a number; feeds
    Kurt's inductive `A(zone)`-budget argument (THEOREM_BRIEF §6 #3c / §9.5).
-4. **Reproducibility housekeeping.** Fold `occupancy_sweep` + the danger metric into
-   `tools/reproduce.py` so the new CSVs regenerate one-command (Guo directive). `occupancy_sweep.csv`
-   is already committed; `--danger-tau` has no dedicated sweep yet.
+4. **Reproducibility housekeeping — DONE 2026-07-17** (commit pending). New
+   `tools/danger_sweep.py` (mirrors `occupancy_sweep.py`: `--out`/`--force`,
+   parses BOTH stdout K(τ) curves — `[age-only]` K_age and `[+state]` K — into
+   `danger_sweep.csv`; v10-only since the A(zone) table is v10-hardcoded).
+   `reproduce.py danger` delegates to it (registered; `--quick` isolates to
+   `.reproduce_quick/`; regenerates the committed CSV byte-identical).
+   `danger_sweep.csv` committed. THEOREM_BRIEF §9.2c/§9.6, USAGE updated.
+   (`occupancy_sweep`/`zones` were already folded in on 2026-07-04.)
 5. **Sweep-tool safety — DONE (2026-07-02, `harness-readiness`).** `zone_sweep.py` /
    `occupancy_sweep.py` now take `--out` and refuse to overwrite an existing file without
    `--force`; `reproduce.py --quick` writes to git-ignored `./.reproduce_quick/` so smoke

@@ -254,13 +254,14 @@ python3 tools/reproduce.py --quick    # SMALL grids (fast smoke) -- see warning 
 only the *scheduling* CSVs (`capacity_sweep.csv`, `simcrit_sweep.csv`, `honest_sweep.csv`,
 `aguard_sweep.csv`, `tolerance_sweep.csv`). The physics/route CSVs are separate tools:
 `tools/zone_sweep.py` → `zone_tolerance.csv` (leg 1, causal `A(zone)`),
-`tools/occupancy_sweep.py` → `occupancy_sweep.csv` (leg 2, `Occ(s)`), and
+`tools/occupancy_sweep.py` → `occupancy_sweep.csv` (leg 2, `Occ(s)`),
+`tools/danger_sweep.py` → `danger_sweep.csv` (leg 4, the `K(τ)` curve — both the
+`[age-only]` and `[+state]` axes, v10 only; `reproduce.py danger` delegates to it), and
 `tools/tolerance_sweep.py` (the per-plant cliff, which `reproduce.py tolerance` delegates
 to). `tools/rta_solve.py` machine-verifies the BOUND.md §7 RTA — `--workload full|limited|
 limited-t` selects the carry-in model (`limited`/`limited-t` = the CANDIDATE Guan-RTA-LC, §9.4a),
 and `--cross-check --soundness-grid N1,N2,...` adds the Theorem-2 bridge validation (measured age
-≤ per-vehicle bound at each certified N; empty grid ⇒ the G3-identical default). **The
-`--danger-tau` (leg 4) metric has no dedicated sweep tool yet** (HANDOFF §5 backlog).
+≤ per-vehicle bound at each certified N; empty grid ⇒ the G3-identical default).
 
 ## Layout
 

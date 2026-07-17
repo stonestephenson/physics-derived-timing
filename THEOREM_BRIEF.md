@@ -462,7 +462,9 @@ So `Occ < N` for any realistic following gap — the slack Lemma 2 gets to explo
 
 **(c) `k(τ)` — the realized danger demand (§3.6).** **[measured]** `--danger-tau` counts cars
 whose delivered age has eaten fraction `τ` of `A(zone_now)`, unioned with the state-critical
-(TTPNR `< θ`) cars. One run sweeps `τ`. N=18 spread, default placement:
+(TTPNR `< θ`) cars. One run sweeps `τ`. N=18 spread, default placement (the `K(τ)` column below
+is `max_k_danger` = the `[+state]` curve in the committed `danger_sweep.csv`; regenerate both
+axes with `python3 tools/reproduce.py danger`):
 
 | `τ` | RM `K(τ)` | aguard `K(τ)` |
 |---|---|---|
@@ -647,7 +649,8 @@ gaps Kurt closes.
     python3 tools/rta_solve.py --workload limited --cross-check --soundness-grid 1,4,6,7,8
     #   ^ Theorem-2 candidate (§9.4a): certified 8, widened age-soundness at every N in the grid
     #     (measured age_path <= per-vehicle bound, no counterexample) — the bridge validation (§9.4b)
-    ./build/cps --headless --vehicles 18 --scheduler aguard --exec worst --duration 30   # K(tau) curve (§9.2c)
+    python3 tools/reproduce.py danger        # K(tau) curve, rm vs aguard, both axes -> danger_sweep.csv (§9.2c)
+    ./build/cps --headless --vehicles 18 --scheduler aguard --exec worst --duration 30   # single K(tau) run (§9.2c)
     ./build/cps --headless --vehicles 1  --scheduler rm     --exec worst --duration 30   # round-trip 90.5 ms (§9.3)
     # single occupancy point + safety pairing:
     ./build/cps --headless --vehicles 18 --scheduler aguard --exec worst --duration 30 --pack-zone 3 --min-spacing 1000
