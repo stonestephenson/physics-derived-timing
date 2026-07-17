@@ -31,13 +31,18 @@ from pathlib import Path
 
 # z3 arc structure per profile -- from zone_probe.cpp (reads the repo's own
 # Trajectory.cpp zone computation; regenerate with the probe if zones change).
+# Starts are TRUE (unrotated) tick indices: the probe now anchors the merged
+# wrap-around arc at its real position (Finding D fix 2026-07-17). The pre-fix
+# table was uniformly rotated late by each profile's wrap-run length (v10
+# +147,400, v12.5 +119,400, v15 +98,600); rotation is an isometry of the
+# occupancy problem, so every check below is unchanged by the correction.
 PROFILES = {  # name -> (lap_ticks, [(arc_start, arc_len), ...])
-    "v10":   (1178000, [(908200, 32000), (945200, 32200),
-                        (1069600, 19400), (1156200, 21800)]),
-    "v12.5": (944000,  [(727800, 26000), (757600, 26100),
-                        (857000, 16000), (926200, 17800)]),
-    "v15":   (786000,  [(605300, 47200), (713000, 13600),
-                        (770800, 15200)]),
+    "v10":   (1178000, [(760800, 32000), (797800, 32200),
+                        (922200, 19400), (1008800, 21800)]),
+    "v12.5": (944000,  [(608400, 26000), (638200, 26100),
+                        (737600, 16000), (806800, 17800)]),
+    "v15":   (786000,  [(506700, 47200), (614400, 13600),
+                        (672200, 15200)]),
 }
 N_FLEET = 18
 RUN_TICKS = 300000          # 30 s at 0.1 ms -- occupancy_sweep.py duration
@@ -309,9 +314,13 @@ def check4_inflated_coupling():
     BACK, FWD = 2600, 200   # theta(2400 = 240 ms) + busy window, rounded; T_max
     for name, (lap, arcs) in PROFILES.items():
         infl = [((a - BACK) % lap, l + BACK + FWD) for a, l in arcs]
-        # Inflated arcs may WRAP the lap boundary (all three profiles' last z3
-        # arc ends exactly at lap). rotate_nonwrapping both validates circular
-        # disjointness and puts them in exact_max_occ's domain.
+        # Inflated arcs may WRAP the lap boundary in general (an arc near the lap
+        # end, or the back-inflation of arc 0, can cross 0). In the true frame
+        # (Finding D fix) none of the three profiles' arcs actually reach the lap
+        # boundary, so no wrap occurs here -- but rotate_nonwrapping stays as the
+        # general guard: it both validates circular disjointness and puts the
+        # arcs in exact_max_occ's domain, and the Occ+ values are rotation-
+        # invariant regardless of whether a given frame wraps.
         try:
             rotate_nonwrapping(infl, lap)
             disjoint = True

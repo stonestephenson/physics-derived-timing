@@ -90,9 +90,28 @@ computation by a standalone probe; **[PROVEN — machine-checked]**):
 | v15 | 786,000 | 3 | 76,000 | 47,200 / 13,600 / 15,200 |
 
 K = 4 for v10 (docs said "several"); arcs 1–2 sit only 5,000 ticks apart (the
-cluster matters for tightness); **every profile's last arc ends exactly at the
-lap boundary**, so inflated arcs wrap — handled explicitly below **[council
-auditor]**.
+cluster matters for tightness).
+
+**Erratum (Finding D, resolved 2026-07-17).** An earlier version of this table
+and of `lemma1_check.py`'s `PROFILES` carried z3 arc *start* ticks rotated late
+by each profile's wrap-run length (v10 +147,400, v12.5 +119,400, v15 +98,600) —
+a `zone_probe.cpp` bug: its circular RLE merge folded the lap-wrapping run into
+the first run and then re-accumulated starts from 0. The **lengths, K, L, and
+lap above are unaffected** (rotation is an isometry of the occupancy problem)
+and correcting the frame left **every occupancy value unchanged** (re-verified
+by diffing `lemma1_check.py` output in both frames — all Occ/Occ⁺/exact-opt/
+bound values identical). Two consequences of the correction: (i) in the true
+frame no z3 arc — raw *or* inflated — reaches the lap boundary, so the earlier
+claim "every profile's last arc ends exactly at the lap boundary, so inflated
+arcs wrap" was a **frame artifact**; the wrapped-arc handling in `lemma1_check`
+(`rotate_nonwrapping`, check [1]'s wrapped layouts) nonetheless **stays** — it
+is still correct and still needed for arcs that wrap in general **[council
+auditor]**. (ii) check [3]'s packer replication now runs at the true zone
+positions, so its `F_spaced` min-gap diagnostic reads genuine `OK` (min-gap =
+s+1 ≥ s) instead of the rotated frame's spurious `VIOLATED-by-instrument` — the
+committed v10 `occupancy_sweep.csv` rows are thereby confirmed to arise from
+genuinely F_spaced placements (the check [3] bound test no longer relies on the
+`not spaced` waiver at s ≥ 750 ms).
 
 **Fleet model `F_spaced`** **[ASSUMED — decided, THEOREM_BRIEF §8.1]**: all N
 cars follow the same time-parameterized reference trajectory at phase offsets
@@ -154,7 +173,10 @@ s=3 → old code 1, truth 2) **[council auditor — CRITICAL, fixed]**.
 - check [3]: a pure-Python replication of `Simulation::packZoneOffsets` +
   sliding run-max **reproduces every committed `occupancy_sweep.csv` Occ value
   exactly** (12/9/7/5/4 at s = 1/1.5/2/3/4 s), and each equals the exact
-  F_spaced optimum — the instrument realizes the worst case.
+  F_spaced optimum — the instrument realizes the worst case. (Post-Finding-D,
+  the replication runs at the true zone positions and the placements are
+  genuinely F_spaced at every s — min-gap = s+1 — so the bound test holds
+  without the `not spaced` waiver.)
 - check [4]: the Lemma-2b coupling table (§3.5), now computed on the
   wrapped-arc-valid path; **values unchanged by the fix** (the 200-tick wrap
   tail never altered a count at these spacings).

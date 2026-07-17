@@ -22,35 +22,38 @@ int main(int argc, char** argv) {
         const long lap = traj->lapSteps();
         std::printf("profile %s  lap=%ld ticks (%.1f s)\n", profileName(p), lap,
                     lap * 1e-4);
-        // Run-length encode zoneAt over one lap (circular: merge wrap-around run).
-        std::vector<std::pair<int, long>> runs;  // (zone, len)
-        int z0 = static_cast<int>(traj->zoneAt(0));
-        int cur = z0;
-        long len = 0;
+        // Run-length encode zoneAt over one lap, keeping each run's TRUE start
+        // tick (circular: the wrap-around run and the first run are one arc).
+        struct Run { int zone; long start; long len; };
+        std::vector<Run> runs;
+        int cur = static_cast<int>(traj->zoneAt(0));
+        long start = 0, len = 0;
         for (long i = 0; i < lap; ++i) {
             int z = static_cast<int>(traj->zoneAt(i));
             if (z == cur) { ++len; continue; }
-            runs.push_back({cur, len});
-            cur = z; len = 1;
+            runs.push_back({cur, start, len});
+            cur = z; start = i; len = 1;
         }
-        runs.push_back({cur, len});
-        if (runs.size() > 1 && runs.front().first == runs.back().first) {
-            runs.front().second += runs.back().second;  // circular merge
+        runs.push_back({cur, start, len});
+        if (runs.size() > 1 && runs.front().zone == runs.back().zone) {
+            // Circular merge: fold the wrap-around tail into the first run, but
+            // anchor the merged arc at the tail run's TRUE start (lap - tail_len)
+            // so it reads as a wrapping arc at its real position. Anchoring at 0
+            // (the old code) rotated every downstream start late by tail_len.
+            runs.front().start = runs.back().start;
+            runs.front().len  += runs.back().len;
             runs.pop_back();
         }
         std::map<int, long> total;
         std::map<int, int> count;
-        for (auto& r : runs) { total[r.first] += r.second; count[r.first]++; }
+        for (auto& r : runs) { total[r.zone] += r.len; count[r.zone]++; }
         for (auto& t : total)
             std::printf("  z%d: K=%d arcs, total L=%ld ticks (%.2f%% of lap)\n",
                         t.first, count[t.first], t.second,
                         100.0 * t.second / lap);
         std::printf("  z3 arcs (start_tick,len):");
-        long pos = 0;
-        for (auto& r : runs) {
-            if (r.first == 3) std::printf(" (%ld,%ld)", pos, r.second);
-            pos += r.second;
-        }
+        for (auto& r : runs)
+            if (r.zone == 3) std::printf(" (%ld,%ld)", r.start, r.len);
         std::printf("\n\n");
     }
     return 0;

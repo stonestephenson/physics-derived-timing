@@ -55,6 +55,47 @@ dossier (received 2026-07-17). It reshapes the plan of record in four ways:
 section + Kurt's brief; (2b) a new Condition-I derivation section; (2c) Lemma
 1's statement and limitations paragraph; (3) scope/evaluation framing.
 
+## 2026-07-17 — Finding D closed: zone_probe de-rotated; occupancy values invariant, and the fix STRENGTHENED check [3] (spurious F_spaced violation removed)
+
+**What it is.** The Finding D fix (the 2026-07-10 rotation bug below).
+`tools/proofchecks/zone_probe.cpp` now records each RLE run's true start tick
+and anchors the merged wrap-around arc at the tail run's real position
+(`lap − tail_len`) instead of re-accumulating from 0; `lemma1_check.py::PROFILES`
+now carries true-frame starts for all three profiles. True z3 arcs:
+- **v10** `(760800,32000) (797800,32200) (922200,19400) (1008800,21800)`
+- **v12.5** `(608400,26000) (638200,26100) (737600,16000) (806800,17800)`
+- **v15** `(506700,47200) (614400,13600) (672200,15200)`
+Each old table was a uniform late rotation by the profile's wrap-run length
+(v10 +147,400, v12.5 +119,400, v15 +98,600) — lengths, K, L, lap, and *order*
+all preserved (the isometry signature). K/L/lap match the `proofchecks/README`
+table exactly (unchanged).
+
+**The prediction held — and then some.** Diffing `lemma1_check.py` output in the
+old (rotated) vs new (true) frame: **every occupancy value is identical** —
+replicated Occ, exact-optimum, per-arc, headline, and the check-[4] inflated
+Occ⁺ table. Rotation invariance confirmed empirically, as the finding predicted.
+
+**The one position-keyed change is a strengthening, worth a sentence in the
+paper.** check [3] replicates `Simulation::packZoneOffsets` and reports the
+placed configuration's min pairwise gap + an `F_spaced` flag. That gap is
+genuinely position-keyed (the finding's "bites only position-keyed consumers").
+In the *rotated* frame the replicated packer produced offsets with min-gap <
+spacing (e.g. 1,798 at s = 1 s), flagged `VIOLATED-by-instrument`, which **waived**
+check [3]'s `measured ≤ headline` bound test via the `or not spaced` branch. In
+the *true* frame — which is how the committed `occupancy_sweep.csv` was actually
+generated (real `Trajectory::zoneAt`) — the packer is properly spaced (min-gap =
+s+1 ≥ s at every s), so the flag reads `OK` and the bound test now passes
+**without** the waiver. So the correction doesn't just leave the numbers intact;
+it upgrades a waived check into a genuine one and confirms the committed v10 Occ
+rows (12/9/7/5/4 at s = 1/1.5/2/3/4 s) arise from truly F_spaced placements. The
+old rotated frame's `VIOLATED-by-instrument` warnings were themselves artifacts
+of the rotation bug.
+
+**Where it lands.** Instrument-honesty footnote to the Lemma-1 occupancy
+section; PROOF_DRAFT §0 carries the erratum + check-[3] note. Reinforces the
+"the simulator is the adversary — verify, never assume" lesson: the diff
+(not the invariance argument alone) is what surfaced the check-[3] strengthening.
+
 ## 2026-07-10 — Instrument honesty: zone_probe reports arc STARTS rotated by the wrap-merged tail (no result changes — rotation is an isometry of the occupancy problem)
 
 **What it is.** `tools/proofchecks/zone_probe.cpp` prints z3 arc start ticks

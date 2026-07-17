@@ -156,7 +156,18 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   age pairs + missed counts, exact) — which is how Finding D (§4: zone_probe
   rotated arc starts) surfaced. Fix deliberately deferred to its own session
   (recipe in §4 D).
-- **Session 2026-07-17: Dr. Guo's dossier response received — plan of record
+- **Session 2026-07-17 (b): Finding D fixed — `zone_probe.cpp` arc-start
+  rotation (code + proofcheck + docs).** De-rotated `zone_probe.cpp` (records
+  true run starts; anchors the merged wrap-arc at its real position) and
+  `lemma1_check.py::PROFILES` (all three profiles' true starts). Re-verified by
+  diffing `lemma1_check` output old-vs-new: every occupancy value identical
+  (rotation invariance, as predicted); the one position-keyed change is a
+  strengthening — check [3]'s F_spaced diagnostic went spurious-VIOLATED →
+  genuine-OK, confirming the committed `occupancy_sweep.csv` rows come from
+  properly F_spaced placements. PROOF_DRAFT §0 erratum + check-[3] note landed.
+  Full record: §4 D (RESOLVED); PAPER_NOTES 2026-07-17. No run/CSV/theorem
+  number changed; K/L/lap unchanged.
+- **Session 2026-07-17 (a): Dr. Guo's dossier response received — plan of record
   reprioritized (docs only).** Positioning vs Sudvarg advisor-confirmed (their
   lever = sampling periods from physical state; ours = tolerable data age under
   shared multicore contention; the three-condition decoupling endorsed as
@@ -354,29 +365,26 @@ finding, deliberately NOT integrated into `PREDICTOR.md §5c`. It is a secondary
 fairness angle. Repro if/when needed: `ttu` at N=14 30 s vs 120 s vs `--cores 6`,
 and `aguard` N=14.
 
-**D. (2026-07-10) `zone_probe.cpp` prints arc STARTS rotated by the wrap-merged
-tail — no result changes; fix before any position-keyed reuse.** Full analysis:
-PAPER_NOTES 2026-07-10. The circular RLE merge folds the lap-wrapping run into
-the front run, then the start-printing loop re-accumulates positions from 0, so
-every printed start is late by the tail run's length (v10: 147,400 ticks). True
-v10 z3 arcs: **(760800,32000) (797800,32200) (922200,19400) (1008800,21800)**.
-Rotation is an isometry of the occupancy problem ⇒ every Occ/Occ⁺/Lemma-1 value
-is unchanged (re-verified both frames); the harness itself uses the real
-`zoneAt`, so no run/CSV/theorem number is affected. Bites only position-keyed
-consumers of the printed table (caught when a validated JS twin of the
-scheduler matched the binary on rm but not zband — the twin's flags came from
-the rotated table).
-*Fix (one small session, AI-ownable, non-blocking):*
-1. `zone_probe.cpp`: report true starts (RLE with real indices; don't
-   re-accumulate after the merge — or subtract the merged tail length mod lap).
-2. Regenerate `lemma1_check.py::PROFILES` for **all three profiles** (v12.5/v15
-   starts are presumably rotated by their own tail lengths — unverified).
-3. Re-run `lemma1_check.py`: every check must pass with values unchanged
-   (rotation invariance is the prediction; a change = a real bug, report loudly).
-4. Erratum note on PROOF_DRAFT §0's geometry table: starts were frame-rotated;
-   "last arc ends exactly at the lap boundary ⇒ inflated arcs wrap" is a
-   frame artifact (true-frame v10 inflated arcs do NOT wrap); the wrapped-arc
-   handling stays (still correct, still needed in general).
+**D. (2026-07-10) `zone_probe.cpp` printed arc STARTS rotated by the wrap-merged
+tail — RESOLVED 2026-07-17 (commit pending).** Full analysis: PAPER_NOTES
+2026-07-10; closing note: PAPER_NOTES 2026-07-17. The circular RLE merge folded
+the lap-wrapping run into the front run, then the start-printing loop
+re-accumulated positions from 0, so every printed start was late by the tail
+run's length (v10 +147,400, v12.5 +119,400, v15 +98,600). **Fix landed:**
+`zone_probe.cpp` now records each run's true start and anchors the merged
+wrap-arc at the tail run's real position; `lemma1_check.py::PROFILES` updated to
+true starts for all three profiles (true v10 z3 arcs **(760800,32000)
+(797800,32200) (922200,19400) (1008800,21800)**; v12.5/v15 likewise
+de-rotated). **Verified:** `lemma1_check.py` passes with **every occupancy value
+identical** across frames (diffed old-vs-new output — rotation invariance
+confirmed empirically, as predicted). **One expected position-keyed change, a
+strengthening not a regression:** check [3]'s F_spaced min-gap diagnostic moved
+from spurious `VIOLATED-by-instrument` (rotated packing) to genuine `OK`
+(min-gap = s+1 ≥ s) — the true frame matches how the committed
+`occupancy_sweep.csv` was actually generated, so the check [3] bound test now
+holds without the `not spaced` waiver at s ≥ 750 ms (PROOF_DRAFT §0 erratum +
+check-[3] note). No run/CSV/theorem number changed. K/L/lap unchanged (README
+`proofchecks` table still valid).
 
 ### Review triage (2026-06-22, ultrareview cloud review of the branch)
 The ultrareview surfaced 3 findings:
@@ -406,8 +414,11 @@ two of his three hardening legs have large AI-ownable fractions and one
 pulls toward new engineering. The bar: tighten the math on the existing setup.
 
 **AI track (in order):**
-1. **Finding D fix** (§4 D recipe) — first; hygiene, but it touches
-   `lemma1_check.py::PROFILES` and the arc tables that items 2–3 reuse.
+1. **Finding D fix** (§4 D recipe) — **DONE 2026-07-17** (commit pending):
+   `zone_probe.cpp` + `lemma1_check.py::PROFILES` de-rotated to true starts;
+   `lemma1_check` passes with all occupancy values identical across frames;
+   check [3] F_spaced diagnostic strengthened (spurious VIOLATED → genuine OK);
+   PROOF_DRAFT §0 erratum landed. See §4 D (RESOLVED) + PAPER_NOTES 2026-07-17.
 2. **Lemma-1 spacing cleanup (Guo 2c).** In-sim spacing cannot drift
    (trace-driven; see the 2026-07-17 session record), so: a cleanly stated
    limitation + a buffer form `s_eff = s − buffer` in the Lemma-1 statement +
