@@ -464,7 +464,9 @@ replication evidence for the band analysis; the harness-level `zband` policy
 ## 4. Theorem and Corollary (candidate)
 
 > **Theorem (fleet safety, v10 instance).** Under the §0 model, F_spaced with
-> s ≥ 4 s, N ≤ 8, ZB-F-X (θ = θ_x = 240 ms), and assumptions A1–A4 (§6):
+> s ≥ 4 s (the *effective* spacing — see the spacing-robustness buffer below for
+> delay-induced compression), N ≤ 8, ZB-F-X (θ = θ_x = 240 ms), and assumptions
+> A1–A4 (§6):
 > every car's applied-command data age stays ≤ A(zone_i(t)) for all t, hence
 > (by the A(zone) safety bridge, §6 A1 — **the assumption carrying the
 > residual physics risk**) no car crosses the 0.8 m hard bound.
@@ -479,6 +481,35 @@ replication evidence for the band analysis; the harness-level `zband` policy
 > same-workload baseline)**, earned exactly by the route's non-z3 fraction.
 > Degradation is honest: s → 0 ⇒ Occ⁺ → N ⇒ conjunct (i) fails for N > 4 and
 > the claim collapses to classical.
+
+**Spacing robustness — the `F_spaced` buffer [ASSUMED → BUFFERED; addresses
+Guo 2c].** The theorem's `F_spaced` hypothesis fixes a *constant* minimum
+temporal spacing `s`. In a real fleet `s` is not exogenous: network/scheduling
+delays perturb control, and delay-induced braking/drift can **compress** spacing
+below its nominal value (the control↔occupancy coupling flagged in A3). We
+handle this conservatively with a **safety buffer** — certify at the *effective*
+spacing `s_eff = s_nominal − Δ`, where `Δ` bounds worst-case compression.
+Because `Occ⁺` is non-increasing in spacing (`lemma1_check.py` [5],
+machine-checked), `Occ⁺(s_eff) ≥ Occ⁺(s_nominal)`: a buffer can only *raise* the
+demand the schedule must clear, never hide it, so the composition stays sound.
+Sensitivity at the certified operating point (v10, inflated arcs, `N = 18` cap;
+`lemma1_check.py` [5]):
+
+| compression `Δ` | `s_eff` | `Occ⁺` | fits `K* = 4` (N = 8)? |
+|---|---|---|---|
+| 0 | 4.00 s | 4 | yes |
+| 250 ms | 3.75 s | 4 | yes |
+| 500 ms | 3.50 s | 4 | yes |
+| 1.0 s | 3.00 s | 5 | **no** — needs band 5 (a FAIL row, §5) |
+| 2.0 s | 2.00 s | 8 | no |
+
+So the `s ≥ 4 s` certification **absorbs up to ≈ 500 ms of spacing compression
+for free** (the `Occ⁺ = 4` band extends down to `s_eff = 3.5 s`); beyond that the
+buffer must be pre-paid in the nominal gap — to tolerate worst-case compression
+`Δ` while keeping `N = 8`, run `s_nominal ≥ 3.5 s + Δ` (conservatively
+`4 s + Δ`). Deriving `Δ` from a longitudinal / braking model is out of scope
+here (it is precisely the A3 control↔occupancy coupling, left as future work);
+the buffer makes the theorem robust to *any* such bound `Δ` once one is supplied.
 
 Context (not proof): the sim runs breach-free to N = 10 uniform; aguard holds
 0 hard at N = 18 / Occ = 12 — the certified region sits well inside what a
@@ -545,10 +576,17 @@ byte-identical, diffed): S5 stopping rule; `limited-t`; `--band/--band-n/
   dominated under level-monotonicity at fixed shape (an argument, not a
   measurement). Cheapest close: a small `--ff-extra-ms` knob (or the zband
   policy itself) + re-run the z3 sweep rows at +16 ms.
-- **A3 [ASSUMED — fleet model].** F_spaced temporal spacing, invariant;
-  static zone map; zone membership exogenous to control quality (true in this
-  harness — time-parameterized positions; real longitudinal dynamics would
-  couple).
+- **A3 [ASSUMED — fleet model; spacing now BUFFERED, §4].** F_spaced temporal
+  spacing, invariant; static zone map; zone membership exogenous to control
+  quality (true in this harness — time-parameterized positions from pre-recorded
+  reference traces, `src/trace/Trajectory.h`, so spacing cannot drift in-sim;
+  real longitudinal dynamics would couple — delays → braking/drift → spacing
+  compression). **The invariance is no longer assumed outright:** the §4
+  spacing-robustness buffer certifies at the effective spacing `s_eff = s − Δ`
+  and is machine-checked conservative (`lemma1_check.py` [5]); a worst-case
+  compression bound `Δ` (from a longitudinal/braking model — future work) plugs
+  straight in via `s_nominal ≥ 3.5 s + Δ`. What remains genuinely A3 is
+  *deriving* that `Δ` and the static-zone-map assumption.
 - **A4 [ASSUMED — model].** P2 (fixed delays, `--exec worst`), P3 (steady
   state), and the §4 Layer-1 age bound itself (BOUND.md v0.1 — **also still
   unverified**; this draft composes it, it does not re-prove it).

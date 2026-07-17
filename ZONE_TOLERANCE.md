@@ -38,7 +38,11 @@ the Q4 figure. Consumer of the A(zone) output today:
 Companion piece needed alongside (HANDOFF §5 leg 2, owned with the bound): the
 worst-case zone **occupancy** depends on a **fleet model** — can cars bunch (a jam
 releasing together) or are they free-flowing and spaced? State that assumption; the
-`--align-offsets` knob is the empirical lever for placing cars adversarially.
+`--align-offsets` knob is the empirical lever for placing cars adversarially. The
+chosen model is `F_spaced` (minimum temporal spacing `s`); its constant-spacing
+assumption is now **buffered** against delay-induced compression — certify at
+`s_eff = s − Δ` (PROOF_DRAFT §4 spacing-robustness buffer; `lemma1_check.py` [5];
+PAPER_NOTES 2026-07-17).
 
 ## Zones
 

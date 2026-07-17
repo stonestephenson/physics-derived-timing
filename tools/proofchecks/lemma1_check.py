@@ -338,6 +338,49 @@ def check4_inflated_coupling():
               " ".join("s=%d:Occ+=%d" % r for r in row))
 
 
+def check5_spacing_buffer():
+    """Spacing-robustness buffer (Guo 2c). F_spaced assumes a constant minimum
+    temporal spacing s; delay-induced braking/drift can COMPRESS it. A safety
+    buffer certifies at the effective spacing s_eff = s_nominal - Delta, where
+    Delta bounds the worst-case compression. Occ+ is non-increasing in s, so
+    Occ+(s_eff) >= Occ+(s_nominal): the buffer is strictly conservative (a
+    tighter effective spacing can only raise occupancy, never lower it).
+
+    Asserts: (a) Occ+ monotone non-increasing in s on a fine grid (so a buffer
+    is safe to apply); (b) at the certified operating point s0 = 4 s the
+    inflated occupancy equals the band-certified count K* = 4. Then tabulates
+    the compression tolerance: for each Delta, s_eff = s0 - Delta and whether
+    Occ+(s_eff) still fits K*. Headline: to tolerate compression <= Delta while
+    keeping N=8, run s_nominal >= 4 s + Delta. Pure geometry; reuses check [4]'s
+    inflation (back 2600 / fwd 200 ticks)."""
+    print("[5] spacing-buffer robustness (Guo 2c): Occ+ vs effective spacing")
+    BACK, FWD = 2600, 200
+    KSTAR = 4          # band-certified inflated-arc count for N=8 (PROOF_DRAFT §3.5)
+    S0_MS = 4000       # certified operating spacing (s >= 4 s)
+    lap, arcs = PROFILES["v10"]
+    infl = [((a - BACK) % lap, l + BACK + FWD) for a, l in arcs]
+
+    grid = list(range(500, 8001, 250))
+    occ = [exact_max_occ(infl, lap, s_ms * 10, N_FLEET) for s_ms in grid]
+    mono = all(occ[i] >= occ[i + 1] for i in range(len(occ) - 1))
+    check("Occ+ non-increasing in spacing (buffer is conservative)", mono,
+          "grid 0.5-8 s")
+
+    occ0 = exact_max_occ(infl, lap, S0_MS * 10, N_FLEET)
+    check("Occ+(s0=4 s) == K*=%d (certified operating point)" % KSTAR,
+          occ0 == KSTAR, "Occ+=%d" % occ0)
+
+    print("      compression tolerance at s0 = 4 s (Delta = worst-case squeeze):")
+    print("      Delta(ms)  s_eff(ms)  Occ+  fits K*=4?")
+    for d_ms in (0, 250, 500, 1000, 2000):
+        s_eff = max(1, S0_MS - d_ms)
+        occ_eff = exact_max_occ(infl, lap, s_eff * 10, N_FLEET)
+        print("      %8d  %8d  %4d  %s"
+              % (d_ms, s_eff, occ_eff, "yes" if occ_eff <= KSTAR else "NO"))
+    print("      => to keep Occ+ <= K* under compression <= Delta, require "
+          "s_nominal >= 4 s + Delta")
+
+
 if __name__ == "__main__":
     csv_arg = sys.argv[1] if len(sys.argv) > 1 else str(
         Path(__file__).resolve().parents[2] / "occupancy_sweep.csv")
@@ -345,6 +388,7 @@ if __name__ == "__main__":
     check2_real_geometry()
     check3_instrument(csv_arg)
     check4_inflated_coupling()
+    check5_spacing_buffer()
     print("\n%s: %d failure(s)" % ("ALL LEMMA-1 CHECKS PASS" if not fails
                                    else "LEMMA-1 CHECK FAILURES", len(fails)))
     for f in fails:

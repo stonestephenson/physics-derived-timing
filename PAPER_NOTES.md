@@ -55,6 +55,49 @@ dossier (received 2026-07-17). It reshapes the plan of record in four ways:
 section + Kurt's brief; (2b) a new Condition-I derivation section; (2c) Lemma
 1's statement and limitations paragraph; (3) scope/evaluation framing.
 
+## 2026-07-17 — Lemma-1 spacing buffer (Guo 2c): the s≥4 s certification absorbs ≈500 ms of compression for free; beyond that, run s_nominal ≥ 3.5 s + Δ
+
+**What it is.** The clean answer to Guo's point 2c — `F_spaced` assumes a
+*constant* minimum temporal spacing `s`, but real delays → braking/drift can
+compress it. Rather than only acknowledge the limitation, we buffer it: certify
+at the **effective** spacing `s_eff = s_nominal − Δ`, where `Δ` bounds worst-case
+compression. `Occ⁺` is non-increasing in `s` (machine-checked, `lemma1_check.py`
+[5]), so a buffer can only *raise* the demand the schedule must clear — strictly
+conservative, never optimistic.
+
+**The number (verified, not estimated — `lemma1_check.py` [5]).** At the certified
+operating point `s₀ = 4 s`, the inflated occupancy `Occ⁺` stays at the
+band-certified `K* = 4` all the way down to `s_eff = 3.5 s`, then jumps to 5 at
+`s_eff = 3 s`:
+
+| `Δ` (compression) | `s_eff` | `Occ⁺` | fits `K*=4` (N=8)? |
+|---|---|---|---|
+| 0 | 4.00 s | 4 | yes |
+| 250 ms | 3.75 s | 4 | yes |
+| 500 ms | 3.50 s | 4 | yes |
+| 1.0 s | 3.00 s | 5 | no (needs band 5, a FAIL row) |
+| 2.0 s | 2.00 s | 8 | no |
+
+So the round-number `s ≥ 4 s` certification **already contains ≈ 500 ms of
+compression tolerance** (the Occ⁺=4 band bottoms out at 3.5 s, not 4 s); to
+guarantee a larger compression bound `Δ`, pre-pay it in the nominal gap:
+`s_nominal ≥ 3.5 s + Δ` (conservatively `4 s + Δ`). *(Estimating "zero
+tolerance" from the 4 s → 5 s grid step would have been wrong — running check [5]
+surfaced the 3.5 s sub-grid headroom. "The simulator is the adversary — verify,
+never assume," §8.)*
+
+**What stays open (honest scope).** Deriving `Δ` from a longitudinal /
+braking model is **not** done here — that is exactly the A3 control↔occupancy
+coupling, left as future work. The buffer's contribution is to make the theorem
+robust to *any* such `Δ` once supplied, and to quantify the price (nominal-gap
+inflation). In the harness itself spacing cannot drift at all — cars follow
+pre-recorded reference traces (`src/trace/Trajectory.h`), so `F_spaced` holds by
+construction and this is purely a real-world model-validity buffer.
+
+**Where it lands.** Lemma-1 / demand-bound section: state `F_spaced`, then the
+buffer as the robustness clause; the corollary's "s ≥ 4 s" is the *effective*
+spacing. PROOF_DRAFT §4 (buffer + sensitivity table) + A3; THEOREM_BRIEF §3.5.
+
 ## 2026-07-17 — Finding D closed: zone_probe de-rotated; occupancy values invariant, and the fix STRENGTHENED check [3] (spurious F_spaced violation removed)
 
 **What it is.** The Finding D fix (the 2026-07-10 rotation bug below).

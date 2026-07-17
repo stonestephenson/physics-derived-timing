@@ -202,6 +202,16 @@ placements — see §9.2d note; the original packer read 0) — the occupancy→
 At the fully-stacked extreme (`Occ=N`) even aguard crashes — the honest `F_adversarial`
 degradation (§5 Corollary). (PAPER_NOTES 2026-06-29.)
 
+**Spacing robustness — the buffer (addresses Guo 2c).** `F_spaced` assumes the minimum
+spacing `s` is *constant*; in reality delay-induced braking/drift can compress it. We certify
+at the **effective** spacing `s_eff = s_nominal − Δ` (`Δ` = worst-case compression bound):
+`Occ⁺` is non-increasing in `s` (machine-checked, `lemma1_check.py` [5]), so a buffer is
+strictly conservative. At the certified `s ≥ 4 s` point the `Occ⁺ = 4` band extends down to
+`s_eff = 3.5 s`, so the certification absorbs ≈ 500 ms of compression for free; to tolerate a
+larger bound `Δ`, run `s_nominal ≥ 3.5 s + Δ`. Deriving `Δ` from a longitudinal model is the
+A3 coupling (future work) — the buffer makes the theorem robust to any such `Δ`.
+(PAPER_NOTES 2026-07-17.)
+
 ### 3.6 Concurrent demand k **[measured — danger-relative metric built 2026-06-29]**
 
 `k(R, F) = Occ(R, F)` evaluated at horizon `θ` — the peak number of loops that

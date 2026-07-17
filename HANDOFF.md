@@ -419,11 +419,15 @@ pulls toward new engineering. The bar: tighten the math on the existing setup.
    `lemma1_check` passes with all occupancy values identical across frames;
    check [3] F_spaced diagnostic strengthened (spurious VIOLATED → genuine OK);
    PROOF_DRAFT §0 erratum landed. See §4 D (RESOLVED) + PAPER_NOTES 2026-07-17.
-2. **Lemma-1 spacing cleanup (Guo 2c).** In-sim spacing cannot drift
-   (trace-driven; see the 2026-07-17 session record), so: a cleanly stated
-   limitation + a buffer form `s_eff = s − buffer` in the Lemma-1 statement +
-   an `occupancy_sweep` sensitivity row at buffered spacings. Fully retires
-   the point.
+2. **Lemma-1 spacing cleanup (Guo 2c) — DONE 2026-07-17** (commit pending).
+   Buffer model `s_eff = s_nominal − Δ` added to the theorem/`F_spaced`/A3;
+   `lemma1_check.py` check [5] machine-checks Occ⁺ monotone in `s` + the
+   compression-tolerance table. **Verified result:** the `s ≥ 4 s`
+   certification absorbs ≈ 500 ms compression for free (Occ⁺=4 down to
+   s_eff=3.5 s), breaks at Δ=1 s (Occ⁺=5); to tolerate Δ, run
+   `s_nominal ≥ 3.5 s + Δ`. Deriving Δ from a longitudinal model = the A3
+   coupling, left as future work. PROOF_DRAFT §4 + A3, THEOREM_BRIEF §3.5,
+   ZONE_TOLERANCE, proofchecks README, PAPER_NOTES 2026-07-17.
 3. **Condition-I analytic A(zone) under-bound (NEW leg, biggest AI value).**
    Derive a conservative held-command error-growth bound per zone from the
    linearized lateral dynamics already in `Predictor.cpp` (verbatim FMU-port
