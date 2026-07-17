@@ -428,15 +428,17 @@ pulls toward new engineering. The bar: tighten the math on the existing setup.
    `s_nominal ≥ 3.5 s + Δ`. Deriving Δ from a longitudinal model = the A3
    coupling, left as future work. PROOF_DRAFT §4 + A3, THEOREM_BRIEF §3.5,
    ZONE_TOLERANCE, proofchecks README, PAPER_NOTES 2026-07-17.
-3. **Condition-I analytic A(zone) under-bound (NEW leg, biggest AI value).**
-   Derive a conservative held-command error-growth bound per zone from the
-   linearized lateral dynamics already in `Predictor.cpp` (verbatim FMU-port
-   matrices); machine-check `A_lb(zone) ≤ measured A(zone)` for every
-   zone × profile. Pulls in the v12.5/v15 A(zone)/Occ generalization (parked
-   item 2, now PROMOTED — it is the validation grid). Output: a CANDIDATE
-   derivation note for Kurt (invariant 5). Likely settles the open 140-vs-170
-   normative decision (analytic bound = normative floor; measured cliff =
-   documented headroom).
+3. **Condition-I analytic A(zone) under-bound (NEW leg, biggest AI value) —
+   DEFERRED 2026-07-17: the EE student owns the zone work; wait to merge with
+   him before touching A(zone) / zone definitions (do NOT race his changes).**
+   When unblocked: derive a conservative held-command error-growth bound per
+   zone from the linearized lateral dynamics already in `Predictor.cpp`
+   (verbatim FMU-port matrices); machine-check `A_lb(zone) ≤ measured A(zone)`
+   for every zone × profile. Pulls in the v12.5/v15 A(zone)/Occ generalization
+   (parked item 2 — the validation grid; also EE-coordinated). Output: a
+   CANDIDATE derivation note for Kurt (invariant 5). Likely settles the open
+   140-vs-170 normative decision (analytic bound = normative floor; measured
+   cliff = documented headroom).
 4. **Theorem-2 bridge prep (Guo 2a; the proof itself stays Kurt's).** The
    candidate formula in standard Guan-RTA notation + an explicit ledger of
    which classical proof steps survive the tick-quantum model and which need
