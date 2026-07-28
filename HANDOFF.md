@@ -63,6 +63,35 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   solver (`4f49f46`); the cart-pole generalization (Plant seam + second plant +
   Phase-3 evidence, 4 commits) lives on the branch. **Push only to `physics-derived-timing`.
   NEVER push to `origin`** (the Bosch upstream). `relatedPapers/` untracked.
+- **Session 2026-07-27/28: NEW SUBPROJECT — F1TENTH cloud-control HIL (real car
+  + simulated cars, one scheduler).** Council-reviewed plan, then built. Two
+  code homes: (a) the lab repo **`~/repos/cloud_control_demo`**
+  (github.com/RTIS-Lab/cloud_control_demo — Kurt's; car = `rtis-jetson`,
+  goat track = the real SLAM-mapped ±0.25 m corridor), branch
+  **`cloud-sched-integration`, 5 LOCAL commits, PUSH WITHHELD** (lead's rule);
+  (b) this repo's untracked `f1tenth_cloud_control/` = an older vendored copy,
+  now **layout-stale** (dev moved to the lab clone) but carrying the TUM
+  column-order loader fix (`track.cpp` right/left swap + regression test) the
+  lead is passing upstream by hand. Built on the branch: an **external-vehicle
+  seam** in the f1sim core (`attachExternalVehicle`/`injectExternalSample`/
+  command sink — reality provides sensing/network/actuation; the car's cloud
+  job competes in the *unchanged* A-GUARD pool; byte-identical when unused;
+  loopback tests reproduce the exact 10+4+10 ms round trip, determinism, and
+  zero perturbation of an uncontended sim car), a ROS-free native build guard,
+  **`cloud_sched_node`** (wall-clock catch-up pacer; `/amcl_pose` +
+  `/odometry/filtered` in; AckermannDrive out with **header.stamp echoing the
+  source sensor stamp** so round trip is measured on the car's own clock and
+  fed back via `applied_ack`; **SHADOW mode default** — `/teleop/drive` only
+  with `live:=true`; speed capped 0.5), **`mock_car_node`** (fake rtis-jetson
+  on the exact topics, artificial WiFi jitter), and `INTEGRATION.md` (contract
+  + onboarding: listen-only → shadow → car-on-stand → slow laps). **Container
+  rehearsal (isolated, ROS_LOCALHOST_ONLY) PASSED:** 60 s at drift 0.00 s,
+  589 samples → 581 commands applied, 0 stale, `/teleop/drive` silent, round
+  trips 19–138 ms. Two debugging lessons recorded in code/docs: a burst-held
+  unfair mutex starved the ROS executor (now per-step locking), and
+  sleep-per-tick pacing collapses to 0.3× under container timers (now
+  fixed-timestep catch-up). **NEVER connect to the car without the lead's
+  explicit go** — first contact needs Kurt's watchdog answers + approval.
 - **This session (2026-06-25/26), committed + pushed:** `--align-offsets FRAC` knob
   (`Simulation.{h,cpp}`, `main.cpp`) + the leg-(A) route-map reframe (PAPER_NOTES,
   HANDOFF §5, BOUND, PREDICTOR §5d, ZONE_TOLERANCE, USAGE) + new **`THEOREM_BRIEF.md`**
