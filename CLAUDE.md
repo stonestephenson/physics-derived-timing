@@ -27,7 +27,7 @@ physics, then exploit the beyond-worst-case slack*):
 
 Current strategy, venue, and what's true *now*: `HANDOFF.md`.
 
-Team: Stone (lead) + CS student (solver, sweeps, infra) + EE student (zone
+Team: Stone + CS student (solver, sweeps, infra) + EE student (zone
 tolerance, control side) + Kurt Wilson (PhD mentor: spot-checks formal claims;
 students do the bulk of verification). Status and timeline: `HANDOFF.md`.
 
