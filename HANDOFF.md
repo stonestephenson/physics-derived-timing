@@ -68,7 +68,8 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   code homes: (a) the lab repo **`~/repos/cloud_control_demo`**
   (github.com/RTIS-Lab/cloud_control_demo — Kurt's; car = `rtis-jetson`,
   goat track = the real SLAM-mapped ±0.25 m corridor), branch
-  **`cloud-sched-integration`, 5 LOCAL commits, PUSH WITHHELD** (lead's rule);
+  **`cloud-sched-integration` — PUSHED to the lab repo 2026-07-28 (lead's
+  explicit approval)** for teammates to pull;
   (b) this repo's untracked `f1tenth_cloud_control/` = an older vendored copy,
   now **layout-stale** (dev moved to the lab clone) but carrying the TUM
   column-order loader fix (`track.cpp` right/left swap + regression test) the
@@ -92,6 +93,22 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   sleep-per-tick pacing collapses to 0.3× under container timers (now
   fixed-timestep catch-up). **NEVER connect to the car without the lead's
   explicit go** — first contact needs Kurt's watchdog answers + approval.
+  **2026-07-28 (lab, evening): FIRST PHYSICAL CONTACT — hello-world PASSED**
+  (wheels swept left-right-center from the Mac; car on a table; speed 0.0
+  throughout; lead ran it). The live host is the Mac running **native
+  RoboStack ROS 2** (Docker-on-Mac NAT is unusable for DDS): conda env
+  `ros_env` in `~/mamba` + `client_config_mac.xml` (FastDDS whitelist of the
+  Mac's tailscale addr — FastDDS skips macOS utun by default) +
+  `RMW_IMPLEMENTATION=rmw_fastrtps_cpp` (RoboStack defaults to CycloneDDS,
+  which silently ignores discovery-server config). Untracked Mac-local
+  helpers in the lab clone: `run_mac.sh` (env wrapper), `hello_car.sh`
+  (wheel-wiggle smoke test), `docker-compose.override.yml`; tailnet IPs
+  hard-coded (car 100.64.0.22, Mac 100.64.0.24). Nothing on the car was
+  changed. Shadow vs real car verified (pacing drift 0.00 s natively);
+  found: AMCL is near-silent while parked (adapter may need odom-triggered
+  sampling — scoped, unbuilt) and the parked pose read ~3.4 m off the goat
+  centerline (map-frame check with Kurt is the REMAINING GATE before any
+  live track run, plus the stand watchdog test).
 - **This session (2026-06-25/26), committed + pushed:** `--align-offsets FRAC` knob
   (`Simulation.{h,cpp}`, `main.cpp`) + the leg-(A) route-map reframe (PAPER_NOTES,
   HANDOFF §5, BOUND, PREDICTOR §5d, ZONE_TOLERANCE, USAGE) + new **`THEOREM_BRIEF.md`**
