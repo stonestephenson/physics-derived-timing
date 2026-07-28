@@ -112,3 +112,35 @@ in the last ~23% of the lap, and a 30 s run covers a quarter lap. Full-lap
   sequence beats B||M in parallel — frontier N=1 age floor 80.5 ms (vs 90.5
   everywhere in the project's history); N=6 path age 90.5 vs RM golden 100.5,
   0 missed both. Fleet-wide ~10-20 ms freshness gain from ordering alone.
+- 2026-07-28 (e): v2-v8 iteration arc (git log) — every structural theory
+  (kill-guard, zombie-offer fix, zone tier, thin guard, reserved slot, error
+  ties, E-alongside) failed at N=19 with z3-centered breaches. Per-vehicle
+  diagnosis: frontier BEAT aguard on every health column (age 430 vs 2470,
+  soft 12-27% vs 55-70%, avg_perf 4x better) yet 15/19 cars touched
+  PNR-margin 0. Lesson: at 181% overload the feasible allocation is
+  protection-only; comfort/freshness spending steals the gating margin.
+- 2026-07-28 (f): v9 ablation with a byte-identical aguard anchor (validated:
+  both toggles off == aguard exactly). Attribution: hopeless-cull is a NO-OP
+  (doomed jobs never won cores); F-DEMOTION alone is both the entire capacity
+  win AND the entire z3 breach cluster — F carries the reference; the lane
+  change is where the reference moves; 500 ms-stale F there steers at the old
+  lane line. Stale-F is zone-critical, free on straights (consistent with the
+  ff-extra probe AND the S8.7 damage channel — both were right, in different
+  zones).
+- 2026-07-28 (g): v10 = zone-aware F demotion (flagged cars' F keeps full
+  aguard priority): N=19 CLEAN with 5x better health than the incumbent;
+  breach epicenter moved z3 -> z1/z2 (curved reference, same mechanism,
+  milder). FHB=200 ms probe: N=21 CLEAN (past the incumbent!), N=20 pothole
+  (17 z2 frames).
+- 2026-07-28 (h): v11 (blanket critical-section F protection) REGRESSED —
+  critical sections cover so much lap that the F giveback starved the fleet
+  (z2 hard 2505 at N=20, ages doubled). Lesson: curved zones want BOUNDED F
+  staleness, not full-rate F.
+- 2026-07-28 (i): v12 = tiered F heartbeat (crit 100 ms / straight 500 ms,
+  z3-flagged F undemoted). Margin grid at 120 s: **m=100 is CLEAN at N=19,
+  20, AND 21** — first failure N=22 (25 z1 frames). The fairly-tuned
+  incumbent (margins 60-120 all break at 20) holds 19. Frontier full-lap
+  record: **21 (+2)**, with fleet health ~5x better at every N (soft ~1/5,
+  ages 430-1400 vs 2470+, sim-crit <=1). N=20's failure at m80 was a single
+  car's single 215 ms past-PNR excursion (8 frames) — margin-closable, and
+  closed by m=100 without breaking 19 or 21.
