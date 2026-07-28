@@ -1,5 +1,57 @@
 # FRONTIER — scheduler capacity-limit study (branch: scheduler-frontier, throwaway)
 
+## VERDICT (2026-07-28, complete)
+
+**Frontier v12 beats the fairly-tuned incumbent by +2 on the safety frame and
++1 on the strict challenge frame, with ~5x better fleet health; the ceiling is
+localized to [21, ~27] by the estimator-rate cap.** All numbers: worst exec,
+3 cores, 120 s full lap, v10, default spread phasing, honest info set.
+
+| gate | rm/edf | aguard-honest (best margin) | frontier-honest m100 |
+|---|---|---|---|
+| T1: 0 hard | 10 | 19 (m60-120 all break at 20) | **21** (19/20/21 clean; 22 fails by 25 frames) |
+| T2: 0 hard AND soft<=5%/veh | 10 | 12 (13: 72 hard, 18.3% soft) | **13** (14 fails at 5.38%; 15 is a clean island) |
+| health at own record | — | age 2470 ms, soft 55-70%, sim-crit 0 | age 430-1400 ms, soft 8-27%, sim-crit <=1 |
+
+Robustness battery (pre-registered): pert x3 seeds + avg exec — both records
+hold (frontier 21 clean, aguard 19 clean). align-offsets 0.5 — frontier holds
+21 clean (one 21-frame pothole at N=19); aguard COLLAPSES at 21 (184k hard).
+align-offsets 1.0 (fully stacked) — both fail at N>=19: occupancy = N exceeds
+any 3-core scheduler; the honest degradation the route-map thesis predicts.
+Held-out profiles v12.5/v15 — NEITHER scheduler's v10 record transfers (both
+margins/zone windows are v10-tuned); capacity records are per-profile objects.
+
+Ceiling: classical serve-everything = 10.5 (exact; RM breaks at 11).
+E-decimation is catastrophic (filter breakage), so E is effectively full-rate
+=> hard cap ~3/0.11 = 27 before B/M/F demand (~24 realistic). Achieved: 21.
+The 21 -> ~24 gap is unresolved (the oracle receding-horizon packer was not
+built; the empirical path outran it). aguard needs 4-5 cores for N=24-28.
+
+Mechanism findings (the science, each machine-checked this session):
+1. **F staleness is zone-critical.** Demoting F (44% of demand) on straights is
+   the entire capacity win; F freshness in curved zones is load-bearing (F
+   carries the reference; the reference moving is what defines a curve). The
+   winning form: tiered F heartbeat (100 ms critical / 500 ms straight, z3
+   undemoted) — v11's blanket protection and v9's blanket demotion both fail.
+2. **Refresh-rate tolerance != delay tolerance.** E at 50 ms cadence with
+   age_path 150 ms takes 10,781 hard frames where 196 ms of transport delay
+   takes zero (EST_STEP filter breakage; k=2 knife-edge, k=3 catastrophic).
+   Kills all E-cadence scheduler designs; yields the E-rate ceiling cap.
+3. **B->M in-window sequencing** (reads sample at execution start): age floor
+   80.5 ms — below the 90.5 ms recorded everywhere in the project's history.
+4. **The 30 s window artifact:** the recorded aguard-honest marks (clean 21)
+   do not survive the full lap (real record 19; z3 arcs live in the last ~23%
+   of the lap). PORT TO PAPER_NOTES on paper-generalization — the poster's
+   capacity claims inherit this.
+5. **At the wall, protection-only allocation is the only feasible shape**:
+   v1-v8 dominated aguard on every health column while breaching, because
+   comfort/freshness spending steals exactly the PNR margin that gates.
+Honesty scope: comparisons use the harness's established honest convention
+(constant 16 ms pred-staleness + actuator-side age_recent_ms) for BOTH
+schedulers; frontier's extra fields (zone_flagged, critical_remote) are
+map/estimator-derived. remainingTicks is consumed only by the cull (a proven
+no-op; disabled on pert rows).
+
 Goal: the maximum fleet size N any scheduler can sustain under the Bosch
 challenge rules on 3 cloud cores — then either decisively beat the incumbent
 (aguard) or show it sits at the ceiling. New policy files + additive
