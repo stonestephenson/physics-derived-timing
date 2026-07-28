@@ -48,7 +48,7 @@ exposes and safely exploits beyond-worst-case slack.* Bosch is case study #1.
 - Ownership now: **user + AI agent** drive build / experiments / docs; Kurt the
   formal leg. (The old "Route A workshop / freeze policies" frame is superseded.)
 
-Team: user (lead) + CS student (sweeps, RTA fixed-point solver, infra) + EE
+Team: Stone + CS student (sweeps, RTA fixed-point solver, infra) + EE
 student (zone tolerance, control side) + Kurt Wilson (PhD mentor; spot-checks
 formal claims; first author of the MEMOCODE'24 paper Route B extends).
 
@@ -68,12 +68,12 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   code homes: (a) the lab repo **`~/repos/cloud_control_demo`**
   (github.com/RTIS-Lab/cloud_control_demo — Kurt's; car = `rtis-jetson`,
   goat track = the real SLAM-mapped ±0.25 m corridor), branch
-  **`cloud-sched-integration` — PUSHED to the lab repo 2026-07-28 (lead's
-  explicit approval)** for teammates to pull;
+  **`cloud-sched-integration` — PUSHED to the lab repo 2026-07-28 (Stone
+  approved the push)** for teammates to pull;
   (b) this repo's untracked `f1tenth_cloud_control/` = an older vendored copy,
   now **layout-stale** (dev moved to the lab clone) but carrying the TUM
   column-order loader fix (`track.cpp` right/left swap + regression test) the
-  lead is passing upstream by hand. Built on the branch: an **external-vehicle
+  Stone is passing upstream by hand. Built on the branch: an **external-vehicle
   seam** in the f1sim core (`attachExternalVehicle`/`injectExternalSample`/
   command sink — reality provides sensing/network/actuation; the car's cloud
   job competes in the *unchanged* A-GUARD pool; byte-identical when unused;
@@ -91,11 +91,11 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   trips 19–138 ms. Two debugging lessons recorded in code/docs: a burst-held
   unfair mutex starved the ROS executor (now per-step locking), and
   sleep-per-tick pacing collapses to 0.3× under container timers (now
-  fixed-timestep catch-up). **NEVER connect to the car without the lead's
+  fixed-timestep catch-up). **NEVER connect to the car without Stone's
   explicit go** — first contact needs Kurt's watchdog answers + approval.
   **2026-07-28 (lab, evening): FIRST PHYSICAL CONTACT — hello-world PASSED**
   (wheels swept left-right-center from the Mac; car on a table; speed 0.0
-  throughout; lead ran it). The live host is the Mac running **native
+  throughout; Stone ran it). The live host is the Mac running **native
   RoboStack ROS 2** (Docker-on-Mac NAT is unusable for DDS): conda env
   `ros_env` in `~/mamba` + `client_config_mac.xml` (FastDDS whitelist of the
   Mac's tailscale addr — FastDDS skips macOS utun by default) +
@@ -159,7 +159,7 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   link; at full stack (`Occ=N`) even aguard crashes (honest `F_adversarial` degradation). CSV cols
   `pack_zone,min_spacing_ms,max_occ_packed`. Committed `bd6e5e1` (local; push held).
   The Kurt-facing leg-3 brief is `THEOREM_BRIEF §9`, committed `a2b6d6d` (local; push held).
-- **This session (2026-07-03): `PROOF_DRAFT.md` (NEW, CANDIDATE/UNVERIFIED; committed + pushed 2026-07-06 on the lead's instruction)** — end-to-end fleet-safety theorem candidate for Kurt: Lemma 1 proven+machine-checked (17,176-case brute force; v10 z3 = **4 arcs**; measured Occ = exact optimum), Lemma 2a audited (limited cross-check PASS as-found & post-patch), Lemma 2b two-band **ZB-F-X** composition machine-instantiated (**N=8 @ s≥4 s certified vs classical 3**; F-demotion is load-bearing); 4-agent council red-team found + same-session-repaired 2 CRITICALs (own-task band carry; wrapped inflated arcs) and flagged the zone-exit/envelope physics gap as top risk (decisive experiment queued in PROOF_DRAFT §6 A1); `rta_solve.py` gained `--band/--band-n/--band-demote-f`, `--workload limited-t`, own-carry, and a sound stopping rule (uniform `full`/`limited` byte-identical, diffed; `verify.sh --full` ALL PASS).
+- **This session (2026-07-03): `PROOF_DRAFT.md` (NEW, CANDIDATE/UNVERIFIED; committed + pushed 2026-07-06 on Stone's instruction)** — end-to-end fleet-safety theorem candidate for Kurt: Lemma 1 proven+machine-checked (17,176-case brute force; v10 z3 = **4 arcs**; measured Occ = exact optimum), Lemma 2a audited (limited cross-check PASS as-found & post-patch), Lemma 2b two-band **ZB-F-X** composition machine-instantiated (**N=8 @ s≥4 s certified vs classical 3**; F-demotion is load-bearing); 4-agent council red-team found + same-session-repaired 2 CRITICALs (own-task band carry; wrapped inflated arcs) and flagged the zone-exit/envelope physics gap as top risk (decisive experiment queued in PROOF_DRAFT §6 A1); `rta_solve.py` gained `--band/--band-n/--band-demote-f`, `--workload limited-t`, own-carry, and a sound stopping rule (uniform `full`/`limited` byte-identical, diffed; `verify.sh --full` ALL PASS).
 - **This session (2026-07-04): the §5 AI queue EXECUTED** — refined cliffs A(z3) = 170/160/90
   (v10/12.5/15; 10 ms instrument resolution), envelope validated + A-table non-composability
   demonstrated (A1 retired at the operating point), `zband` proof-object scheduler built and
@@ -169,10 +169,10 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   spacing fixed (Occ unchanged), `reproduce.py zones|occupancy` added. Full record:
   **PROOF_DRAFT §8**; paper framing: PAPER_NOTES 2026-07-04. New flags: `--zone-extra-vector`,
   `--zone-flag-window`, `--ff-extra-ms`, `--scheduler zband`; new CSVs per §8.6. All
-  committed + pushed 2026-07-06 with the 07-03 proof-draft set (lead's instruction;
+  committed + pushed 2026-07-06 with the 07-03 proof-draft set (Stone's instruction;
   the review-hold that kept the 07-03/07-04 work staged-only is released).
 - **This session (2026-07-08): the Guo dossier** (untracked `ContextForGuo/` —
-  lead decided 2026-07-10 it STAYS untracked, like `relatedPapers/`; the
+  Stone decided 2026-07-10 it STAYS untracked, like `relatedPapers/`; the
   Guo-facing tex lives on Overleaf). Context: 2026-07-08 meeting with Dr. Guo (notes:
   `ContextForGuo/GuoMeetingDocs.md`) — directives: Overleaf paper package by
   Friday 07-10; paper over reports/posters; rethink zone definitions
@@ -180,7 +180,7 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   CARLA as case studies. Deliverable built: **`ContextForGuo/main2.tex`
   rewritten into the single Guo-facing dossier** (Overleaf-ready, self-contained,
   ~2 h read): status-tagged claims ([V]/[M]/[C]/[N]), NO "contract" terminology
-  (lead's call — the three-assumption structure is now "Conditions"
+  (Stone's call — the three-assumption structure is now "Conditions"
   physics/demand/service), every number re-verified against
   HANDOFF/PROOF_DRAFT §8/BOUND/DATA_AGE/GENERALIZATION, reproduce commands
   embedded (incl. the §8.2 verbatim envelope run), the EE thermal analytic
@@ -192,10 +192,10 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   fast gate re-run green (G1+G2, fidelity 1.490e-08).
 - **Sessions 2026-07-09/10: dossier review + learning aids (no repo code changes).**
   Lead's Overleaf revision of `main2.tex` reviewed against the repo (the 5
-  recommended edits verified landed; errata list returned to the lead for
+  recommended edits verified landed; errata list returned to Stone for
   manual fixes — truncated §3.3 sentence, proposal-tense abstract, over-trimmed
   §2.2 age conventions, dropped fidelity-gate sentence, TTPNR typo). Built four
-  claude.ai learning artifacts for the lead (visual §6 walkthrough / defense
+  claude.ai learning artifacts for Stone (visual §6 walkthrough / defense
   Q&A drill / printable cheat sheet / tick-level schedule animator); the
   animator's JS engine is a port of `TaskModel.cpp`+rm/zband **validated
   against `./build/cps` goldens** (rm N=1/6/8/11 + zband N=4/8: 30 per-vehicle
@@ -237,7 +237,7 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
     RTA bound vs `A(zone)` under `Occ`); the soft spots (PNR rigor, the `A(zone)` good-entry
     induction + cross-zone carry budget — §9.5); the related-work delta (clears Sudvarg /
     Kundu–Quevedo?).
-  - **Lead (Stone — not AI, not strictly Kurt):** draft **Lemma 1** (the occupancy geometry —
+  - **Stone (not AI, not strictly Kurt):** draft **Lemma 1** (the occupancy geometry —
     a counting argument with the `Occ` curve as backstop; `THEOREM_BRIEF §6` ask #1).
   - **AI (optional, paper-strengthening, NON-BLOCKING — nothing on the critical path):** the
     parked-work block in §5 — v12.5/v15 generalization (highest value; kills the "v10 artifact"
@@ -501,11 +501,11 @@ pulls toward new engineering. The bar: tighten the math on the existing setup.
    USAGE, PAPER_NOTES 2026-07-17. The *soundness proof* stays Kurt's (invariant
    5). Citation VERIFIED 2026-07-17: Guan, Stigge, Yi, Yu, RTSS 2009, pp.
    387–397 (origin of RTA-LC / m−1 carry-in).
-5. **Strawman paper outline + Guo reply draft** (lead-facing, cheap, before
+5. **Strawman paper outline + Guo reply draft** (Stone-facing, cheap, before
    the Kurt meeting): sections → evidence status ([V]/[M]/[C]) → proposed
    owner per section.
 
-**Lead (Stone):** reply to Guo; schedule the Kurt outline/section-assignment
+**Stone:** reply to Guo; schedule the Kurt outline/section-assignment
 session (Guo asked explicitly); bring the 140-vs-170 decision there; Lemma-1
 drafting stays yours.
 
@@ -596,7 +596,7 @@ to a verdict: **CLOSED — P1-feasible schedules cannot reach the cliff region a
 overload damage channel is killed-F/stale-ff, not fb age** (PROOF_DRAFT §8.7 #3).
 Two optional hardenings remain queued, deliberately unbuilt: a zband golden G4 row in
 verify.sh --full, and a --band-deadlines override in rta_solve (only if the v12.5
-composed instance goes in the paper). Open lead decision: normative A(z3) = 140
+composed instance goes in the paper). Open decision (Stone's): normative A(z3) = 140
 (conservative, current) vs 170 (refined) — *2026-07-17: likely settled by the
 Condition-I analytic under-bound (plan of record, §5 top)*.
 
