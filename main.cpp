@@ -54,6 +54,11 @@ std::unique_ptr<CorePolicy> makePolicy(const std::string& name, bool triage,
                            return makeAdaptiveGuardPolicy(floorMs, triage, InfoSet::Remote);
     if (name == "zband" || name == "zone-band")
                            return makeZoneBandPolicy();  // PROOF_DRAFT ZB-F-X
+    if (name == "eskip")   return makeEskipProbePolicy();  // FRONTIER instrument
+    if (name == "frontier")
+                           return makeFrontierPolicy(floorMs);
+    if (name == "frontier-honest")
+                           return makeFrontierPolicy(floorMs, InfoSet::Remote);
     return makeRateMonotonicPolicy();  // "rm" / default
 }
 
@@ -292,7 +297,8 @@ int main(int argc, char** argv) {
         params.honestPredictor =
             schedName == "ttu-honest"    || schedName == "httu"    ||
             schedName == "hybrid-honest" || schedName == "hhybrid" ||
-            schedName == "aguard-honest" || schedName == "haguard";
+            schedName == "aguard-honest" || schedName == "haguard" ||
+            schedName == "frontier-honest";
         const std::string csvFile   = argValue(argc, argv, "--csv", "");
         auto scheduler = std::make_unique<PolicyScheduler>(
             makePolicy(schedName, params.triage, guardMs, floorMs));
