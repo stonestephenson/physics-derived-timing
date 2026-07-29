@@ -121,19 +121,25 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   its proportional share** (instantaneous 10 Hz sampling is phase-blind to
   2–8 ms jobs; two instrumentation bugs fixed, scheduler was always
   correct). Mac env gained nav2_msgs + native rviz2. **Lab-repo branch has
-  4 commits unpushed as of this writing** (fleet markers, start gate,
-  marker-state fix, exact core-share). **NEXT: the fleet ladder N=4→8→12
+  5 commits unpushed as of this writing** (fleet markers, start gate,
+  marker-state fix, exact core-share, marker hardening). **NEXT: the fleet
+  ladder N=4→8→12
   (bridge CSVs per run) + cross-N analysis; then Kurt asks: generator
   origin fix, car-side ack/echo logging, watchdog timeout number.**
-  **OPEN BUG (first item post-compact): the real car's RViz box still never
-  turns orange, even after the frame-latched fix (`ab182b8`).** Debug order:
-  (a) confirm the running node is the rebuilt binary (restart after build;
-  one-node rule via `pgrep -fl cloud_sched_node`); (b) the car-core~% status
-  field is ground truth — ~10% with a stuck-blue box means the color path,
-  not scheduling; (c) suspect VISIBILITY, not logic: translucent orange
-  (a=0.5) over the light-gray map may read washed-out — candidate fix is a
-  hard state change (alpha 0.95 + scale pulse on-core, or a "CORE" text
-  tag) rather than a hue shift.
+  **MARKER BUG ROOT-CAUSED (2026-07-29, post-compact): stale binary.** The
+  stuck-blue live run predated the 15:23 `ab182b8` rebuild — its log
+  (`cmds=1047` with `car-core~0%`) is *impossible* in current code, since
+  `commands_emitted` and `core_ticks` increment in the same
+  `runCloudOneTick` path (a job can only complete by executing on a core).
+  Isolated mock rehearsal with the current binary: external marker orange
+  **201/201 frames** at car-core~4% — the frame-latch saturates because the
+  car's ~10 jobs/s put a core grant in every 100 ms display frame. So the
+  car-box color language is: **steady orange = healthy; blue = not served in
+  the last 100 ms (starvation); red = emergency** — unlike sim cars, which
+  show instantaneous holds and flicker. Hardening committed (`ccadce9`,
+  lab repo): on-core/emergency alpha 0.5→0.9, a `[core-latch-v3]` build tag
+  in the startup log (stale installs detectable from line 1), runbook rows.
+  **Awaiting live confirmation on the next run — check the startup tag.**
   **2026-07-28 (lab, evening): FIRST PHYSICAL CONTACT — hello-world PASSED**
   (wheels swept left-right-center from the Mac; car on a table; speed 0.0
   throughout; Stone ran it). The live host is the Mac running **native
