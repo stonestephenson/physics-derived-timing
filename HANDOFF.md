@@ -93,6 +93,47 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   sleep-per-tick pacing collapses to 0.3× under container timers (now
   fixed-timestep catch-up). **NEVER connect to the car without Stone's
   explicit go** — first contact needs Kurt's watchdog answers + approval.
+  **2026-07-29 (lab, DEMO DAY): THE CAR SELF-DRIVES UNDER CLOUD SCHEDULING.**
+  Full day at the track with Stone driving the process; Kurt intermittently.
+  Milestones, in order: (1) localization bringup recipe established (on the
+  Jetson system container: `ros2 launch f1tenth_stack fusion.launch.py
+  localization_mode:=amcl map:=/ros_ws/goat_track.yaml`; global-init via
+  `/reinitialize_global_localization` + a meter of motion; helper
+  `~/start_localization.sh` on the Jetson). (2) **Frame bug found by shadow
+  mode and fixed**: the centerline CSV (Kurt's generator) is in the map-IMAGE
+  frame — the generator hardcodes origin 0,0 (`main.py:219`, upstream fix
+  suggested) — while AMCL uses origin (−6.37,−4.91); fixed by measured
+  translation against a recorded RC lap (residual 0.086 m mean);
+  `goat_track_centerline_amcl.csv`. (3) **Infeasible-corner finding**: the
+  arc≈2.4 m corner had centerline radius 0.41 m < the car's ~0.74 m minimum
+  turning radius — no controller could hold it (all excursions
+  right-of-travel, 24% commands steering-saturated); fixed by splicing the
+  recorded human lap through arc 2.0–4.6 + 0.5 m moving-average smoothing
+  (`goat_track_centerline_smooth.csv`) + lookahead 0.5. Clean laps after.
+  (4) Live ops verified: Ctrl-C → car stops (VESC/watchdog); the RUN_AUTO
+  trigger gates the launch; **one cloud_sched_node at a time** (fixed marker
+  IDs collide; zombie instances freeze RViz markers — pkill first).
+  (5) Demo instrumentation: RViz overlays (latched centerline/edge Paths;
+  fleet MarkerArray green/orange/red = normal/on-core/emergency; the real
+  car as translucent "cloud view" box whose gap to /amcl_pose IS the data
+  age); start gate (sim fleet holds on the grid until the car moves);
+  **exact core-share counter — the real car holds ~10% of the core at N=4,
+  its proportional share** (instantaneous 10 Hz sampling is phase-blind to
+  2–8 ms jobs; two instrumentation bugs fixed, scheduler was always
+  correct). Mac env gained nav2_msgs + native rviz2. **Lab-repo branch has
+  4 commits unpushed as of this writing** (fleet markers, start gate,
+  marker-state fix, exact core-share). **NEXT: the fleet ladder N=4→8→12
+  (bridge CSVs per run) + cross-N analysis; then Kurt asks: generator
+  origin fix, car-side ack/echo logging, watchdog timeout number.**
+  **OPEN BUG (first item post-compact): the real car's RViz box still never
+  turns orange, even after the frame-latched fix (`ab182b8`).** Debug order:
+  (a) confirm the running node is the rebuilt binary (restart after build;
+  one-node rule via `pgrep -fl cloud_sched_node`); (b) the car-core~% status
+  field is ground truth — ~10% with a stuck-blue box means the color path,
+  not scheduling; (c) suspect VISIBILITY, not logic: translucent orange
+  (a=0.5) over the light-gray map may read washed-out — candidate fix is a
+  hard state change (alpha 0.95 + scale pulse on-core, or a "CORE" text
+  tag) rather than a hue shift.
   **2026-07-28 (lab, evening): FIRST PHYSICAL CONTACT — hello-world PASSED**
   (wheels swept left-right-center from the Mac; car on a table; speed 0.0
   throughout; Stone ran it). The live host is the Mac running **native
