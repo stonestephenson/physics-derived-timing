@@ -140,6 +140,34 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   lab repo): on-core/emergency alpha 0.5→0.9, a `[core-latch-v3]` build tag
   in the startup log (stale installs detectable from line 1), runbook rows.
   **Awaiting live confirmation on the next run — check the startup tag.**
+  **2026-07-29 (lab, evening): SECOND TRACK DAY — the whole pipeline
+  generalizes.** New room, new taped track (1.0 m lane), stood up end-to-end
+  in ~1 hour: SLAM map (f1tenth_stack mapping.launch.py + map_saver_cli) →
+  AMCL on the new map → 28.0 m human lap recorded from /amcl_pose →
+  processed to a feasible reference (loop-closed at 0.15 m gap, 0.5 m
+  moving-avg, 5 cm resample, **curvature-relaxed 0.73→0.81 m min radius**,
+  above the car's 0.74 m limit — the goat lesson applied preemptively, now
+  enforced by the committed `tools/process_lap.py`) → sim-validated → shadow
+  gate → live solo → fleet runs ("lot of good runs" — Stone). Key findings:
+  (1) **AMCL-only sampling has 20 s droughts** (distance-gated updates);
+  `sample_on_odom:=true` is now mandatory for live (30 samples/s vs bursty
+  ~3/s) — a drought in live mode = stale steering = wall. (2) **Lookahead
+  swept at 1.0 m/s**: sim max|e| monotonic in L (0.061 m @0.4 → 0.204 m
+  @1.4, all zero violations); chose 0.7 (0.7 s horizon) over sim-optimal
+  0.4 — the noise-free sim can't show latency/jitter weave. (3) **Speed
+  multiplies staleness distance**: sim N=12/1-core max|e| 0.080 m @0.5 m/s
+  → 0.212 m @1.0 → **0.461 m @2.0 (nearly the full 0.5 m corridor)**;
+  Stone hand-set 2.0/L=0.9 during evening runs — expect tape departure at
+  N=12 @2.0 live; needs a 2.0 sweep if it sticks. (4) future-clamps ran
+  50–71% of samples (small constant Mac↔car clock offset suspected —
+  magnitude logging is a promised follow-up). Docs shipped in the lab
+  repo: `QUICKSTART.md` (full empty-room→fleet tutorial, STE register) +
+  `AGENT_NOTES.md` (agent continuation state) + reusable
+  `tools/process_lap.py` / `tools/plot_track.py` (repro-verified
+  byte-identical to the shipped track). **Fleet-ladder CSV status
+  unknown** — ask Stone which rungs ran and whether bridge CSVs were
+  renamed; then the cross-N analysis. Lab-repo commits pending push
+  approval.
   **2026-07-28 (lab, evening): FIRST PHYSICAL CONTACT — hello-world PASSED**
   (wheels swept left-right-center from the Mac; car on a table; speed 0.0
   throughout; Stone ran it). The live host is the Mac running **native
