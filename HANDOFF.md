@@ -206,6 +206,33 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   Demo rule: keep speed FIXED during the scheduler A/B (N the only
   variable); the speed knob is its own segment — same age, higher speed
   = less tolerance (the physics side of the thesis, made clickable).
+  **2026-07-31 ~1am (second batch, tag `[fleet-ladder-v8]`; 6 lab-repo
+  commits, local, push held):** Stone picked 6 more features from a
+  brainstorm; each was planned → built → isolated-rehearsed in turn:
+  (v6) **live scheduler toggle** button/service (`policy_set` events;
+  unit test: mid-run rm→aguard un-starves the caste); (v7) **breach
+  forensics** — red/white flash, persistent skid discs + `breach` CSV
+  events at the inside→outside transition, exact per-tick counts in
+  the HUD (rehearsed: rm N=8 breaches vehicles 6+7, the predicted
+  caste); (v8) **TTPNR overlay** for the real car (held path / rescue
+  path / PNR diamond / TTPNR label — the research visualizer's language
+  in RViz, cloud-view semantics); **tools/preflight.sh** (go/no-go:
+  binary freshness + strings-based build-tag match, zombie node,
+  config/track existence, car topics/AMCL/tailscale-direct; tested
+  passing AND failing paths); **f1tenth_view/fleet_demo.rviz** (demo
+  scene preconfigured, rviz2-load-verified clean); **track-agnostic
+  init helpers** (set_initialpose derives pose from the track CSV —
+  verified vs hand-computed atan2 + isolated publish test; Jetson
+  start_localization parameterized, deploy-by-scp reference). GRAND
+  REHEARSAL passed: one isolated run exercised rm-breach → add → speed
+  → toggle → remove with all 8 CSV event types + all 5 marker
+  namespaces in-frame; full unit suite green; default path STILL
+  byte-identical vs the pre-ladder golden. **Paper-track roadmap R1–R5**
+  (counterfactual replay, live tolerance injection, applied_ack deploy
+  package, skew-magnitude logging, analyze_ladder.py) recorded in
+  AGENT_NOTES. Human-gated for the morning: RViz click-tests of every
+  button in shadow; Jetson helper scp. PAPER_NOTES entry pending the
+  live A/B results.
   **2026-07-28 (lab, evening): FIRST PHYSICAL CONTACT — hello-world PASSED**
   (wheels swept left-right-center from the Mac; car on a table; speed 0.0
   throughout; Stone ran it). The live host is the Mac running **native
