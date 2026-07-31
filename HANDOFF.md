@@ -233,6 +233,17 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   AGENT_NOTES. Human-gated for the morning: RViz click-tests of every
   button in shadow; Jetson helper scp. PAPER_NOTES entry pending the
   live A/B results.
+  **2026-07-31 (track day, live): v8 batch PUSHED to the lab repo
+  (Stone's word; `3e1186c..8fc6254`). FOURTH track stood up ("bigspace",
+  `bigspace_centerline_smooth.csv`, Stone-processed). LIVE FINDING →
+  FIX (v9, committed local): under rm the car never degraded at any N —
+  it was vehicle 0 = TOP fixed priority (the tie-break IS the fate).
+  Now ranked LAST under rm (adversarial seat, documented + unit-tested:
+  saturating rm emits 0 commands to the car, aguard serves it; mock
+  rehearsal N=6: car ~1% core, >2 s stale). Sim-only rm and the aguard
+  default path byte-unchanged. PAPER_NOTES 2026-07-31 (seat-decides-fate
+  — the sharpest fixed-priority pathology statement we have). v9 push
+  awaits Stone's word.**
   **2026-07-28 (lab, evening): FIRST PHYSICAL CONTACT — hello-world PASSED**
   (wheels swept left-right-center from the Mac; car on a table; speed 0.0
   throughout; Stone ran it). The live host is the Mac running **native
