@@ -168,6 +168,32 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   unknown** — ask Stone which rungs ran and whether bridge CSVs were
   renamed; then the cross-N analysis. Lab-repo commits pending push
   approval.
+  **2026-07-30 (night, for the 07-31 demo): FLEET-LADDER MACHINERY BUILT +
+  REHEARSED (lab repo, 3 commits local, push held; tag `[fleet-ladder-v4]`).**
+  Demo design settled with Stone (Q&A): interactive-marker buttons, RM
+  baseline, real car may breach, HUD + live plot. Built: runtime
+  add/remove of sim cars (`~/add_vehicle`/`~/remove_vehicle` Trigger
+  services = the single logged mutation path; RViz "+ ADD CAR"/"− REMOVE
+  CAR" buttons call it; adds spawn mid-gap, removes never touch the car),
+  per-vehicle **applied-data age** exported from f1sim (age_path
+  convention; car = cloud-view until `applied_ack` lands), HUD text
+  marker + `/cloud_control/fleet_status` 10 Hz + 1 Hz CSV rows, bridge
+  CSV now **timestamped per run** (`auto`; the fixed name is how the
+  07-29 fleet CSVs got overwritten — that data is likely lost), and a
+  **scheduler A/B**: `scheduler: aguard|rm` (+ `-p scheduler:=rm`); RM
+  with uniform periods = vehicle-id fixed priority (honesty note in
+  INTEGRATION.md; unit-tested to starve high ids). Verified: 3 new f1sim
+  tests pass (one caught a moved-from-config ctor bug); default aguard
+  path byte-identical vs the pre-change binary; isolated mock rehearsal
+  green (fleet 2→5→4 live, drift 0.00, ladder events + ages in CSV).
+  **Sim cliffs for tomorrow (labmap, 1.0 m/s, 1 core): rm clean N=5 /
+  catastrophic N=6; aguard clean ≤8, weave 9–12, collapse 14** — expect
+  live 1–2 rungs earlier. NOT yet tested: a literal RViz button click
+  (human-gated; runbook says click-test in shadow first). Docs: NEW
+  INTEGRATION "Fleet ladder" section, QUICKSTART Part 9 rewritten,
+  DEMO_RUNBOOK Phase 6 = one-take ladder ×2 schedulers + recovery
+  bookend, AGENT_NOTES updated. Also committed: the labmap centerline
+  CSV that `e98102f` referenced but never added. PAPER_NOTES 2026-07-30.
   **2026-07-28 (lab, evening): FIRST PHYSICAL CONTACT — hello-world PASSED**
   (wheels swept left-right-center from the Mac; car on a table; speed 0.0
   throughout; Stone ran it). The live host is the Mac running **native
