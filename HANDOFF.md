@@ -194,6 +194,18 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   DEMO_RUNBOOK Phase 6 = one-take ladder ×2 schedulers + recovery
   bookend, AGENT_NOTES updated. Also committed: the labmap centerline
   CSV that `e98102f` referenced but never added. PAPER_NOTES 2026-07-30.
+  **Late addition (tag → `fleet-ladder-v5`): SPEED ± buttons** (Stone's
+  request) — `Simulation::setOperatingPoint` steps the fleet-wide
+  operating point (sim physics + spawns + predictor rollouts + car
+  command speed together, lookahead auto-paired L=clamp(0.5v, 0.5, 0.9),
+  exact at the 1.0/0.5 and 2.0/0.9 swept anchors; floor 0.5). Safety:
+  the launch `speed_cap_mps` is immovable by clicks; button ceiling =
+  max(launch velocity, cap). `speed_set` CSV events; speed in HUD +
+  `fleet_status[8]`. Unit-tested + rehearsed (floor holds, ceiling
+  clamps); default path still byte-identical vs the pre-ladder golden.
+  Demo rule: keep speed FIXED during the scheduler A/B (N the only
+  variable); the speed knob is its own segment — same age, higher speed
+  = less tolerance (the physics side of the thesis, made clickable).
   **2026-07-28 (lab, evening): FIRST PHYSICAL CONTACT — hello-world PASSED**
   (wheels swept left-right-center from the Mac; car on a table; speed 0.0
   throughout; Stone ran it). The live host is the Mac running **native
