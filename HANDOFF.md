@@ -276,6 +276,10 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   (`scheduler-frontier`) has NEVER been pushed — the whole
   HIL-documentation trail lives only on this Mac; lab repo has 2 commits
   unpushed (v9 fix + bigspace). Both await Stone's word.**
+  **RESOLVED 2026-08-03 (later, Stone's word given): both pushed —
+  `scheduler-frontier` is on `physics-derived-timing` (tip verified) and the
+  lab repo's `cloud-sched-integration` is even with origin. No push holds
+  remain.**
   **2026-07-28 (lab, evening): FIRST PHYSICAL CONTACT — hello-world PASSED**
   (wheels swept left-right-center from the Mac; car on a table; speed 0.0
   throughout; Stone ran it). The live host is the Mac running **native
