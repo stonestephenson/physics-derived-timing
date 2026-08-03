@@ -244,6 +244,38 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   default path byte-unchanged. PAPER_NOTES 2026-07-31 (seat-decides-fate
   — the sharpest fixed-priority pathology statement we have). v9 push
   awaits Stone's word.**
+  **2026-08-01/02: the 07-31 demo VIDEO PACKAGE built (docs/media only, no
+  code).** The 17:41 EDT bigspace A/B was captured on two videos (OBS screen
+  recording of RViz + Kurt's phone on the physical car); combined into
+  side-by-side composites — audio-cross-correlation sync (Kurt starts at
+  +66.89 s of the screen recording; content-verified), vidstab stabilization,
+  RViz cropped to HUD+track+buttons, captions, and a legend verified against
+  `cloud_sched_node.cpp`/`simulation.cpp` (green=no core, orange=on core,
+  red=emergency TTPNR<guard, red/white flash=breach in progress, disc=breach
+  site). Deliverables + full recipe/timeline:
+  `~/Desktop/fotos/f110_bosch_demos/demo/README.md` (composites v1–v4,
+  `compose_v4.sh`, `align.py`); LinkedIn set in `~/Desktop/FinalDemos/`
+  (track-audio version has 1:10–1:16 chatter muted). **The live A/B timeline
+  was recovered frame-by-frame from the HUD** (RM first breach ~91 s = THE
+  REAL CAR, N=6; switch ~100 s; aguard first breach ~133 s at N=10; live
+  matches the 07-30 sim cliffs) → PAPER_NOTES 2026-08-01. **OPEN: the demo
+  run's bridge CSV is missing** — `cloud_control/output/` has only the
+  13:36/13:41 EDT (UTC-named) session; ask which cwd / `csv` setting the
+  17:41 node ran with, else the video-derived timeline is the record.
+  LinkedIn post drafted with Stone (numbers kept to demo-observed claims;
+  pending Guo/Kurt framing OK before posting).
+  **2026-08-03 (close-down): bigspace sweep run + demo click script
+  delivered** (rm clean 5 / cliff 6 — same as labmap; aguard clean
+  through 10 / cracks 11 / collapse 14 — bigger room = more headroom;
+  script: rm 4 clicks + 1 to the cliff; aguard brisk to 10, per-lap to
+  13, remove-recover). Bigspace track CSV + config pointer committed to
+  the lab repo (the labmap dangling-reference lesson applied);
+  AGENT_NOTES carries the sweep + script. PAPER_NOTES 2026-08-03: RM's
+  cliff is geometry-blind, aguard's capacity scales with the room — the
+  HIL echo of the route-map thesis. **NOTE: this research branch
+  (`scheduler-frontier`) has NEVER been pushed — the whole
+  HIL-documentation trail lives only on this Mac; lab repo has 2 commits
+  unpushed (v9 fix + bigspace). Both await Stone's word.**
   **2026-07-28 (lab, evening): FIRST PHYSICAL CONTACT — hello-world PASSED**
   (wheels swept left-right-center from the Mac; car on a table; speed 0.0
   throughout; Stone ran it). The live host is the Mac running **native
