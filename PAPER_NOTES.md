@@ -10,6 +10,234 @@ Newest first.
 
 ---
 
+## 2026-08-01 — Live A/B results recovered from the 07-31 demo recording (frame-by-frame); the money-shot composite built
+
+**What it is.** The 2026-07-31 ~17:41 EDT bigspace live A/B (RM → failure →
+A-GUARD → failure) was captured on two videos: an OBS screen recording of the
+RViz/HUD view and Kurt's camera on the physical car. HUD frame strips at 1 s
+resolution yield the live event timeline (times = seconds into the screen
+recording; the two videos sync at +66.9 s by audio cross-correlation, peak
+2.1× over the runner-up):
+
+- 71–72 s: +3 sim cars → N=4 under RM (car seated LAST, the v9 adversarial
+  seat). 82 s: N=5. 86 s: N=6.
+- 88–92 s: RM ages explode — fleet-oldest ~1.1–2.1 s stale; the REAL car goes
+  red "CAR PAST PNR" and physically stalls at the far end (visible in both
+  views at the same instant). **Breach #1 ≈ 91 s is the physical car** —
+  seat-decides-fate, on camera. Breach #2 ≈ 94 s; violations 0 → 5341 ticks.
+- 99–100 s: SWITCH TO AGUARD (live toggle). Ladder rebuilds N=2→6 by 105 s,
+  N=8 at 126 s, N=10 at 131 s — ages bounded (transients 100–900 ms, no
+  runaway), violations frozen at 5341.
+- ≈133 s: first A-GUARD breach at **N=10** (violations 5341→6251, car past
+  PNR); one sim car red ≈141 s. Fleet removed 146→157 s back to N=1; ages
+  recover to ~tens of ms (the recovery bookend). 161 s: speed segment starts
+  (1.00→1.25→…→2.00; car age stays ~10–60 ms throughout at N=1).
+
+**Live vs sim cliffs (labmap sim, 07-30: rm catastrophic N=6; aguard clean
+≤8, weave 9–12).** Live matched: RM breached at N=6; A-GUARD's first breach
+at N=10 — inside the predicted weave band, ~1 rung earlier than sim-clean, as
+expected from sensor noise/WiFi jitter. RM:A-GUARD violation ticks over the
+same arc: 5341 : 910.
+
+**Caveats.** (1) Numbers are read off the HUD (cloud-view car age; `applied_
+ack` still pending) — cite as demo-run evidence, not instrumented result.
+(2) **The demo run's bridge CSV is missing**: `cloud_control/output/` has
+UTC-named CSVs from the 13:36/13:41 EDT session only; nothing from ~17:41.
+Ask whether the node ran with a different cwd or CSV off — else the CSV half
+of "demo artifact = analysis artifact" is lost for this run and the timeline
+above (video-derived) is the record.
+
+**Deliverable.** `~/Desktop/fotos/f110_bosch_demos/demo/` — composites v1–v4
+(v4 = captioned + code-verified legend + ambient audio; 93 s, 1920×1080):
+RViz crop (HUD + track + buttons) beside Kurt's vidstab-stabilized camera,
+audio-synced, ends before the speed segment. Full recipe, sync offset
+(+66.89 s), event timeline, and legend semantics: that folder's `README.md`
+(+ `compose_v4.sh`, `align.py`). LinkedIn cut in `~/Desktop/FinalDemos/`
+(1:10–1:16 chatter muted).
+
+
+## 2026-08-03 — HIL sweeps: RM's cliff is track-independent; A-GUARD's capacity scales with the room
+
+Capacity ladders on two physical-room tracks (1.0 m/s, 1 core, 120 s/rung,
+pure sim, committed track CSVs): **rm** goes clean→catastrophic at N=5→6
+on BOTH labmap (7.8 m lap) and bigspace (larger room) — the cliff is
+demand-side (utilization crosses 1), geometry-blind. **aguard** holds zero
+violations through N=8 on labmap but through N=10 on bigspace, first
+cracks 11, collapse 14. The age-aware scheduler's admitted fleet grows
+with the room; the classical one's does not. This is the HIL echo of the
+route-map thesis (the track IS the slack model): beyond-worst-case
+capacity is a property of the physics/geometry, and only a
+physics-derived policy can spend it. Repro: `f1sim_headless --config
+config/demo_sim.yaml --scheduler rm|aguard --vehicles N --duration 120`
+with `--track` pinned per room (lab repo).
+
+## 2026-07-31 — HIL finding: under RM, the physical car's fate is its seat in an arbitrary tie-break
+
+**What happened (live).** In the fleet-ladder demo under the RM baseline,
+the physical car would not degrade at ANY fleet size while simulated cars
+crashed around it. Cause: with uniform sensor periods, RM's priority is
+its vehicle-id tie-break — and the car was id 0, the top fixed priority.
+Its ~10% demand always won the core first; the starvation caste began
+above it. Flipping one modeling choice (car ranked last — equally
+legitimate, since among equal periods the order is arbitrary) makes the
+car the FIRST to starve (rehearsed: N=6, car at ~1% core, commands >2 s
+stale).
+
+**Why it's a paper sentence.** It is the sharpest possible statement of
+the fixed-priority pathology the age-criticality thesis targets: under
+static priority, whether the *physical* plant survives depends entirely
+on an arbitrary position in a list — both extremes (untouchable at seat
+0, starved at seat N−1) are the same scheduler on the same workload.
+A-GUARD needs no placement choice at all; its ranking is derived from
+TTPNR, i.e., from the physics. Any fixed-priority HIL comparison must
+state the placement choice explicitly (ours: adversarial, car last);
+this is now machine-checked (unit test: saturating RM emits 0 commands
+to the external car while aguard serves it on the same workload).
+
+
+## 2026-07-30 — HIL fleet ladder built: one continuous run = the capacity curve; RM-vs-A-GUARD cliffs on labmap
+
+**What it is.** The lab-repo HIL stack (branch `cloud-sched-integration`,
+tag `[fleet-ladder-v4]`) can now grow/shrink the simulated fleet at runtime
+while the real car drives — RViz "+ ADD CAR" buttons and Trigger services
+share one logged mutation path — and displays/streams the fleet-oldest
+**applied-data age** (the `age_path` convention, exported per vehicle from
+the f1sim core). Every add/remove and a 1 Hz age/error row land in a
+per-run timestamped CSV, so **a single continuous run carries N(t) and
+yields the whole capacity curve**, exactly aligned with the screen
+recording. Instrument design point for the methodology section: the demo
+artifact and the analysis artifact are the same run.
+
+**A/B baseline.** f1sim gained `scheduler: aguard|rm`. Honesty note that
+must survive into the paper: every vehicle shares one sensor period, so
+classic RM degenerates to its tie-break — vehicle-id fixed priority (the
+same strict (period, vehicle) total order the research harness analyzes).
+Under 2× overload it provably (unit test) starves the highest ids: the HIL
+twin of the ID-locked starvation caste finding (2026-06-23).
+
+**Sim cliffs (labmap, 1.0 m/s, 1 core, 120 s/rung, noise-free):**
+rm: clean N=5 (0.076 m), catastrophic N=6 (max|e| 2.2 m, 57k
+violation-ticks). aguard: **zero violations through N=8**, bounded
+excursions N=9–12 (0.59–0.90 m), collapse N=14. Same demand, same plant,
+same track — only the policy changed; the age-aware scheduler is worth
+~2× admitted fleet before first violation (6 vs 9... strictly: first
+violation rung 6 vs 9, catastrophic rung 6 vs 14). Live cliffs expected
+1–2 rungs earlier (sensor noise, WiFi jitter, servo lag). The live A/B
+recording (2026-07-31 planned) is the paper's HIL money shot: degradation
+mediated by visible, measured data age, reversed on remove (recovery
+bookend).
+
+**Caveat for any HIL age claim:** the real car's displayed age is the
+cloud's view (command *emitted*); the true applied age needs the car-side
+`applied_ack` (queued with Kurt). Label accordingly.
+
+
+## 2026-07-29 — HIL demo day: the real car self-drives under the cloud scheduler; two hardware-only findings
+
+**What happened.** First full hardware-in-the-loop run of the framework: the
+F1TENTH car autonomously lapped the goat track under our cloud A-GUARD
+scheduler (native-Mac ROS 2, ~13 ms direct tailnet transport), with simulated
+vehicles sharing the same core. The real car's controller job measures ~10%
+core tenure at N=4 (exact per-tick counter) — its proportional demand share.
+
+**Finding 1 (methodology): shadow mode caught a frame bug sim could not.**
+The centerline was authored in the map-image frame (generator hardcodes
+origin 0,0) while AMCL localizes in the origin-shifted frame — a 7 m offset
+invisible to pure simulation and instantly visible as max|e|=7.4 m in the
+shadow run. Lesson for the paper's methodology section: a shadow phase
+(compute-but-don't-actuate against live sensors) is a cheap, high-yield
+validation gate for any sim-to-real port.
+
+**Finding 2 (physics): the sim tracked a physically infeasible line; the
+real car could not.** One corner of the generated centerline had radius
+0.41 m — under the car's ~0.74 m minimum turning radius. The simulator (same
+steering limits!) still tracked it within 0.14 m because pure pursuit's
+lookahead geometrically cuts corners; the real car (servo lag, gain) ran
+wide into the wall at that corner every lap, all excursions outboard, 24% of
+commands steering-saturated. Fix: route the line through a recorded
+human-driven lap (feasible by construction). Lesson: controller-in-sim
+tolerance of an infeasible reference is a sim-to-real trap — reference
+feasibility (min radius vs wheelbase/steering limit) should be checked
+analytically, not assumed from sim success.
+
+**Where it lands.** Generalization/HIL section (the demo as case study #3
+evidence); methodology (shadow gate, reference-feasibility check). Repro:
+lab repo branch cloud-sched-integration, DEMO_RUNBOOK.md; fleet-ladder CSVs
+(N=4/8/12) pending as of this entry.
+
+---
+
+## 2026-07-22 — Poster fact-check: every Results number reproduces; honest-predictor compute at the poster operating point is ~7% of one core (not the oracle's <3%)
+
+**What it is.** Full verification pass over the symposium poster. Every chart
+number reproduced exactly from fresh runs (worst exec, 3 cores, 30 s):
+RM/EDF max safe fleet 10 (first break N=11: 653/654 hard); N=20 sim-crit
+(τ=100 ms) RM 15 / EDF 12 / aguard-honest(m80) 0; aguard-honest `--pred-margin
+80` clean through N=21, first breaches N=22 (46 hard). Both poster citations
+verified against the PDFs (Pazzaglia et al. RTAS'26 invited; Wilson et al.
+RTAS'25 pp. 215–227). Bosch's own §III.A wording is "a race circuit with N_v
+vehicles", so the poster's racing framing is backed.
+
+**New numbers surfaced (not previously recorded).**
+- **Honest-predictor compute at the poster's headline config:** 17.1 µs/pred,
+  **6.82 % of one core at N=20**; 18.2 µs, **7.65 % at N=21** (both rollouts).
+  PREDICTOR §5f's honest column stops at N=14 (4 %); the poster's "<3 % of one
+  core" is the *oracle* N=18 figure — wrong for the honest config the Results
+  use (still ≪ 3 cores). Poster correction + §5f extension row when next edited.
+- **The worst-age curve behind the poster chart** (aguard-honest m80, path ms;
+  the 07-20 CSV was scratchpad-only): N=4: 120.5, 6: 120.5, 8: 120.5,
+  10: 130.5, 12: 375.5, 14: 1045.5, 16: 1075.5, 18: 1980.5, 20: 4020.5,
+  21: 1990.5. Plateau ≤130.5 through N=10, cliff after 12.
+- **Prediction refresh cadence is 10 ms**, not the poster's "~16 ms"
+  (`Simulation.h` kPredictRefreshTicks = kPnrRefreshTicks = 10 ms; likely
+  conflated with the 16 ms per-link network delay, `TaskModel.cpp:47-48`).
+
+**Where it lands.** Poster corrections (this session's report); PREDICTOR §5f
+honest-compute row at N=20/21; Evaluation (the reproducible curve).
+
+---
+
+## 2026-07-20 — Honest-aguard margin sufficiency is non-monotone in N: 60 ms blips at N=14 (37 hard); 80 ms is uniformly clean through N=20 (2× the classical fleet)
+
+**Observation.** Building the symposium-poster Results (lead's call: all-honest
+comparison, baselines vs `aguard-honest` only), a fleet-size sweep (worst exec,
+3 cores, 30 s, N ∈ {4,6,8,10,11,12,14,16,18,20}) found:
+
+- `--pred-margin 60` (the PREDICTOR §5e value that restores honest aguard at
+  N=18) is **not uniformly safe across N**: at N=14 it takes **37 hard
+  breaches** (sim-crit max 1) while N=12/16/18 are clean — non-monotone in N.
+  Margin 80 and 100 both clear N=14.
+- `--pred-margin 80` is uniformly clean: **0 hard, 0 stalled, sim-crit 0 at
+  every N in the grid — including N=20**, past the default-aguard headline of
+  18. Worst path age grows to 4020.5 ms at N=20 (soft 66%) — safe but very
+  stale.
+- Classical baselines: `rm` and `edf` both first break at exactly **N=11**
+  (653 / 654 hard, 1 stalled each); by N=20 rm takes 37,217 / edf 27,502 hard
+  with 15 / 12 cars never actuated. Max safe classical fleet = **10**; honest
+  aguard's exact capacity (extended search): clean through **N=21** (worst path
+  age 1990.5 ms), **first breaches at N=22** (46 hard, 0 stalled) → 2.1×.
+  Note the worst-age non-monotonicity: N=20 reads 4020.5 ms vs N=21's 1990.5
+  (different interleavings; both zero-hard).
+
+**Why it matters.** (1) The §5e "margin 60 restores aguard" claim was
+N=18-specific — margin sufficiency must be swept per config, not sampled at one
+operating point. (2) "2× the classical fleet, zero hard breaches, ranking only
+on the delayed state the cloud actually has" is a cleaner, stronger headline
+than the oracle 18-vs-10, and it is the config the poster now reports.
+(3) The N=20 row is the sharpest safe-but-stale exhibit yet: 4 s worst data
+age, zero breaches — safety ≠ freshness, in one row.
+
+**Evidence / repro.** `./build/cps --headless --vehicles N --scheduler
+{rm | edf | aguard-honest --pred-margin 80} --exec worst --duration 30` over
+the grid; margin sensitivity at N=14: 60 → 37 hard, 80 → 0, 100 → 0. (Poster
+sweep CSV in session scratchpad only — regenerate from the command grid.)
+
+**Where it lands.** Evaluation (honest-variant capacity), the symposium
+poster's Results section; add the margin caveat to PREDICTOR §5e when next
+edited.
+
+---
+
 ## 2026-07-17 — Guo's dossier response: positioning blessed, CARLA descoped, and three C→V hardening legs become the critical path
 
 **What it is.** Dr. Guo's written response to the `ContextForGuo/main2.tex`
@@ -1262,3 +1490,44 @@ measured 100.5 from the run above. Re-run after BOUND §5 work items 1–2 land.
 
 **Where it lands.** Route A, the refutation-experiment / "why we decompose"
 narrative (BOUND §5.4). Recorded in `BOUND.md §7.3`.
+
+---
+
+## 2026-07-29 (evening) — HIL: the physics-derived pipeline generalizes to a second physical track in ~1 hour
+
+**Observation.** The full HIL stack (map → localize → record human lap →
+derive feasible reference → validate in sim → shadow → live under the cloud
+scheduler) was stood up on a brand-new room/track in roughly an hour, with
+zero code changes — only a new map, a new recorded lap, and one config line.
+Three quantitative nuggets worth paper ink:
+
+1. **Reference feasibility is a physics constraint, mechanically enforced.**
+   The raw processed centerline had two spots at 0.73 m radius vs the car's
+   0.74 m kinematic minimum (wheelbase 0.3302 m, max steer 0.4189 rad); a
+   local curvature relaxation lifted the floor to 0.81 m while moving only
+   8 points. Same lesson as the goat track's infeasible 0.41 m corner, now
+   a tool invariant (`process_lap.py` refuses-with-warning). "Derive the
+   requirement from the physics" applies to the *reference*, not just the
+   timing.
+
+2. **Staleness distance scales linearly with speed — and eats the corridor.**
+   Sim N=12/1-core (925 ms max round trip, latest-only replacement):
+   max|e| = 0.080 m @ 0.5 m/s, 0.212 m @ 1.0, 0.461 m @ 2.0 against a
+   0.5 m taped corridor — in a NOISE-FREE kinematic sim. The margin the
+   scheduler must protect is v·RTT-shaped; a clean age-criticality hook
+   (tolerable age ∝ corridor/velocity) for the paper's HIL section.
+
+3. **Sim-optimal ≠ live-optimal for lookahead.** The sweep at 1.0 m/s is
+   monotonic (shorter L → lower sim error: 0.061 m @ 0.4 vs 0.204 m @ 1.4)
+   because the sim has no sensor noise or actuation lag; live practice
+   needs a 0.7–1.0 s horizon. Honest example of the model-fidelity gap the
+   HIL work exists to expose.
+
+**Also:** AMCL's distance-gated publishing produced 20 s sample droughts —
+in live mode that's stale-command-until-wall; odom-triggered sampling
+(50 ms min period, cached pose + fresh twist) is now mandatory. Real
+sensing is *bursty*, not periodic — a modeling assumption the sim's uniform
+20 ms sensor period hides.
+
+**Where it lands.** GENERALIZATION (third instantiation: second *physical*
+track), and the HIL section's setup + threats-to-validity.
