@@ -292,6 +292,16 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   sampling — scoped, unbuilt) and the parked pose read ~3.4 m off the goat
   centerline (map-frame check with Kurt is the REMAINING GATE before any
   live track run, plus the stand watchdog test).
+- **Sessions 2026-07-20/22/23: the symposium poster (deliverable only, no repo
+  code).** Results = the all-honest comparison (PAPER_NOTES 2026-07-20:
+  aguard-honest margin-80 clean through N=21 vs classical 10; full fact-check
+  PAPER_NOTES 2026-07-22). **The final figure set (6 print-sized SVG figures)
+  is the claude.ai artifact "Poster Figures — Final Set"** (larger-fonts
+  revision, 2026-07-23); high-res PNGs (5× ≈ 300 dpi at slot) exported to
+  `~/Desktop/Poster Figures/` (01_problem_setup … 06_chartB_data_age) by
+  rendering the artifact's per-figure SVGs with `resvg --zoom 5 --background
+  '#FFFFFF'`. **Machine note: Chrome headless HANGS on this Mac** (even on
+  about:blank, all known flags) — use `resvg` (brew) for any SVG→PNG.
 - **This session (2026-06-25/26), committed + pushed:** `--align-offsets FRAC` knob
   (`Simulation.{h,cpp}`, `main.cpp`) + the leg-(A) route-map reframe (PAPER_NOTES,
   HANDOFF §5, BOUND, PREDICTOR §5d, ZONE_TOLERANCE, USAGE) + new **`THEOREM_BRIEF.md`**
