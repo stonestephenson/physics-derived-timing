@@ -10,6 +10,51 @@ Newest first.
 
 ---
 
+## 2026-08-05 — The scheduler-frontier study: recorded capacity marks are a 30 s-window artifact (real honest full-lap record = 19, not 21); a new scheduler reaches 21; the ceiling is bracketed
+
+**What it is.** A capacity-limit study on branch **`scheduler-frontier`**
+(pushed to `physics-derived-timing`; full record in `FRONTIER.md` there; code
+= `src/sched/policies/Frontier.cpp` + `EskipProbe.cpp`, never merged here).
+Four findings matter for the paper:
+
+1. **The 30 s-window artifact (correction to the 07-20/07-22 entries and the
+   poster).** All four v10 z3 arcs sit in the last ~23% of the lap, so a 30 s
+   run structurally under-tests the binding zone. At 120 s (full lap),
+   aguard-honest breaks at N=20 for EVERY margin 60–120: the honest safety
+   record is **19**, not the recorded 21. Under the challenge's full gate
+   (0 hard AND soft ≤ 5%/vehicle) it is **12**. Any capacity number the paper
+   reports must be full-lap.
+2. **A new scheduler ("frontier" v12) holds 21 full-lap** (clean 19/20/21;
+   +2 safety frame, 13 vs 12 strict frame) with ~5x better fleet health
+   (worst age 430–1400 ms vs 2470; soft 8–27% vs 55–70%). It is aguard's
+   allocation + **zone-aware feedforward demotion**: F (44% of per-vehicle
+   demand, carries no sensor data) is demoted on straights (500 ms
+   heartbeat), kept fresh in critical sections (100 ms), undemoted in z3.
+   Robust to pert x3 seeds + avg exec + align 0.5; both schedulers' records
+   are v10-specific (neither transfers to v12.5/v15 untuned). The two-lever
+   framing for the paper: capacity beyond classical = state triage (aguard)
+   + physics-context demand shaping (F-by-zone).
+3. **Refresh-rate tolerance != delay tolerance.** Decimating E to a 50 ms
+   cadence breaches catastrophically at N=1 at age_path 150 ms — an age the
+   delay tables call safe by 100 ms (the FMU estimator's hard-coded 10 ms
+   EST_STEP breaks under skipped invocations; 20 ms cadence is a knife edge,
+   30 ms is fatal). A(zone)/envelope numbers are DELAY tolerances only; any
+   cadence/skipping argument needs its own instrument. Corollary: E demand
+   caps any 3-core scheduler at roughly the mid-20s (soft bound; the oracle
+   packer that would pin the ceiling was not built).
+4. **B->M in-window sequencing** (stage reads sample at execution start):
+   age floor 80.5 ms vs the 90.5 ms recorded everywhere else — one merger
+   period recoverable by ordering alone.
+
+**Evidence / repro.** `FRONTIER.md` on `scheduler-frontier` (verdict table,
+protocol, per-version log); all runs `--exec worst --duration 120`, honest.
+
+**Where it lands.** Evaluation (full-lap capacity table; poster-number
+corrections), the scheduling section (two-lever framing), and a caution
+footnote wherever A(zone) is used (delay-tolerance scope).
+
+---
+
 ## 2026-08-01 — Live A/B results recovered from the 07-31 demo recording (frame-by-frame); the money-shot composite built
 
 **What it is.** The 2026-07-31 ~17:41 EDT bigspace live A/B (RM → failure →

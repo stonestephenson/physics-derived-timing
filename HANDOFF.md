@@ -1,6 +1,6 @@
 # Session Handoff — CPS Challenge Visualizer
 
-Resume point for a fresh agent. Last updated **2026-07-17**.
+Resume point for a fresh agent. Last updated **2026-08-05**.
 
 **Read order:** `CLAUDE.md` (stable bootstrap: invariants, reading map, rules) →
 this file (what's true *now*) → the owning design docs as your task needs them
@@ -306,6 +306,24 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   rendering the artifact's per-figure SVGs with `resvg --zoom 5 --background
   '#FFFFFF'`. **Machine note: Chrome headless HANGS on this Mac** (even on
   about:blank, all known flags) — use `resvg` (brew) for any SVG→PNG.
+- **Session 2026-08-05: the `scheduler-frontier` branch — know it exists.**
+  A complete, self-contained capacity-limit study lives on branch
+  **`scheduler-frontier`** (pushed to `physics-derived-timing`; forked from
+  this branch at `fb6c22d`; NEVER merged). It contains: a new scheduler
+  (`frontier` v12 = aguard's allocation + zone-aware F demotion/tiered
+  heartbeat, `src/sched/policies/Frontier.cpp`), the `eskip` instrument, and
+  **`FRONTIER.md`** (council-reviewed protocol, per-version iteration log,
+  verdict). Headline: honest full-lap capacity **frontier 21 vs aguard 19**
+  (+2; strict challenge gate 13 vs 12), ceiling bracketed ~[21, mid-20s] by
+  the estimator-rate cap. **Paper-critical correction ported here:** the
+  recorded "aguard-honest clean through 21" is a 30 s-window artifact — the
+  full-lap record is 19 (PAPER_NOTES 2026-08-05 carries the details; the
+  poster's capacity numbers inherit this). The HIL-week doc records
+  (2026-07-28..08-03 HANDOFF/PAPER_NOTES entries) were cherry-picked from
+  that branch onto this one on 2026-08-05, so THIS branch is the complete
+  record; `scheduler-frontier` is a disposable archive whose only unique
+  content is the frontier code + FRONTIER.md. Nothing on this branch uses or
+  references the frontier scheduler in code.
 - **This session (2026-06-25/26), committed + pushed:** `--align-offsets FRAC` knob
   (`Simulation.{h,cpp}`, `main.cpp`) + the leg-(A) route-map reframe (PAPER_NOTES,
   HANDOFF §5, BOUND, PREDICTOR §5d, ZONE_TOLERANCE, USAGE) + new **`THEOREM_BRIEF.md`**
