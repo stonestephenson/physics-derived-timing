@@ -121,6 +121,180 @@ rejected: it conflates staleness with load relief; noted for the council.
 (g) frontier N=6 ages are aguard-like (100.5/120.5) — the 80.5 ms
     sequencing result belongs to the abandoned v1–v8 line, not v12.
 
-## 8. Reviewer dispositions (filled after the council)
+## 8. Reviewer dispositions (4-reviewer council, 2026-08-07)
 
-(pending)
+Reviewers: A (RT-systems), B (control theory — read the FMU equations and
+verified the reference tape numerically), C (methodology), D (novelty/reject).
+Full reviews in the session record. Convergent verdict: MAJOR REVISION; C4
+nearly free; C1/C2 need a rebuilt instrument + derivation; C3 needs
+distributional evidence + symmetric tuning + artifacts. Dispositions:
+
+### Accepted — reshapes the section (the v2 plan in §5 implements these)
+
+1. **Capacity is a distribution, not a threshold** (A-R3, C-O4): expose
+   `--offset-seed` (the `startOffsets` hook exists, no CLI), K>=20 uniform
+   phasing draws per N in [17,24], BOTH schedulers; report P(clean) vs N.
+   Kills the phasing confound, the knife-edge non-monotonicity paradox, and
+   single-draw anecdotes at once.
+2. **The incumbent's tuning was partly inert** (A-R1): theta's 450 ms clamp
+   saturates for aguard (ages >> 450) but is live for frontier. Expose
+   `--theta-max` (default 450 = byte-identical) and 2-D tune (floor x
+   thetaMax) BOTH schedulers; report clamp-hit fraction per run. If aguard
+   reaches 21, C3 is restated as a health claim — pre-registered.
+3. **Artifacts** (A-R2): `tools/frontier_sweep.py` + committed CSVs +
+   `reproduce.py frontier` for EVERY number in the section, with the full
+   column set + commanded AND delivered dose + commit SHA + fidelity value
+   (C-O13).
+4. **Instrument rebuilt** (C-O1/O2, A-m17): two-part dose (suppress k
+   publishes + sub-period delta via relaxed clamp on the releasing publish),
+   realizable-dose set stated; per-cell CALIBRATION column (measured in-zone
+   inter-publish gap, max+p95) — dose-based validation, not outcome-based;
+   null control (unvisited zone => byte-identical) + saturation control
+   (D >> arc residency => censored, reported as ">residency"). The 13.5 ms
+   self-check anchor is dropped (unrealizable); the ~20 ms overlap point +
+   A2-style constant-offset mode are the anchors.
+5. **Units** (B-R2): A_F reported in delivered ms AND derived path-lag
+   Delta-s = v*D (speed-annotated); the collapse experiment (below) tests
+   Delta-a_ref = v^3*D*|dkappa/ds| as the invariant unit. ZONE_TOLERANCE's
+   "curvature rate" wording for ff_ref_1 is corrected to spatial gradient
+   dkappa/ds (B verified numerically: median ratio 0.988 vs ds, 8.89 vs dt).
+6. **Stamp at activation** (B-R1): achieved-F-staleness origin = F's
+   ACTIVATION tick (DATA_AGE §4a convention), not publish; both ages
+   reported. Compliance summaries = in-zone inter-publish GAP (same unit as
+   the dose) + quantiles + exposure-normalized exceedance episodes (C-O8),
+   never a bare max.
+7. **Feedback-channel symmetry** (A-R4, C-O3/O14): A(zone) is a COMPOSITE
+   command-delay tolerance (netCA delays the merged command, co-staling F —
+   PROOF_DRAFT §6 A2 note). Build `--bzone-hold-ms` (suppress B publishes,
+   same mechanism) and report the triple A_composite / A_F / A_B. C1's
+   "~3x heterogeneity vs the feedback path" comparison is DELETED until the
+   triple exists (A-R4, B-M12).
+8. **Enter-stale mode + phase battery** (C-O6, B-M5, A-m16): hold-phase and
+   entry-state arms; A_F = min over phase; enter-fresh vs enter-stale gap
+   reported (itself a mechanism result). All-zones-simultaneous companion
+   run (the §8.2-run-(4) analogue) for the non-composability caveat (B-M8).
+9. **Pre-registered predictions incl. disconfirming outcomes** (B-R4, A-m20,
+   C-O17): B's first-order table (v^3|dkappa/ds| worst-case per zone
+   predicts A_F NEARLY HOMOGENEOUS across z1/z2/z3, ~1.75x looser on z0 —
+   contradicting the C1 draft headline) is the pre-registered H1; the
+   separability null c=1 for the coupling (A-M5, both directions, 2 ms grid
+   at cliffs); the §5.4 disconfirming outcome (straights exceed budget yet
+   clean => A_F does not explain the win) is committed to print.
+10. **The collapse experiment is the centerpiece** (B's headline, D-A9):
+    zero-age reference-error injection epsilon in q = kappa + 0.2*dkappa/ds
+    (harness supplies the FMU's reference inputs, so this is an additive
+    knob); test breach-boundary collapse onto |Delta-a_ref| ~ a_tol; if it
+    holds, A_F(s,v) = a_tol/(v^3|dkappa/ds|) is a FORMULA predicting the
+    table, the profiles, and the sawtooth cells — the "derived, not swept"
+    upgrade both B and D independently demanded. Sawtooth becomes the
+    validation arm.
+11. **Attribution matrix for C3** (D-A2, B-M11, A-M13): {RM-alloc,
+    aguard-alloc} x {no F rules, STATIC zone-indexed F rates, tiered
+    heartbeat}, plus matched-demand uniform-vs-tiered at v12, plus per-kind
+    missed-job breakdown (does freed F budget land on B/M service?). The
+    "static rates under RM" cell is the one D calls fatal if unrun.
+12. **Heartbeat constants re-derived, order fixed** (A-M7, C-O9, D-A13):
+    A_F measured FIRST, constants set from the table, capacity re-run as a
+    held-out consequence; heartbeat-flip dose-response (straight heartbeat
+    just below/above measured A_F(z0)) as the falsifiable mechanism test.
+13. **Margins everywhere** (A-M9, C-O7): undecimated per-vehicle max|e_y|
+    tracker + per-zone margin columns; capacity tables report distance to
+    0.8 m, not binary verdicts. T1 stays 10 ms-decimated for DETECTION
+    (defensible; plant is slow) but margins carry the evidence.
+14. **E-ceiling restated** (A-M8): exactly one sound statement survives —
+    "N <= floor(m*T_E/C_E) = 27 is a necessary condition CONDITIONAL on
+    never-skipped E"; the k=2 measurement weakens the premise; "~24
+    realistic" and "[21, ~27] localized" are DELETED (the record itself
+    exceeds the 0.165-utilization arithmetic by dropping B/M). Bursty-skip
+    eskip variant queued to test pattern-dependence.
+15. **The rate-coupled vs value-typed criterion** (B-M10, D-A14): a channel
+    is rate-coupled iff its consumer hard-codes a period constant (E:
+    EST_STEP at LateralMotionControl.c:712 — audit: F/B/M clean). Elevated
+    to a first-class claim; the k=2/k=3 knife edge derived from the
+    0.98/0.02 + 0.95/0.05 blends is Kurt-facing analysis. Delay tables are
+    valid ONLY for value-typed channels — the citable warning to the
+    weakly-hard literature.
+16. **C4 made airtight, evidence corrected** (A-m14, D-A12, B-R3.3): the
+    two-run exhibit (F-hold off vs breaching dose: byte-identical age_path +
+    health columns, different hard counts) replaces the confounded v1-v8
+    anecdote; cite the v9 ablation only; reword "metric defect" to "defect
+    of using a sensor-age metric as the sole safety proxy"; add B's
+    sharpening — the estimator's stamped output has unstamped F lineage, so
+    age_path certifies a contaminated signal.
+17. **Misc accepted**: delete the cull from Frontier.cpp (proven no-op;
+    removes the pert-oracle caveat — A-M10); T2 "+1" NOT reported as a
+    claim (0.38 pp, single draw; ladder published as data — A §2); "5x
+    health" restated with matched-N table + the two regressions named
+    (sim-crit at own-record; low-N ages 100.5/120.5 vs RM 90.5/100.5 —
+    A-M12); "guaranteed heartbeat" renamed "staleness target" unless
+    measured (A-m18); the 80.5 ms sequencing result attributed to the
+    abandoned v1-v8 variant everywhere it appears (A-m19); capacity
+    taxonomy table (certified 8 / classical 10.5 / empirical, with P1
+    status + drop rates per row — A-M13); scope all claims to v10 + A_F(z3)
+    on v12.5 as the shape check, sign-stability not magnitude (C-O11,
+    D-A6); fzone CSVs self-describing per C-O13; sawtooth-vs-constant
+    dose-shape mapping stated before cross-validating (C §2).
+
+### Push-backs (project context the reviewers lacked; recorded as rebuttals)
+
+P1. **B-R3's consumer-split experiment is unimplementable here** — both F
+    consumers (estimator :711, merger :774) live INSIDE the FMU and read the
+    same routed value; splitting them requires editing the FMU, forbidden by
+    invariant 6 (prebuilt black box). Disposition: the concern is accepted
+    (the instrument perturbs command AND observer; §4's "pure data
+    staleness" wording corrected), the split is documented as a limitation,
+    and the observer-path contribution is bounded analytically (the 0.02
+    finite-difference weight + 0.95/0.05 smoother — Kurt-facing). B's
+    Factor-A (epsilon-magnitude collapse) is implementable and adopted.
+P2. **A-M11 / D-A5 on `zone_flagged` as a challenger-only oracle: partially
+    rebutted.** In this harness AND in the challenge's stated model,
+    longitudinal position is open-loop deterministic — vehicles follow
+    given reference traces with given start times (Simulation drives the
+    tape by tick; lateral error cannot slow the car), and the challenge
+    supplies routes + velocity profiles + start timestamps as inputs with
+    context-awareness as the stated intent. Future zone membership is
+    therefore map+clock knowledge, computable offline with ZERO position
+    estimation — not a state oracle, and its accuracy does NOT degrade with
+    data staleness. zband (a committed, documented policy) already consumes
+    the same field. Accepted remainder: this rests on the
+    no-longitudinal-coupling model assumption, which will be stated
+    prominently (B's independent point), and the honest-position variant
+    (flag from delayed estimated position) will be run once as a
+    sensitivity row, not as the headline.
+P3. **C-O10's demanded "aguard + F-demotion arm" already exists — it is
+    frontier v12 itself** (aguard allocation verbatim + F rules; both-off
+    anchor byte-identical to aguard). Disposition: reframed in the text —
+    the +2 IS the transfer of F economics to the incumbent's allocator; the
+    tuning-ledger half of O10 is accepted (per-scheduler config counts
+    published).
+P4. **D-A16 (folklore) and D's Kundu-Quevedo fold-in: rejected on D's own
+    analysis** — blanket-demote fails AND blanket-protect fails (v9/v11);
+    only the zone tier works; "run the planner slow" does not predict that.
+    Kept in the rebuttal bank for the paper.
+P5. **C-O2's "no outcome-based checks at all" softened**: outcome anchors
+    are retained as SECONDARY (they catch harness regressions cheaply) but
+    are never the validation of record; the delivered-dose calibration
+    column is (accepted as the primary, per C's own insistence).
+
+### The reframed claims (post-council; supersede §1 wording)
+
+- **C1'** (was C1): A(context) is a vector over channels. Evidence: the
+  A_composite/A_F/A_B triple + the collapse formula with residuals + the
+  pre-registered homogeneity test. The zone-ordering inversion already in
+  A(zone) (z1 slight-curve = 400 most tolerant; z2 sharp = z0 straight =
+  290; z3 lane-change binding at 140/170) is led with: REFERENCE MOTION,
+  not curvature level, prices tolerance — falsifying the challenge's own
+  rule of thumb (D's antidote).
+- **C2'**: separability is the null; "surface" claimed only if c != 1 with
+  sub-grid resolution, two zones, both directions; scoped one-plant (the
+  cart-pole's F channel is null by construction — CartPolePlant.cpp:77).
+- **C3'**: distributional capacity (P(clean) vs N curves, symmetric 2-D
+  tuning, honest-position sensitivity row), attribution matrix, artifacts;
+  sign-stability across profiles claimed, magnitudes not; outside-P1 scope
+  labeled wherever a capacity number appears.
+- **C4'**: the two-run exhibit + the inherited-blindness statement
+  (sensor-rooted chain metrics generally) + the contaminated-certificate
+  sharpening; framed as a scope warning, novelty claimed only via C1'/C15.
+- **NEW C5** (was buried): the rate-coupled/value-typed channel criterion +
+  the eskip negative result — delay-tolerance tables do not license
+  rate-reduction on rate-coupled channels.
