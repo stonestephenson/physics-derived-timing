@@ -324,6 +324,14 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   record; `scheduler-frontier` is a disposable archive whose only unique
   content is the frontier code + FRONTIER.md. Nothing on this branch uses or
   references the frontier scheduler in code.
+  **UPDATE 2026-08-07 (Stone's call): PROMOTED.** The frontier study is now a
+  paper leg: the 4 frontier commits (policies + FRONTIER.md) are
+  cherry-picked onto THIS branch (port verified byte-identical; v12 N=21
+  m100 clean re-validated here), and the F-channel work has an owning doc —
+  **`FCHANNEL.md`** (claims C1–C4, the A_F(zone) instrument spec, the
+  ffExtra-clamp ERRATUM §3 that retracts the "1 s F staleness free" reading,
+  experiment plan, reviewer dispositions). `scheduler-frontier` is now fully
+  redundant. Zone definitions remain frozen (EE coordination).
 - **This session (2026-06-25/26), committed + pushed:** `--align-offsets FRAC` knob
   (`Simulation.{h,cpp}`, `main.cpp`) + the leg-(A) route-map reframe (PAPER_NOTES,
   HANDOFF §5, BOUND, PREDICTOR §5d, ZONE_TOLERANCE, USAGE) + new **`THEOREM_BRIEF.md`**

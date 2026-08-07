@@ -145,6 +145,10 @@ in the last ~23% of the lap, and a 30 s run covers a quarter lap. Full-lap
   30 s marks falsified (aguard-honest m80 full-lap = 19; strict gate = 12);
   C4 30 s grid: no tuning cell clean at N>=22; F-staleness probe: bounded F
   holds are ~free at N=1; ff-extra-ms knob verified live (1000 ms sanity).
+  **[ERRATUM 2026-08-07: the previous line over-reads a clamped instrument —
+  ffExtra caps at one F period (~20 ms, TaskModel.cpp:317), so every dose
+  40–1000 ms administered ~20 ms. Only "~20 ms costs +6 soft frames" was
+  established. See FCHANNEL.md §3.]**
 - 2026-07-28 (b): incumbent fair-tuning at 120 s — margins {60,80,100,120} all
   break at N=20; the honest full-lap record is 19, margin-robust.
 - 2026-07-28 (c): eskip crux VERDICT — cadence-staleness is NOT delay-staleness.
