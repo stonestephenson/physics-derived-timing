@@ -121,6 +121,45 @@ rejected: it conflates staleness with load relief; noted for the council.
 (g) frontier N=6 ages are aguard-like (100.5/120.5) — the 80.5 ms
     sequencing result belongs to the abandoned v1–v8 line, not v12.
 
+## 9. Measured results (2026-08-10; all N=1, 120 s, worst exec, breach-anywhere,
+## zone-targeted sustained holds; CSVs: fzone_tolerance.csv, bzone_tolerance.csv)
+
+| zone | A_composite (netCA) | A_B (feedback hold) | A_F (reference hold) |
+|---|---|---|---|
+| z0 straight | 290 | [400, 600) | > 1200 (range top; margin flat) |
+| z1 slight | 400 | [600, 800) | > 1200 (margin 0.34->0.62) |
+| z2 sharp | 290 | [400, 600) | [1000, 1100) (breach manifests in z1) |
+| z3 lane-change | 140-170 | [300, 350) | [240, 260) |
+
+Key findings, each machine-checked:
+1. **Different zone-orderings per channel.** A_B reproduces the composite's
+   ordering exactly — including the z1>z0 anomaly (PAPER_NOTES 2026-06-26),
+   now localized to the FEEDBACK channel — while A_F is ordered by reference
+   motion (z3 << z2 < z1 ~ z0). The binding channel flips by zone: F binds in
+   the lane change (240 < 300), B binds everywhere else. Reviewer B's
+   near-homogeneity prediction refuted (pre-registered outcome (ii)); the
+   first-order amplitude model needs the exposure integral.
+2. **Separability rejected, c ~ 0.25** (coupling grid, session log): under a
+   200 ms uniform B-hold the lumped-budget null predicts A_F(z3) ~ 50 ms;
+   measured > 200. 300 ms of B costs only 60-80 ms of z3 F-budget. Channels
+   are far more independent than one command-staleness budget — per-channel
+   budgeting is a real scheduling lever. (2-D tool formalization pending.)
+3. **Failure modes differ qualitatively**: F-loss = bounded geometric drift
+   (max|e_y| grows smoothly with dose); B-loss = instability (uniform 400 ms:
+   4.15 m excursion; 600 ms: FMU numerical divergence).
+4. **C4 exhibit (two runs)**: baseline vs z3-300 ms F-hold — IDENTICAL
+   age_path (90.50) and age_fresh; 0 vs 24 hard frames. A breaching quantity
+   invisible to the certified metric, by construction.
+5. **Frontier compliance is exposure-based, not max-based** (N=21 m100):
+   z3 exceedance >500 ms = 0.8% of in-zone ticks (peaks 1262 = entry
+   transients) vs straights 39% (budget > 1200) — the slack is spent where
+   it exists. Undecimated margin at the record: max|e_y| = 0.7702 m
+   (29.8 mm to the bound) — the +2 is real but knife-edge, hence the
+   phasing-distribution battery (in progress).
+6. **Calibration discipline held**: delivered dose = commanded + R_F within
+   2.3 ms in all 92 cells across both channels; cross-zone leakage visible
+   and quantified in the delivered columns.
+
 ## 8. Reviewer dispositions (4-reviewer council, 2026-08-07)
 
 Reviewers: A (RT-systems), B (control theory — read the FMU equations and
