@@ -32,7 +32,8 @@ using namespace cps;
 namespace {
 
 std::unique_ptr<CorePolicy> makePolicy(const std::string& name, bool triage,
-                                       double guardMs, double floorMs) {
+                                       double guardMs, double floorMs,
+                                       double guardCapMs) {
     if (name == "edf")     return makeEdfPolicy();
     if (name == "context" || name == "ctx")
                            return makeContextAwarePolicy();  // oracle (reads *_real)
@@ -49,16 +50,18 @@ std::unique_ptr<CorePolicy> makePolicy(const std::string& name, bool triage,
     if (name == "hybrid-honest" || name == "hhybrid")
                            return makeHybridPolicy(guardMs, triage, InfoSet::Remote);
     if (name == "aguard" || name == "adaptive-guard")
-                           return makeAdaptiveGuardPolicy(floorMs, triage);
+                           return makeAdaptiveGuardPolicy(floorMs, triage,
+                                                          InfoSet::Oracle, guardCapMs);
     if (name == "aguard-honest" || name == "haguard")
-                           return makeAdaptiveGuardPolicy(floorMs, triage, InfoSet::Remote);
+                           return makeAdaptiveGuardPolicy(floorMs, triage,
+                                                          InfoSet::Remote, guardCapMs);
     if (name == "zband" || name == "zone-band")
                            return makeZoneBandPolicy();  // PROOF_DRAFT ZB-F-X
     if (name == "eskip")   return makeEskipProbePolicy();  // FRONTIER instrument
     if (name == "frontier")
-                           return makeFrontierPolicy(floorMs);
+                           return makeFrontierPolicy(floorMs, InfoSet::Oracle, guardCapMs);
     if (name == "frontier-honest")
-                           return makeFrontierPolicy(floorMs, InfoSet::Remote);
+                           return makeFrontierPolicy(floorMs, InfoSet::Remote, guardCapMs);
     return makeRateMonotonicPolicy();  // "rm" / default
 }
 
@@ -288,6 +291,19 @@ int main(int argc, char** argv) {
         params.triage        = hasFlag(argc, argv, "--triage");
         const double guardMs = std::atof(argValue(argc, argv, "--guard", "150"));
         const double floorMs = std::atof(argValue(argc, argv, "--floor", "100"));
+        // FCHANNEL council A-R1: the guard's theta clamp, previously a
+        // hard-coded 450 (saturated for the incumbent at high N, live for the
+        // challenger). Default 450 = byte-identical.
+        const double guardCapMs =
+            std::atof(argValue(argc, argv, "--guard-cap", "450"));
+        params.fzoneTarget = std::atoi(argValue(argc, argv, "--fzone-target", "-1"));
+        params.fzoneHoldMs = std::atof(argValue(argc, argv, "--fzone-hold-ms", "0"));
+        params.bzoneTarget = std::atoi(argValue(argc, argv, "--bzone-target", "-1"));
+        params.bzoneHoldMs = std::atof(argValue(argc, argv, "--bzone-hold-ms", "0"));
+        params.qzoneTarget = std::atoi(argValue(argc, argv, "--qzone-target", "-1"));
+        params.qzoneEps    = std::atof(argValue(argc, argv, "--qzone-eps", "0"));
+        params.offsetSeed  = static_cast<uint64_t>(
+            std::atoll(argValue(argc, argv, "--offset-seed", "0")));
         params.seed          = static_cast<uint64_t>(std::atoll(argValue(argc, argv, "--seed", "0")));
         const double durSec  = std::atof(argValue(argc, argv, "--duration", "0"));
         if (durSec > 0) params.durationSteps =
@@ -301,7 +317,7 @@ int main(int argc, char** argv) {
             schedName == "frontier-honest";
         const std::string csvFile   = argValue(argc, argv, "--csv", "");
         auto scheduler = std::make_unique<PolicyScheduler>(
-            makePolicy(schedName, params.triage, guardMs, floorMs));
+            makePolicy(schedName, params.triage, guardMs, floorMs, guardCapMs));
 
         Simulation sim(params, std::move(scheduler));
 

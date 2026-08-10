@@ -43,21 +43,26 @@ namespace {
 
 class FrontierPolicy : public CorePolicy {
 public:
-    FrontierPolicy(double floorMs, InfoSet info, long fHeartbeatTicks)
-        : floorMs_(floorMs), info_(info), fHeartbeatTicks_(fHeartbeatTicks) {
+    FrontierPolicy(double floorMs, InfoSet info, long fHeartbeatTicks,
+                   double guardCapMs)
+        : floorMs_(floorMs), info_(info), fHeartbeatTicks_(fHeartbeatTicks),
+          guardCapMs_(guardCapMs) {
         fHeartbeatCritTicks_ = 1000;  // 100 ms
         if (const char* s = std::getenv("CPS_FRONTIER_FHB_CRIT_MS")) {
             const long v = std::atol(s);
             if (v >= 20) fHeartbeatCritTicks_ = v * 10;
         }
-        // Ablation toggles (FRONTIER.md): with both disabled this policy must
-        // reproduce aguard exactly — the validation anchor for the A/B.
+        // Ablation toggle (FRONTIER.md): with F-demotion disabled this policy
+        // reproduces aguard exactly — the validation anchor for the A/B.
+        // (The hopeless-job cull was DELETED per council A-M10/17: a proven
+        // no-op whose remainingTicks read was oracular under pert.)
         fDemote_ = std::getenv("CPS_FRONTIER_NO_FDEMOTE") == nullptr;
-        cull_    = std::getenv("CPS_FRONTIER_NO_CULL") == nullptr;
         name_ = "Frontier[v9,floor=" + std::to_string(static_cast<int>(floorMs)) +
                 "ms,fhb=" + std::to_string(fHeartbeatTicks_ / 10) + "ms" +
+                (static_cast<int>(guardCapMs) != 450
+                     ? ",cap=" + std::to_string(static_cast<int>(guardCapMs)) + "ms"
+                     : "") +
                 std::string(fDemote_ ? "" : ",nofdemote") +
-                std::string(cull_ ? "" : ",nocull") +
                 (info == InfoSet::Remote ? ",honest]" : "]");
     }
 
@@ -96,20 +101,15 @@ public:
                     return {1, -1.0e6 - static_cast<double>(starve), 0.0, 0.0, 1};
             }
             const double theta_v =
-                std::min(450.0, floorMs_ + std::max(60.0, v.age_recent_ms));
+                std::min(guardCapMs_, floorMs_ + std::max(60.0, v.age_recent_ms));
             const double ttpnr = predTtpnrMs(v, info_);
             if (!isF && ttpnr < theta_v)
                 return {0, ttpnr, predClearanceM(v, info_), predTtvMs(v, info_), 0};
             return {1, -comfortUrgency(v, info_), 0.0, 0.0, isF ? 1 : 0};
         };
 
-        order_.clear();
-        for (int i = 0; i < static_cast<int>(ready.size()); ++i) {
-            const ReadyJob& j = ready[i];
-            if (cull_ && nowEst + j.remainingTicks > j.deadlineStep)
-                continue;  // hopeless under kill-and-hold
-            order_.push_back(i);
-        }
+        order_.resize(ready.size());
+        for (int i = 0; i < static_cast<int>(ready.size()); ++i) order_[i] = i;
 
         std::sort(order_.begin(), order_.end(), [&](int a, int b) {
             const Key ka = key(ready[a]);
@@ -143,9 +143,9 @@ private:
     double floorMs_;
     InfoSet info_;
     long fHeartbeatTicks_;
+    double guardCapMs_;
     long fHeartbeatCritTicks_ = 1000;
     bool fDemote_ = true;
-    bool cull_ = true;
     std::string name_;
     std::vector<int> order_;
     std::vector<long> lastFDone_;
@@ -153,13 +153,15 @@ private:
 
 }  // namespace
 
-std::unique_ptr<CorePolicy> makeFrontierPolicy(double floorMs, InfoSet info) {
+std::unique_ptr<CorePolicy> makeFrontierPolicy(double floorMs, InfoSet info,
+                                               double guardCapMs) {
     long fhbTicks = 5000;  // 500 ms
     if (const char* s = std::getenv("CPS_FRONTIER_FHB_MS")) {
         const long v = std::atol(s);
         if (v >= 20) fhbTicks = v * 10;
     }
-    return std::unique_ptr<CorePolicy>(new FrontierPolicy(floorMs, info, fhbTicks));
+    return std::unique_ptr<CorePolicy>(
+        new FrontierPolicy(floorMs, info, fhbTicks, guardCapMs));
 }
 
 }  // namespace cps

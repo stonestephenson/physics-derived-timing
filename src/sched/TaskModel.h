@@ -113,6 +113,33 @@ public:
     // A2 experiment: delay F's publish (ff_fin) by t ticks, clamped to just
     // before F's next release. 0 = off (byte-identical). See SimConfig.
     void setFfExtraTicks(long t) { ffExtraTicks_ = t; }
+    // FCHANNEL A_F instrument: while active, F publishes are SUPPRESSED (the
+    // fin is swallowed — exactly a killed F's semantics, register holds) until
+    // the published value's ACTIVATION age reaches holdTicks; the releasing
+    // publish is then additionally delayed by deltaTicks via the ffExtra
+    // mechanism (sub-period dose part; delta must stay < T_F - R_F, which the
+    // existing finish-before-activate clamp enforces). Set per tick by the
+    // Simulation (zone-gated). 0/inactive = byte-identical.
+    void setFzoneHold(bool active, long holdTicks, long deltaTicks) {
+        fzHoldActive_ = active; fzHoldTicks_ = holdTicks; fzDeltaTicks_ = deltaTicks;
+    }
+    // FCHANNEL A_B instrument: same publish-suppression mechanism for the
+    // Controller (B). Suppressed B fins leave fbOutStamp_ untouched, so the
+    // dose is VISIBLE to age_path (B is a stamped channel) — by design.
+    void setBzoneHold(bool active, long holdTicks) {
+        bzHoldActive_ = active; bzHoldTicks_ = holdTicks;
+    }
+    // Achieved F staleness (FCHANNEL §2, activation-stamped): age in ticks of
+    // the currently-published F value, measured from the ACTIVATION tick of
+    // the F job that produced it (DATA_AGE §4a convention). -1 = none yet.
+    long currentFfStalenessTicks(long step) const {
+        return ffPubActStamp_ < 0 ? -1 : step - ffPubActStamp_;
+    }
+    // Per-kind missed-job counts (FCHANNEL council A-M13: does freed F budget
+    // land on B/M service?). Indexed by static_cast<int>(TaskKind).
+    long missedByKind(TaskKind k) const {
+        return missedByKind_[static_cast<int>(k)];
+    }
 
     int vehicleId() const { return vehicleId_; }
     long missedJobs() const { return missed_; }
@@ -173,6 +200,17 @@ private:
     bool          zoneFlag_ = false;        // z3±θ flag sampled at release (ZoneBand)
     long          ffExtraTicks_ = 0;        // ff_fin publish delay (A2 experiment)
     long          ffFinDueAt_   = -1;       // pending delayed ff_fin (-1 = none)
+    // FCHANNEL instruments (all off by default -> byte-identical):
+    bool fzHoldActive_ = false;   // zone-gated F publish suppression
+    long fzHoldTicks_  = 0;       // required published-value activation age
+    long fzDeltaTicks_ = 0;       // sub-period delay on the releasing publish
+    bool bzHoldActive_ = false;   // zone-gated B publish suppression
+    long bzHoldTicks_  = 0;
+    long ffCurActStamp_ = -1;     // activation tick of the in-flight F job
+    long ffPubActStamp_ = -1;     // activation tick of the PUBLISHED F value
+    long bCurActStamp_  = -1;     // activation tick of the in-flight B job
+    long bPubActStamp_  = -1;     // activation tick of the published B value
+    long missedByKind_[kNumTaskKinds] = {0, 0, 0, 0, 0, 0};
 
     // Pending network "receive" events (arrival tick + carried data-age stamp).
     std::vector<NetPacket> scReceiveAt_;

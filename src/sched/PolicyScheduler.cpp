@@ -44,8 +44,14 @@ void PolicyScheduler::onTick(double /*t*/, long step,
 
     // 3b. Apply any per-vehicle zone-conditional extra netCA delay (Phase-2
     //     causal A(zone)); 0 for every vehicle unless --zone-target is set.
-    for (size_t v = 0; v < models_.size() && v < views.size(); ++v)
+    //     Likewise the FCHANNEL A_F/A_B publish-suppression doses (0 = off).
+    for (size_t v = 0; v < models_.size() && v < views.size(); ++v) {
         models_[v].setExtraNetDelayTicks(views[v].extra_net_delay_ticks);
+        models_[v].setFzoneHold(views[v].fz_hold_ticks > 0,
+                                views[v].fz_hold_ticks, views[v].fz_delta_ticks);
+        models_[v].setBzoneHold(views[v].bz_hold_ticks > 0,
+                                views[v].bz_hold_ticks);
+    }
 
     // 4. Advance every model and emit this tick's triggers.
     for (size_t v = 0; v < models_.size(); ++v)
@@ -76,6 +82,19 @@ long PolicyScheduler::recentLatchAgeTicks(int vehicle, long step) const {
 long PolicyScheduler::currentDataAgeOldestTicks(int vehicle, long step) const {
     if (vehicle < 0 || vehicle >= static_cast<int>(models_.size())) return -1;
     return models_[vehicle].currentDataAgeOldestTicks(step);
+}
+
+long PolicyScheduler::currentFfStalenessTicks(int vehicle, long step) const {
+    if (vehicle < 0 || vehicle >= static_cast<int>(models_.size())) return -1;
+    return models_[vehicle].currentFfStalenessTicks(step);
+}
+
+long PolicyScheduler::missedJobsByKind(int kindIdx) const {
+    if (kindIdx < 0 || kindIdx >= kNumTaskKinds) return 0;
+    long total = 0;
+    for (const auto& m : models_)
+        total += m.missedByKind(static_cast<TaskKind>(kindIdx));
+    return total;
 }
 
 }  // namespace cps

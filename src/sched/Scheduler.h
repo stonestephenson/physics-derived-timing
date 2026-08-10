@@ -80,6 +80,13 @@ struct VehicleView {
     // only; always false otherwise). Consumed by PolicyScheduler to stamp job
     // bands at release; ignored by every non-zband policy.
     bool   zone_flagged = false;
+    // FCHANNEL A_F/A_B instruments (zone-gated publish-suppression doses, set
+    // by Simulation per tick, consumed by PolicyScheduler into the task model;
+    // 0 = off -> byte-identical). fz_delta_ticks is the sub-period part of the
+    // two-part F dose. Experiment injection, not policy information.
+    long   fz_hold_ticks  = 0;
+    long   fz_delta_ticks = 0;
+    long   bz_hold_ticks  = 0;
 };
 
 class Scheduler {
@@ -115,6 +122,14 @@ public:
     // for `vehicle` this tick; -1 if untracked / nothing applied. Live per-tick
     // twin of maxDataAgeOldestTicks, for the danger-relative criticality metric.
     virtual long currentDataAgeOldestTicks(int /*vehicle*/, long /*step*/) const { return -1; }
+    // FCHANNEL §2: achieved F staleness (activation-stamped age of the
+    // published F value) for `vehicle` this tick; -1 if untracked/none yet.
+    // A NEW parallel quantity — never part of age_path/age_fresh.
+    virtual long currentFfStalenessTicks(int /*vehicle*/, long /*step*/) const { return -1; }
+    // FCHANNEL A-M13: fleet-total missed jobs of one task kind (index =
+    // static_cast<int>(TaskKind); int to avoid a TaskModel.h dependency here).
+    // 0 if untracked.
+    virtual long missedJobsByKind(int /*kindIdx*/) const { return 0; }
 };
 
 }  // namespace cps

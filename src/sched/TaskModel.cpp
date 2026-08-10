@@ -136,6 +136,7 @@ void TaskChainModel::releaseIfDue(Job& j, long step) {
     if (step < j.nextRelease) return;
     if (j.active) {
         ++missed_;  // previous job still unfinished at its implicit deadline
+        ++missedByKind_[static_cast<int>(j.params.kind)];  // FCHANNEL A-M13
         if (overrun_ == OverrunPolicy::SkipNext) {
             // The overrunning job keeps its progress and runs to completion;
             // this release is skipped entirely.
@@ -299,28 +300,67 @@ void TaskChainModel::endTick(long step, VehicleTriggers& out) {
         if (out.est_fin) estOutStamp_  = estCompStamp_;
     }
     if (controller_.grantedThisTick) {
-        advance(controller_, out.ctrl_act, out.ctrl_fin);
-        if (out.ctrl_act) fbCompStamp_ = estOutStamp_;    // reads estimator output
-        if (out.ctrl_fin) fbOutStamp_  = fbCompStamp_;
+        bool ctrlFin = false;
+        advance(controller_, out.ctrl_act, ctrlFin);
+        if (out.ctrl_act) {
+            fbCompStamp_ = estOutStamp_;   // reads estimator output
+            bCurActStamp_ = step;          // activation stamp (FCHANNEL §2)
+        }
+        if (ctrlFin) {
+            // FCHANNEL A_B hold: swallow the publish (killed-B semantics —
+            // register AND stamp hold, so the dose is visible to age_path)
+            // until the published value's activation age reaches the dose.
+            if (bzHoldActive_ && bPubActStamp_ >= 0 &&
+                step - bPubActStamp_ < bzHoldTicks_) {
+                // suppressed
+            } else {
+                out.ctrl_fin = true;
+                fbOutStamp_  = fbCompStamp_;
+                bPubActStamp_ = bCurActStamp_;
+            }
+        }
     }
     if (feedforward_.grantedThisTick) {
-        // Feedforward carries the reference, not sensor data -> no stamp (excluded).
-        if (ffExtraTicks_ <= 0) {
-            advance(feedforward_, out.ff_act, out.ff_fin);
-        } else {
-            // A2 experiment: hold the publish (ff_fin) for ffExtraTicks_,
-            // clamped to the tick before F's next release so the FMU's
-            // finish-before-activate trigger order is preserved.
-            bool fin = false;
-            advance(feedforward_, out.ff_act, fin);
-            if (fin)
-                ffFinDueAt_ = std::min(step + ffExtraTicks_,
+        // Feedforward carries the reference, not sensor data -> no age-path
+        // stamp (excluded); the FCHANNEL activation stamp below is the NEW
+        // parallel F-age quantity, never mixed into age_path/age_fresh.
+        bool ffFin = false;
+        advance(feedforward_, out.ff_act, ffFin);
+        if (out.ff_act) ffCurActStamp_ = step;  // FCHANNEL §2 (DATA_AGE §4a style)
+        if (ffFin) {
+            const bool suppress =
+                fzHoldActive_ && ffPubActStamp_ >= 0 &&
+                step - ffPubActStamp_ < fzHoldTicks_;
+            const long extra =
+                std::max(ffExtraTicks_, fzHoldActive_ ? fzDeltaTicks_ : 0);
+            if (suppress) {
+                // FCHANNEL A_F hold: swallow the publish (killed-F semantics;
+                // register holds; FMU trigger order unaffected, exactly as for
+                // a missed F). The value publishes via a LATER completion once
+                // the dose is reached.
+            } else if (extra > 0) {
+                // A2 experiment / FCHANNEL sub-period delta: hold the publish
+                // (ff_fin) for `extra` ticks, clamped to the tick before F's
+                // next release so finish-before-activate is preserved. NOTE
+                // (FCHANNEL §3 erratum): this clamp caps the effective delay
+                // at one F period minus R_F — the delta part of a two-part
+                // dose must stay under that; the k-period part uses
+                // suppression above.
+                ffFinDueAt_ = std::min(step + extra,
                                        feedforward_.nextRelease - 1);
+            } else {
+                out.ff_fin = true;
+                ffPubActStamp_ = ffCurActStamp_;
+            }
         }
     }
     if (ffFinDueAt_ >= 0 && step >= ffFinDueAt_) {
         out.ff_fin = true;
         ffFinDueAt_ = -1;
+        // The FMU publishes its CURRENT ff_comp (computed at the latest
+        // activation): stamp accordingly. No new activation can occur between
+        // the finish and the clamped due tick (due < nextRelease).
+        ffPubActStamp_ = ffCurActStamp_;
     }
     bool mergerFinished = false;
     if (merger_.grantedThisTick) {

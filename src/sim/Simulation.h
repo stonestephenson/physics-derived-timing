@@ -54,6 +54,28 @@ struct SimParams {
     double   zoneFlagWindowMs = 0.0;
     // A2 experiment: delay every Feedforward publish by this (ms); 0 = off.
     double   ffExtraMs     = 0.0;
+    // FCHANNEL A_F instrument (--fzone-target/--fzone-hold-ms): while the
+    // vehicle is in zone fzoneTarget (0..3; -1 = all zones when hold > 0), F
+    // publishes are suppressed until the published value's activation age
+    // reaches fzoneHoldMs (two-part dose: k full F periods by suppression +
+    // sub-period remainder via the delayed-publish path). Lateral only; 0 =
+    // off -> byte-identical. See FCHANNEL.md §4.
+    int      fzoneTarget   = -2;   // -2 = off; -1 = all zones; 0..3 = one zone
+    double   fzoneHoldMs   = 0.0;
+    // FCHANNEL A_B instrument: same, for Controller (B) publishes.
+    int      bzoneTarget   = -2;
+    double   bzoneHoldMs   = 0.0;
+    // FCHANNEL collapse experiment (--qzone-target/--qzone-eps): add eps to
+    // the reference curvature input ff0 (hence to q = kappa + 0.2*dkappa/ds)
+    // while the vehicle is in the target zone — a zero-age reference ERROR
+    // (Reviewer B's Factor A). Lateral only; 0 = off -> byte-identical.
+    int      qzoneTarget   = -2;
+    double   qzoneEps      = 0.0;
+    // FCHANNEL capacity-distribution battery (--offset-seed): when > 0 and
+    // startOffsets/packZone are not in play, draw each vehicle's start offset
+    // uniformly in [0, lapSteps) from this seed instead of the deterministic
+    // spread — the phasing-randomization axis (council A-R3). 0 = off.
+    uint64_t offsetSeed    = 0;
     ExecMode execMode      = ExecMode::Average;
     OverrunPolicy overrun  = OverrunPolicy::KillAndHold;
     // If >= 0, override BOTH network delays with this fixed value (ms),
@@ -158,6 +180,16 @@ private:
     long                zoneHard_[4] = {0, 0, 0, 0};
     long                zoneSoft_[4] = {0, 0, 0, 0};
     long                zoneFrames_[4] = {0, 0, 0, 0};  // frames spent in each zone
+    // FCHANNEL margins + F-age reporting (council A-M9/C-O7/C-O8). All
+    // per-tick (undecimated), measurement-only, always on (passive).
+    std::vector<double> maxAbsEy_;              // per-vehicle run-max |e_y_real|
+    double              zoneMaxAbsEy_[4] = {0, 0, 0, 0};   // per-zone fleet max
+    long                ffStaleZoneMaxTicks_[4] = {0, 0, 0, 0};  // per-zone max F age
+    // In-zone tick counts with F staleness over each ladder threshold
+    // {100, 200, 500, 1000} ms — exposure-normalized exceedance reporting.
+    static constexpr long kFfLadderTicks[4] = {1000, 2000, 5000, 10000};
+    long                ffStaleExceed_[4][4] = {{0}};  // [zone][ladder]
+    long                ffStaleZoneTicks_[4] = {0, 0, 0, 0};  // in-zone samples
 
     // --- Held-command prediction cache (drives TTU policy, viz, stats).
     //     TTV + polyline refresh every 10 ms (cheap single rollout); the PNR

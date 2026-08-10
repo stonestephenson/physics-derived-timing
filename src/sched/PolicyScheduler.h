@@ -27,6 +27,8 @@ public:
     long maxDataAgeOldestTicks(int vehicle) const override;
     long recentLatchAgeTicks(int vehicle, long step) const override;
     long currentDataAgeOldestTicks(int vehicle, long step) const override;
+    long currentFfStalenessTicks(int vehicle, long step) const override;
+    long missedJobsByKind(int kindIdx) const override;
 
 private:
     std::unique_ptr<CorePolicy>  policy_;

@@ -91,7 +91,8 @@ std::unique_ptr<CorePolicy> makeHybridPolicy(double guardMs, bool triage,
 // estimate (clamped), plus rescue-clearance tie-breaking in the emergency
 // tier. See AdaptiveGuard.cpp / PREDICTOR.md §5c.
 std::unique_ptr<CorePolicy> makeAdaptiveGuardPolicy(double floorMs, bool triage,
-                                                   InfoSet info = InfoSet::Oracle);
+                                                   InfoSet info = InfoSet::Oracle,
+                                                   double guardCapMs = 450.0);
 
 // ZoneBand ("zband"): the PROOF_DRAFT §3.1 proof-object scheduler ZB-F-X —
 // strict job-level FP on (band, period, vehicle, kind), band stamped at
@@ -106,6 +107,7 @@ std::unique_ptr<CorePolicy> makeZoneBandPolicy();
 // serialization + F demotion/heartbeat + finish-line + hopeless-cull.
 std::unique_ptr<CorePolicy> makeEskipProbePolicy();
 std::unique_ptr<CorePolicy> makeFrontierPolicy(double floorMs,
-                                               InfoSet info = InfoSet::Oracle);
+                                               InfoSet info = InfoSet::Oracle,
+                                               double guardCapMs = 450.0);
 
 }  // namespace cps

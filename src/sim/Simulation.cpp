@@ -106,6 +106,14 @@ void Simulation::start() {
             const long spacingTicks = std::max<long>(
                 1, static_cast<long>(params_.minSpacingMs / (dt_ * 1000.0) + 0.5));
             offsets_ = packZoneOffsets(params_.packZone, spacingTicks);
+        } else if (params_.offsetSeed > 0) {
+            // FCHANNEL capacity distribution (council A-R3): uniform random
+            // phasing draw. Each seed is one independent fleet arrangement;
+            // capacity is reported as P(clean) over seeds, not a single draw.
+            offsets_.resize(n);
+            std::mt19937_64 orng(params_.offsetSeed);
+            std::uniform_int_distribution<long> dist(0, traj_->lapSteps() - 1);
+            for (int v = 0; v < n; ++v) offsets_[v] = dist(orng);
         } else {
             offsets_.resize(n);
             // alignOffsets scales the even spread toward a common phase: 0 = full
@@ -371,6 +379,30 @@ void Simulation::buildViews() {
                     ? static_cast<long>(params_.zoneExtraMs / (dt_ * 1000.0) + 0.5)
                     : 0;
         }
+        // FCHANNEL A_F/A_B doses: zone-gated publish suppression (0 = off).
+        // fzoneTarget/bzoneTarget -1 = every zone; 0..3 = that zone only.
+        views_[v].fz_hold_ticks = 0;
+        views_[v].fz_delta_ticks = 0;
+        views_[v].bz_hold_ticks = 0;
+        if (params_.plant == PlantKind::Lateral &&
+            (params_.fzoneHoldMs > 0.0 || params_.bzoneHoldMs > 0.0)) {
+            const int z = static_cast<int>(
+                vehicles_[v].traj->zoneAt(step_ + offsets_[v]));
+            if (params_.fzoneHoldMs > 0.0 &&
+                (params_.fzoneTarget == -1 || params_.fzoneTarget == z)) {
+                const long holdTicks =
+                    static_cast<long>(params_.fzoneHoldMs / (dt_ * 1000.0) + 0.5);
+                const long fPeriod = 200;  // F period in ticks (20 ms)
+                views_[v].fz_hold_ticks  = (holdTicks / fPeriod) * fPeriod;
+                views_[v].fz_delta_ticks = holdTicks % fPeriod;
+                if (views_[v].fz_hold_ticks == 0)  // sub-period dose: delta only
+                    views_[v].fz_hold_ticks = 1;   // active marker (age >= 1 tick always true)
+            }
+            if (params_.bzoneHoldMs > 0.0 &&
+                (params_.bzoneTarget == -1 || params_.bzoneTarget == z))
+                views_[v].bz_hold_ticks =
+                    static_cast<long>(params_.bzoneHoldMs / (dt_ * 1000.0) + 0.5);
+        }
         if (params_.honestPredictor) {
             long ttvE, ttpnrE;
             currentHonestPredTicks(static_cast<int>(v), ttvE, ttpnrE);
@@ -392,8 +424,17 @@ bool Simulation::step() {
 
     // 1. Apply this tick's reference inputs and snapshot the latest state.
     for (size_t v = 0; v < vehicles_.size(); ++v) {
-        const Trajectory::Inputs in = vehicles_[v].traj->inputsAt(step_ + offsets_[v]);
+        Trajectory::Inputs in = vehicles_[v].traj->inputsAt(step_ + offsets_[v]);
         vehicles_[v].curVel = in.vel;
+        // FCHANNEL collapse experiment (Reviewer B Factor A): zero-age
+        // reference ERROR — eps added to the curvature input ff0 adds eps to
+        // q = kappa + 0.2*dkappa/ds, the exact scalar plant and estimator
+        // consume. Zone-gated; 0 = off -> byte-identical.
+        if (params_.qzoneEps != 0.0 && params_.plant == PlantKind::Lateral &&
+            (params_.qzoneTarget == -1 ||
+             static_cast<int>(vehicles_[v].traj->zoneAt(step_ + offsets_[v])) ==
+                 params_.qzoneTarget))
+            in.ff0 += params_.qzoneEps;
         vehicles_[v].plant->setInputs(in.ff0, in.ff1, in.vel);
     }
     buildViews();
@@ -406,6 +447,24 @@ bool Simulation::step() {
         vehicles_[v].plant->applyTriggers(triggers_[v]);
         vehicles_[v].plant->doStep(t, dt_);
         vehicles_[v].out = vehicles_[v].plant->readOutputs();
+    }
+
+    // 3a'. FCHANNEL margins + achieved F staleness, per tick (undecimated).
+    if (maxAbsEy_.size() != vehicles_.size()) maxAbsEy_.assign(vehicles_.size(), 0.0);
+    for (size_t v = 0; v < vehicles_.size(); ++v) {
+        const double aey = std::fabs(vehicles_[v].out.e_y_real);
+        if (aey > maxAbsEy_[v]) maxAbsEy_[v] = aey;
+        if (params_.plant != PlantKind::Lateral) continue;
+        const int z = static_cast<int>(vehicles_[v].traj->zoneAt(step_ + offsets_[v]));
+        if (aey > zoneMaxAbsEy_[z]) zoneMaxAbsEy_[z] = aey;
+        const long ffAge =
+            scheduler_->currentFfStalenessTicks(static_cast<int>(v), step_);
+        if (ffAge >= 0) {
+            ++ffStaleZoneTicks_[z];
+            if (ffAge > ffStaleZoneMaxTicks_[z]) ffStaleZoneMaxTicks_[z] = ffAge;
+            for (int l = 0; l < 4; ++l)
+                if (ffAge > kFfLadderTicks[l]) ++ffStaleExceed_[z][l];
+        }
     }
 
     // Actuator-authority calibration aid (the car's delta_max / the cart-pole's
@@ -689,6 +748,36 @@ void Simulation::runToCompletion(bool verbose) {
         if (params_.plant == PlantKind::Lateral)
             std::printf("  zone frames: z0=%ld z1=%ld z2=%ld z3=%ld\n",
                         zoneFrames_[0], zoneFrames_[1], zoneFrames_[2], zoneFrames_[3]);
+        // FCHANNEL reporting (undecimated margins + achieved F staleness +
+        // per-kind missed). Passive additions; golden numbers untouched.
+        {
+            double fleetMaxEy = 0.0;
+            for (double m : maxAbsEy_) fleetMaxEy = std::max(fleetMaxEy, m);
+            std::printf("  max |e_y| (per-tick): fleet %.4f m (margin %.4f m to 0.8)",
+                        fleetMaxEy, 0.8 - fleetMaxEy);
+            if (params_.plant == PlantKind::Lateral)
+                std::printf(" | zones %.4f %.4f %.4f %.4f", zoneMaxAbsEy_[0],
+                            zoneMaxAbsEy_[1], zoneMaxAbsEy_[2], zoneMaxAbsEy_[3]);
+            std::printf("\n");
+        }
+        if (params_.plant == PlantKind::Lateral) {
+            std::printf("  F staleness (act-stamped, ms): zone max %.1f %.1f %.1f %.1f"
+                        " | in-zone ticks >500ms:",
+                        ffStaleZoneMaxTicks_[0] * dt_ * 1000.0,
+                        ffStaleZoneMaxTicks_[1] * dt_ * 1000.0,
+                        ffStaleZoneMaxTicks_[2] * dt_ * 1000.0,
+                        ffStaleZoneMaxTicks_[3] * dt_ * 1000.0);
+            for (int z = 0; z < 4; ++z) {
+                const double pct = ffStaleZoneTicks_[z] > 0
+                    ? 100.0 * static_cast<double>(ffStaleExceed_[z][2]) /
+                          static_cast<double>(ffStaleZoneTicks_[z]) : 0.0;
+                std::printf(" z%d=%ld(%.1f%%)", z, ffStaleExceed_[z][2], pct);
+            }
+            std::printf("\n");
+        }
+        std::printf("  missed by kind: E=%ld B=%ld F=%ld M=%ld\n",
+                    scheduler_->missedJobsByKind(1), scheduler_->missedJobsByKind(2),
+                    scheduler_->missedJobsByKind(3), scheduler_->missedJobsByKind(4));
         // Simultaneous criticality (HANDOFF §5 item 0): empirical shadow of leg (A).
         {
             long over = 0;
