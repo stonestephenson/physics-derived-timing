@@ -54,7 +54,34 @@ int main(int argc, char** argv) {
         std::printf("  z3 arcs (start_tick,len):");
         for (auto& r : runs)
             if (r.zone == 3) std::printf(" (%ld,%ld)", r.start, r.len);
-        std::printf("\n\n");
+        std::printf("\n");
+        // Per-zone reference kinematics (FCHANNEL §10 qzone-collapse leg):
+        // ff0 = kappa, ff1 = dkappa/ds (reviewer B verified the spatial-
+        // gradient reading numerically). max(v^2) prices a zero-age curvature
+        // ERROR eps (Delta a_ref = v^2 * eps); max(v^3*|ff1|) prices a time
+        // DELAY D (Delta a_ref = v^3 * |dkappa/ds| * D) — the first-order
+        // A_F_lb model the collapse experiment tests.
+        struct K { double vSum = 0, vMax = 0, ff0Max = 0, ff1Max = 0,
+                          v2Max = 0, v3ff1Max = 0; long n = 0; };
+        std::map<int, K> kin;
+        for (long i = 0; i < lap; ++i) {
+            auto in = traj->inputsAt(i);
+            K& k = kin[static_cast<int>(traj->zoneAt(i))];
+            const double v = in.vel, f0 = std::fabs(in.ff0),
+                         f1 = std::fabs(in.ff1);
+            k.vSum += v; ++k.n;
+            if (v > k.vMax) k.vMax = v;
+            if (f0 > k.ff0Max) k.ff0Max = f0;
+            if (f1 > k.ff1Max) k.ff1Max = f1;
+            if (v * v > k.v2Max) k.v2Max = v * v;
+            if (v * v * v * f1 > k.v3ff1Max) k.v3ff1Max = v * v * v * f1;
+        }
+        for (auto& [z, k] : kin)
+            std::printf("  z%d kin: v mean=%.2f max=%.2f | max|ff0|=%.5f "
+                        "max|ff1|=%.5f | max(v^2)=%.1f max(v^3*|ff1|)=%.3f\n",
+                        z, k.vSum / k.n, k.vMax, k.ff0Max, k.ff1Max, k.v2Max,
+                        k.v3ff1Max);
+        std::printf("\n");
     }
     return 0;
 }
