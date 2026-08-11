@@ -332,6 +332,23 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   ffExtra-clamp ERRATUM §3 that retracts the "1 s F staleness free" reading,
   experiment plan, reviewer dispositions). `scheduler-frontier` is now fully
   redundant. Zone definitions remain frozen (EE coordination).
+  **UPDATE 2026-08-10: the FCHANNEL measurement campaign is COMPLETE**
+  (FCHANNEL §9 = the record; PAPER_NOTES 2026-08-10 = the paper-facing
+  summary). Instruments (all off-by-default, byte-identical verified, full
+  gate green incl. G3): `--fzone-target/--fzone-hold-ms`,
+  `--bzone-target/--bzone-hold-ms`, `--qzone-target/--qzone-eps`,
+  `--offset-seed` (+`--min-spacing` = F_spaced random draws), `--guard-cap`,
+  achieved-F-staleness metric (activation-stamped), undecimated max|e_y|,
+  per-kind missed; `tools/fzone_sweep.py`; CSVs `fzone_tolerance.csv`,
+  `bzone_tolerance.csv`. Headlines: the A_F/A_B/composite triple (binding
+  channel flips by zone), coupling c~0.25, the C4 exhibit, distributional
+  capacity dominance (frontier over aguard at every N>=14 across 3 phasing
+  families), and the 2x2 attribution matrix (RM 10 / RM+F 14 / aguard 19 /
+  frontier 21 — both levers load-bearing). Two instrument errata caught +
+  recorded (ffExtra clamp; hard+soft tabulation bug). Queued next: FCHANNEL
+  §10 (reproduce.py registration, capacity-CSV formalization, qzone
+  collapse/analytic leg, cross-profile sign-stability). USAGE flag docs
+  pending (same queue). NOT pushed this session — push on Stone's word.
 - **This session (2026-06-25/26), committed + pushed:** `--align-offsets FRAC` knob
   (`Simulation.{h,cpp}`, `main.cpp`) + the leg-(A) route-map reframe (PAPER_NOTES,
   HANDOFF §5, BOUND, PREDICTOR §5d, ZONE_TOLERANCE, USAGE) + new **`THEOREM_BRIEF.md`**

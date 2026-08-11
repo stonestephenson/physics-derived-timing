@@ -57,6 +57,14 @@ public:
         // (The hopeless-job cull was DELETED per council A-M10/17: a proven
         // no-op whose remainingTicks read was oracular under pert.)
         fDemote_ = std::getenv("CPS_FRONTIER_NO_FDEMOTE") == nullptr;
+        // Attribution-matrix toggle (FCHANNEL §8 item 11, council D-A2): with
+        // RM_ALLOC set, the vehicle-state tiers are replaced by plain
+        // rate-monotonic keys while the F rules (zone-aware demotion + tiered
+        // heartbeat) stay — the "static zone-indexed F economics under a
+        // state-blind allocator" cell. If this cell recovers the capacity
+        // win, triage is not the active ingredient.
+        rmAlloc_ = std::getenv("CPS_FRONTIER_RM_ALLOC") != nullptr;
+        if (rmAlloc_) name_ += "[rm-alloc]";
         name_ = "Frontier[v9,floor=" + std::to_string(static_cast<int>(floorMs)) +
                 "ms,fhb=" + std::to_string(fHeartbeatTicks_ / 10) + "ms" +
                 (static_cast<int>(guardCapMs) != 450
@@ -100,6 +108,9 @@ public:
                 if (starve > hb)  // starved F: comfort-top,
                     return {1, -1.0e6 - static_cast<double>(starve), 0.0, 0.0, 1};
             }
+            // Attribution-matrix cell (D-A2): state-blind RM keys, F rules
+            // retained — one tier, order via the final (period,vehicle,kind).
+            if (rmAlloc_) return {1, 0.0, 0.0, 0.0, isF ? 1 : 0};
             const double theta_v =
                 std::min(guardCapMs_, floorMs_ + std::max(60.0, v.age_recent_ms));
             const double ttpnr = predTtpnrMs(v, info_);
@@ -146,6 +157,7 @@ private:
     double guardCapMs_;
     long fHeartbeatCritTicks_ = 1000;
     bool fDemote_ = true;
+    bool rmAlloc_ = false;
     std::string name_;
     std::vector<int> order_;
     std::vector<long> lastFDone_;

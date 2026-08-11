@@ -10,6 +10,45 @@ Newest first.
 
 ---
 
+## 2026-08-10 — The F-channel section measured: per-channel per-zone staleness budgets (A_F/A_B triple), rejected separability, the C4 exhibit, distributional capacity dominance, and the two-lever attribution matrix
+
+**What it is.** The FCHANNEL leg executed end-to-end (reviewer-council-shaped
+protocol; FCHANNEL.md §9 is the authoritative record, CSVs committed:
+fzone_tolerance.csv, bzone_tolerance.csv). Paper-facing results:
+
+1. **The channel triple** (N=1, 120 s, worst, zone-targeted sustained holds,
+   breach-anywhere): A_F = {z0 >1200, z1 >1200, z2 [1000,1100), z3 [240,260)}
+   ms; A_B = {[400,600), [600,800), [400,600), [300,350)}; vs composite
+   A(zone) {290, 400, 290, 140-170}. Channels have DIFFERENT zone-orderings:
+   the binding channel flips by zone (F in the lane change, B elsewhere), and
+   the composite's structure — including the old z1>z0 anomaly — is inherited
+   from the feedback channel. Condition I is a vector over channels (C1').
+2. **Separability rejected** (c ~ 0.25, not 1): 300 ms of B-hold costs only
+   60-80 ms of z3 F-budget. Failure modes differ qualitatively (F: bounded
+   drift; B: instability, FMU divergence at 600 ms uniform).
+3. **C4 two-run exhibit**: a z3 F-hold at 300 ms breaches (24 hard) with
+   age_path/age_fresh IDENTICAL to the clean baseline (90.50 ms) — chain-age
+   metrics rooted at sensor samples cannot see the reference channel.
+4. **Distributional capacity** (10 random phasing draws x 3 spacing families,
+   honest configs): frontier's P(clean) dominates aguard at every N >= 14;
+   at N=20: 5-8/10 vs 0-1/10, fail masses tens vs tens-of-thousands of
+   frames. Guard-cap axis proven inert for honest policies (est-TTPNR <=
+   horizon - margin < 450) — the tuning comparison is fair by mechanism.
+5. **Attribution matrix (2x2, full-lap)**: RM=10, RM+F-economics=14,
+   aguard=19, frontier(=aguard+F-economics)=21. Both levers load-bearing;
+   F economics alone is +4, triage alone +9, together +11.
+6. **Instrument errata discipline**: the ffExtra clamp (§3) and a
+   tabulation-parser bug (§9.7) both caught and recorded; every A_F/A_B cell
+   keys on the MEASURED delivered dose (calibration within R_F in 92/92).
+
+**Where it lands.** The F-channel section (C1'-C5 per FCHANNEL §8):
+Condition-I-is-a-vector, the metric-scope warning, the two-lever capacity
+story, and the weakly-hard-facing rate-coupled/value-typed criterion.
+Queued: analytic A_F_lb (collapse experiment), cross-profile sign-stability,
+reproduce.py registration (FCHANNEL §10).
+
+---
+
 ## 2026-08-05 — The scheduler-frontier study: recorded capacity marks are a 30 s-window artifact (real honest full-lap record = 19, not 21); a new scheduler reaches 21; the ceiling is bracketed
 
 **What it is.** A capacity-limit study on branch **`scheduler-frontier`**

@@ -179,6 +179,28 @@ Key findings, each machine-checked:
    one (now-fixed) code comment carried it; no committed number was
    affected. Lesson: validate the parser against one hand-checked run —
    the analysis pipeline is an instrument too.**
+8. **Attribution matrix (council D-A2 — the "fatal if unrun" cell) —
+   BOTH levers load-bearing.** Full-lap default-spread capacity (0 hard,
+   uniform-clean-through):
+   RM alloc + no F economics = 10; RM alloc + zone-aware F economics = 14
+   (clean 12/14, breaks 16 with 733; CPS_FRONTIER_RM_ALLOC cell);
+   triage + no F economics (aguard) = 19; triage + F economics (frontier)
+   = 21. Static F economics alone is +4 over classical but 7 short of the
+   record; the levers are complementary (interaction sublinear: +4 on RM,
+   +2 on aguard). "The win is just deleting redundant F recomputation" is
+   refuted by measurement.
+
+## 10. Queued (next session; NOT blocking the section's evidence)
+
+- Formalize the capacity-distribution logs + coupling grid into committed
+  CSVs (frontier_sweep.py-style tool) and register `fzone` (+ the battery)
+  in reproduce.py (Guo one-command directive; council A-R2/C-O13 column
+  spec already implemented in fzone_sweep.py).
+- The qzone collapse experiment (signed doses, speed factors, profile
+  transfer) — the analytic A_F_lb leg; EE-coordinated like Condition I.
+- Enter-stale dosing mode + hold-phase sweep (C-O6/M5) — A_F is currently
+  an enter-fresh quantity; labeled as such in §2.
+- Cross-profile retune (sign-stability claim, C-O11/A-M10c).
 
 ## 8. Reviewer dispositions (4-reviewer council, 2026-08-07)
 
