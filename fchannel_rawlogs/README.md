@@ -6,10 +6,13 @@ from the session scratchpad so the evidence outlives /tmp. Each line = one
 sim run (config in the line prefix; breach fields are the sim's own
 "zone breaches" output). CAUTION when parsing: the line contains BOTH a
 `hard` and a `soft` block — sum only the hard block (the §9.7
-analysis-erratum was an awk regex matching both). Formalization into
-self-describing CSVs via a sweep tool is queued (FCHANNEL §10); until then
-these are the reproduction source, regenerable with the commands in
-FCHANNEL §9 / the fzone_sweep.py protocol on binary `git 188c255`+.
+analysis-erratum was an awk regex matching both). FORMALIZED 2026-08-11:
+`tools/fchannel_battery.py` regenerates these batteries into the committed
+self-describing CSVs (pclean_battery.csv, tuning_grid_n20.csv,
+attribution_matrix.csv, coupling_grid.csv; `reproduce.py fbattery`), and a
+358-check cross-validation confirmed every hard+soft count in those CSVs
+matches these logs line-for-line. The logs stay as the historical record of
+the 2026-08-10 session; the CSVs are now the citable artifact.
 
 - afzone_coarse.log, fine_and_smoke.log — A_F(zone) scouting + cliff grids
   (superseded by the committed fzone_tolerance.csv; kept for the record)
