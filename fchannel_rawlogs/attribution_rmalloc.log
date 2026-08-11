@@ -1,0 +1,5 @@
+rm-alloc+Frules N=12: z0=0 z1=0 z2=0 z3=0 |   missed by kind: E=0 B=0 F=29143 M=0
+rm-alloc+Frules N=14: z0=0 z1=0 z2=0 z3=0 |   missed by kind: E=6 B=42 F=55671 M=74
+rm-alloc+Frules N=16: z0=225 z1=0 z2=55 z3=453 |   missed by kind: E=276 B=5579 F=78430 M=6796
+rm-alloc+Frules N=19: z0=36453 z1=14770 z2=33255 z3=7305 |   missed by kind: E=2004 B=48442 F=98811 M=51821
+rm-alloc+Frules N=21: z0=57934 z1=20038 z2=47640 z3=11885 |   missed by kind: E=9979 B=78588 F=111122 M=81256

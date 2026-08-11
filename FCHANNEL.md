@@ -170,8 +170,9 @@ Key findings, each machine-checked:
    for honest policies (est-TTPNR <= horizon - margin < 450), refuting
    council A-R1's saturation asymmetry with a mechanism. aguard's known
    N=14 margin fragility reproduces across phasings (2-5/10); frontier has
-   no such pothole. Raw logs: session scratchpad pclean_*.log,
-   tuning_grid_n20.log; formalization into a committed CSV pending (task).
+   no such pothole. Raw logs: committed under `fchannel_rawlogs/` (see its
+   README, incl. the hard-vs-soft parsing caution); CSV formalization
+   pending (§10).
    **Analysis-erratum (recorded per the §3 discipline): the first
    tabulation of these logs summed hard+soft fields (an awk regex matching
    both blocks), yielding a false "P(clean)=0/10 everywhere" narrative for

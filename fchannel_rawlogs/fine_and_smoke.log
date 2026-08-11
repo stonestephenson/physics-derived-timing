@@ -1,0 +1,14 @@
+z3 D=220 | z0=0 z1=0 z2=0 z3=0 | maxEy 0.7144
+z3 D=240 | z0=0 z1=0 z2=0 z3=0 | maxEy 0.7265
+z3 D=260 | z0=0 z1=0 z2=0 z3=10 | maxEy 0.8077
+z3 D=280 | z0=0 z1=0 z2=0 z3=19 | maxEy 0.8208
+z2 D=900 | z0=0 z1=0 z2=0 z3=0 | maxEy 0.5620
+z2 D=1000 | z0=0 z1=0 z2=0 z3=0 | maxEy 0.6239
+z2 D=1100 | z0=0 z1=29 z2=0 z3=0 | maxEy 0.8532
+--- bzone smoke: B-hold 200ms all zones (age_path must show it) ---
+  worst-case data age: 90.50 ms (freshest) / 270.50 ms (path)
+  zone breaches (frame-decimated): hard z0=0 z1=0 z2=0 z3=0 | soft z0=260 z1=325 z2=326 z3=177
+  max |e_y| (per-tick): fleet 0.5304 m (margin 0.2696 m to 0.8) | zones 0.4762 0.5304 0.4055 0.3351
+--- qzone smoke: eps 0.002 / 0.01 in z3 ---
+eps=0.002 | z0=0 z1=0 z2=0 z3=0 | maxEy 0.3348
+eps=0.01 | z0=0 z1=0 z2=0 z3=0 | maxEy 0.3221

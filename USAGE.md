@@ -81,6 +81,15 @@ THEOREM_BRIEF §3.5); `--align-offsets FRAC` aligns vehicle start phases for
 the leg-(A) simultaneity experiment (lateral only; 0 = even spread default, 1 = all
 cars on one lap phase = adversarial worst case; PAPER_NOTES 2026-06-25); `--pred-staleness`/
 `--pred-margin` = honest-predictor delayed-state age + safety margin §5e;
+FCHANNEL instruments (all off by default -> byte-identical; FCHANNEL.md §4/§9,
+`tools/fzone_sweep.py`): `--fzone-target Z --fzone-hold-ms D` = zone-gated F
+publish suppression (the A_F dose; Z=-1 all zones); `--bzone-target/--bzone-hold-ms`
+= the Controller twin (A_B; visible to age_path); `--qzone-target/--qzone-eps` =
+zero-age reference error in q (collapse experiment); `--offset-seed N` = random
+start-phase draw (with `--min-spacing MS` = F_spaced-constrained draw; capacity
+as P(clean) over seeds); `--guard-cap MS` = the aguard/frontier theta clamp
+(default 450; proven inert for honest configs). NOTE `--ff-extra-ms` clamps at
+one F period (FCHANNEL §3 erratum) — use `--fzone-hold-ms` for real F doses.
 `--zone-extra-vector A,B,C,D` = envelope experiment (PROOF_DRAFT §8.2): per-zone extra
 netCA delay (ms) {z0,z1,z2,z3} applied by each car's current zone, overriding
 `--zone-target`; `--zone-flag-window MS` uses the z3 entry whenever the car is within

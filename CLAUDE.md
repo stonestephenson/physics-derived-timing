@@ -54,6 +54,10 @@ Then by task:
   (`--validate-predictor`; re-run after ANY predictor change).
 - **Second plant / the `Plant` seam / cart-pole / adding a plant**:
   `GENERALIZATION.md` — the plant-agnostic architecture and case study #2.
+- **F-channel leg / frontier scheduler / A_F-A_B staleness budgets /
+  per-channel Condition I**: `FCHANNEL.md` — claims, reviewer dispositions,
+  measured results (§9), instrument errata, queued work (§10); study
+  history in `FRONTIER.md`; raw logs in `fchannel_rawlogs/`.
 - **Scheduler / policy code**: `src/sched/` — `TaskModel.cpp` (`endTick` =
   stamp propagation, `releaseIfDue` = overrun policies),
   `PolicyScheduler.cpp`, `policies/*.cpp`, interfaces in `Scheduler.h` +
@@ -112,6 +116,7 @@ Then by task:
     ./build/cps --headless --vehicles 1 --scheduler rm --exec worst --duration 120 --validate-predictor  # gate: 1.490e-08 m (scales w/ run length -> use 120 s)
     python3 tools/reproduce.py            # regenerate all scheduling CSVs + tables (one command)
     # schedulers: rm | prm | edf | context(oracle) | honest | ttu | hybrid | aguard | zband(proof-object)
+    #   | frontier (aguard + zone-aware F economics; FCHANNEL) | eskip(instrument)
     #   (+ ttu/hybrid/aguard-honest: predict from delayed state, not ground truth)
     # plants: lateral (FMU car) | cartpole    other: --overrun, --net-delay MS,
     #   --guard/--floor MS, --tau-crit MS, --danger-tau FRAC, --pack-zone Z/--min-spacing MS,
