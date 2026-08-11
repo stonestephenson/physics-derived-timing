@@ -64,6 +64,15 @@ struct SimParams {
                                    // governed by fzoneHoldMs == 0 (the CLI
                                    // defaults the target to -1, hold to 0).
     double   fzoneHoldMs   = 0.0;
+    // FCHANNEL enter-stale arm (--fzone-lead-ms, council C-O6/B-M5): also arm
+    // the F-hold while the vehicle is within this many ms BEFORE the target
+    // zone (zoneAt lookahead — tape+clock knowledge, §8 P2), so it crosses the
+    // boundary already carrying an aged value: entry F-age ~= min(lead, hold)
+    // (the suppression sawtooth republishes at age = hold). lead = hold is the
+    // max-entry-staleness arm; lead in (0, hold) sweeps the entry phase.
+    // Requires a single named zone (0..3); ignored for target -1 (every zone
+    // is already dosed). 0 = off -> enter-fresh, byte-identical.
+    double   fzoneLeadMs   = 0.0;
     // FCHANNEL A_B instrument: same, for Controller (B) publishes.
     int      bzoneTarget   = -2;
     double   bzoneHoldMs   = 0.0;

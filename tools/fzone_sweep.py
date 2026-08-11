@@ -44,12 +44,14 @@ def git_sha():
         return "unknown"
 
 
-def run(channel, zone, hold_ms, args):
+def run(channel, zone, hold_ms, args, lead_ms=0.0):
     cmd = [str(BIN), "--headless", "--vehicles", str(args.vehicles),
            "--scheduler", args.scheduler, "--exec", "worst",
            "--duration", str(args.duration), "--profile", args.profile]
     if channel == "f":
         cmd += ["--fzone-target", str(zone), "--fzone-hold-ms", str(hold_ms)]
+        if lead_ms > 0:
+            cmd += ["--fzone-lead-ms", str(lead_ms)]
     else:
         cmd += ["--bzone-target", str(zone), "--bzone-hold-ms", str(hold_ms)]
     out = subprocess.run(cmd, capture_output=True, text=True).stdout
@@ -83,6 +85,14 @@ def main():
     ap.add_argument("--profile", default="10", choices=["10", "12.5", "15"])
     ap.add_argument("--scheduler", default="rm")
     ap.add_argument("--vehicles", type=int, default=1)
+    ap.add_argument("--lead-fracs", default="",
+                    help="enter-stale phase battery (FCHANNEL §8 item 8; "
+                         "channel f, named zone only): comma list of entry "
+                         "phases as fractions of each dose (e.g. "
+                         "'0,0.25,0.5,0.75'; lead = frac*D via "
+                         "--fzone-lead-ms). Empty (default) = enter-fresh "
+                         "only, legacy CSV schema. A_F is then reported as "
+                         "the MIN over phases per zone.")
     ap.add_argument("--out", default="fzone_tolerance.csv")
     ap.add_argument("--force", action="store_true")
     args = ap.parse_args()
@@ -91,6 +101,11 @@ def main():
     if Path(args.out).exists() and not args.force:
         sys.exit(f"refusing to overwrite existing {args.out}; pass --force or --out PATH")
 
+    fracs = ([float(x) for x in args.lead_fracs.split(",")]
+             if args.lead_fracs else [])
+    if fracs and args.channel != "f":
+        sys.exit("--lead-fracs is an F-channel (enter-stale) mode")
+
     sha = git_sha()
     grid = [float(g) for g in args.grid.split(",")]
     zones = [int(z) for z in args.zones.split(",")]
@@ -98,38 +113,55 @@ def main():
     for z in zones:
         last_clean, first_breach = None, None
         for d in grid:
-            r = run(args.channel, z, d, args)
-            delivered = r["fst"][z]
-            censored = (args.channel == "f" and
-                        abs(delivered - d) > PERIOD_MS + 3.0)
-            total = sum(r["hard"])
-            rows.append([args.channel, z, ZONES[z], d, delivered,
-                         "CENSORED" if censored else "ok",
-                         r["age_path"], r["fleet_ey"], r["zone_ey"][z], total,
-                         *r["hard"], *r["miss"], args.scheduler, args.profile,
-                         args.vehicles, 3, "worst", args.duration, 10, sha])
-            if total == 0 and not censored:
+            # Enter-stale battery: every phase at this dose; a dose is clean
+            # only if EVERY entry phase is clean (A_F = min over phase,
+            # FCHANNEL §8 item 8). Legacy mode = the single enter-fresh arm.
+            dose_clean, dose_breach = True, False
+            for frac in (fracs or [0.0]):
+                lead = frac * d
+                r = run(args.channel, z, d, args, lead_ms=lead)
+                delivered = r["fst"][z]
+                censored = (args.channel == "f" and
+                            abs(delivered - d) > PERIOD_MS + 3.0)
+                total = sum(r["hard"])
+                row = [args.channel, z, ZONES[z], d]
+                if fracs:
+                    row += [frac, lead]
+                row += [delivered, "CENSORED" if censored else "ok",
+                        r["age_path"], r["fleet_ey"], r["zone_ey"][z], total,
+                        *r["hard"], *r["miss"], args.scheduler, args.profile,
+                        args.vehicles, 3, "worst", args.duration, 10, sha]
+                rows.append(row)
+                dose_clean = dose_clean and total == 0 and not censored
+                dose_breach = dose_breach or total > 0
+                ph = f" phase={frac:.2f}" if fracs else ""
+                print(f"  {args.channel}-z{z} {ZONES[z]:<12} hold={d:<6.0f}"
+                      f"{ph} delivered={delivered:<7.1f} hard={total:<4} "
+                      f"maxEy={r['fleet_ey']:.3f}"
+                      f"{' CENSORED' if censored else ''}")
+            if dose_clean:
                 last_clean = d
-            elif total > 0 and first_breach is None:
+            elif dose_breach and first_breach is None:
                 first_breach = d
-            print(f"  {args.channel}-z{z} {ZONES[z]:<12} hold={d:<6.0f} "
-                  f"delivered={delivered:<7.1f} hard={total:<4} "
-                  f"maxEy={r['fleet_ey']:.3f}{' CENSORED' if censored else ''}")
         table.append((z, last_clean, first_breach))
 
+    header = ["channel", "zone", "zone_name", "hold_ms_commanded"]
+    if fracs:
+        header += ["lead_frac", "lead_ms"]
+    header += ["delivered_max_ms", "dose_status", "age_path_ms",
+               "fleet_max_ey_m", "target_zone_max_ey_m", "total_hard",
+               "z0_hard", "z1_hard", "z2_hard", "z3_hard",
+               "missed_E", "missed_B", "missed_F", "missed_M",
+               "scheduler", "profile", "vehicles", "cores", "exec",
+               "duration_s", "decimation_ms", "git_sha"]
     with open(args.out, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["channel", "zone", "zone_name", "hold_ms_commanded",
-                    "delivered_max_ms", "dose_status", "age_path_ms",
-                    "fleet_max_ey_m", "target_zone_max_ey_m", "total_hard",
-                    "z0_hard", "z1_hard", "z2_hard", "z3_hard",
-                    "missed_E", "missed_B", "missed_F", "missed_M",
-                    "scheduler", "profile", "vehicles", "cores", "exec",
-                    "duration_s", "decimation_ms", "git_sha"])
+        w.writerow(header)
         w.writerows(rows)
 
     ch = "A_F" if args.channel == "f" else "A_B"
-    print(f"\n=== {ch}(zone) brackets (largest clean sustained hold, "
+    over = " (min over entry phases)" if fracs else ""
+    print(f"\n=== {ch}(zone) brackets{over} (largest clean sustained hold, "
           f"breach-anywhere criterion) ===")
     for z, lc, fb in table:
         print(f"  z{z} {ZONES[z]:<12} clean through {lc} ms; "

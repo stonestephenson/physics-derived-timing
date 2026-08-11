@@ -406,8 +406,18 @@ void Simulation::buildViews() {
             (params_.fzoneHoldMs > 0.0 || params_.bzoneHoldMs > 0.0)) {
             const int z = static_cast<int>(
                 vehicles_[v].traj->zoneAt(step_ + offsets_[v]));
+            // Enter-stale arm (fzoneLeadMs): pre-arm the hold while the car is
+            // within lead of the target zone, so the register ages BEFORE
+            // entry (entry F-age ~= min(lead, hold)). Named target only.
+            const bool fzInLead =
+                params_.fzoneLeadMs > 0.0 && params_.fzoneTarget >= 0 &&
+                static_cast<int>(vehicles_[v].traj->zoneAt(
+                    step_ + offsets_[v] +
+                    static_cast<long>(params_.fzoneLeadMs / (dt_ * 1000.0) + 0.5))) ==
+                    params_.fzoneTarget;
             if (params_.fzoneHoldMs > 0.0 &&
-                (params_.fzoneTarget == -1 || params_.fzoneTarget == z)) {
+                (params_.fzoneTarget == -1 || params_.fzoneTarget == z ||
+                 fzInLead)) {
                 const long holdTicks =
                     static_cast<long>(params_.fzoneHoldMs / (dt_ * 1000.0) + 0.5);
                 const long fPeriod = 200;  // F period in ticks (20 ms)

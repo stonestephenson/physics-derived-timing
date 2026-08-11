@@ -204,6 +204,27 @@ void usage() {
         "  --ff-extra-ms D              A2 experiment: delay every Feedforward publish by D ms\n"
         "                               (clamped before F's next release; age_path untouched\n"
         "                               by construction); 0 = off (default)\n"
+        "  --fzone-target Z             FCHANNEL A_F instrument: with --fzone-hold-ms, dose\n"
+        "                               only zone Z (0-3); -1 = every zone (default)\n"
+        "  --fzone-hold-ms D            suppress F publishes in the target zone until the held\n"
+        "                               value is D ms old (sawtooth 0->D; killed-F semantics,\n"
+        "                               schedule unchanged); 0 = off (default). FCHANNEL §4.\n"
+        "  --fzone-lead-ms L            enter-stale arm: also hold F within L ms BEFORE the\n"
+        "                               target zone (entry F-age ~= min(L, D); named zone\n"
+        "                               only); 0 = off (default) = enter-fresh\n"
+        "  --bzone-target Z             FCHANNEL A_B instrument: as --fzone-target, for the\n"
+        "                               Controller (B) channel; -1 = every zone (default)\n"
+        "  --bzone-hold-ms D            suppress B publishes until the held value is D ms old\n"
+        "                               (stamped channel: the dose shows in age_path); 0 = off\n"
+        "  --qzone-target Z             FCHANNEL collapse experiment: zone gate for\n"
+        "                               --qzone-eps; -1 = every zone (default)\n"
+        "  --qzone-eps E                add E to the reference curvature input ff0 (zero-age\n"
+        "                               reference ERROR, reviewer B Factor A); 0 = off\n"
+        "  --offset-seed N              draw vehicle start offsets uniformly from seed N\n"
+        "                               (capacity-as-distribution battery; with --min-spacing\n"
+        "                               > 0 the draw is F_spaced-constrained); 0 = off\n"
+        "  --guard-cap MS               aguard/frontier theta clamp ceiling (default 450 =\n"
+        "                               the historical constant; council A-R1 axis)\n"
         "  --pred-staleness MS          honest predictor (ttu/hybrid/aguard-honest): age\n"
         "                               of the cloud's delayed state estimate (default 16\n"
         "                               = worst sensor delay)\n"
@@ -299,6 +320,7 @@ int main(int argc, char** argv) {
             std::atof(argValue(argc, argv, "--guard-cap", "450"));
         params.fzoneTarget = std::atoi(argValue(argc, argv, "--fzone-target", "-1"));
         params.fzoneHoldMs = std::atof(argValue(argc, argv, "--fzone-hold-ms", "0"));
+        params.fzoneLeadMs = std::atof(argValue(argc, argv, "--fzone-lead-ms", "0"));
         params.bzoneTarget = std::atoi(argValue(argc, argv, "--bzone-target", "-1"));
         params.bzoneHoldMs = std::atof(argValue(argc, argv, "--bzone-hold-ms", "0"));
         params.qzoneTarget = std::atoi(argValue(argc, argv, "--qzone-target", "-1"));
