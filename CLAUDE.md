@@ -43,7 +43,10 @@ Then by task:
 - **Anything touching the age metric**: `DATA_AGE.md` — its §4 conventions
   ARE the definition of the measured quantity.
 - **Theory / the bound**: `BOUND.md` (its status header says what is
-  verified). Literature in `relatedPapers/`: Li et al. RTSS'24 = tightest
+  verified); the fleet-safety theorem candidate + machine checks are
+  `PROOF_DRAFT.md`, the Kurt-facing formal statement is `THEOREM_BRIEF.md`,
+  and corrections-of-record / paper-worthy findings live in `PAPER_NOTES.md`
+  (newest first — check it before quoting any headline number). Literature in `relatedPapers/`: Li et al. RTSS'24 = tightest
   multi-rate chain bounds (`DirectlyRelated.../Priority_Optimization_for_
   Autonomous_Driving_Systems...pdf`; citation verified 2026-07-17); Arafat et al. DAC'22
   (chain RTA machinery) and Wilson et al. MEMOCODE'24 (Route B's prior)
@@ -90,7 +93,9 @@ Then by task:
    baselines after touching the seam (the refactor was verified byte-identical).
 7. Git: push to `physics-derived-timing` only (the remote formerly named
    `tempbosch`; GitHub repo renamed 2026-07-06). NEVER push to `origin` (the Bosch
-   upstream). `relatedPapers/` stays untracked.
+   upstream). `relatedPapers/` and `ContextForGuo/` stay untracked (local to
+   Stone's Mac; on a fresh clone their doc pointers dangle — ask Stone for
+   the PDFs/dossier rather than treating that as breakage).
 
 ## How to work here
 

@@ -9,6 +9,30 @@ Rule of thumb: change how the project *works* → update `CLAUDE.md`; change wha
 is *true right now* → update this file; change a convention/result → update the
 owning design doc **in the same commit as the code**.
 
+## NOW / NEXT (read this; everything below §1 is layered history)
+
+**NOW (2026-08-11):** the FCHANNEL measurement campaign is COMPLETE and
+committed (owning doc `FCHANNEL.md`; §9 = results, §8 = reviewer
+dispositions). All gates green (`verify.sh --full`). Branch pushed.
+Stone's next activity: **paper writing** — entry points are
+`PAPER_OUTLINE_DRAFT.md` (untracked strawman, repo root) + PAPER_NOTES
+2026-08-10/08-05 + FCHANNEL §6's evidence table.
+
+**NEXT (the live queue — everything else in §5 is DONE or superseded):**
+1. `FCHANNEL.md §10`: reproduce.py registration of fzone/capacity sweeps,
+   CSV-formalize `fchannel_rawlogs/`, the qzone collapse experiment (the
+   analytic A_F_lb leg), enter-stale dosing, cross-profile sign-stability.
+2. Condition-I analytic A(zone) under-bound — DEFERRED pending the EE
+   student's zone-work merge (do not race him; HANDOFF §5 plan-of-record #3).
+3. Kurt: Lemma 2a soundness (unchanged; THEOREM_BRIEF §9).
+
+**Capacity numbers of record** (supersede every older figure below):
+honest full-lap (120 s) uniform-clean-through — **frontier 21, aguard 19,
+rm/edf 10**; distributional (P(clean) over random phasing draws) — frontier
+dominates at every N≥14 (FCHANNEL §9.7/§9.8). The 30 s-window figures
+("aguard 18/21") in older entries are recorded artifacts (PAPER_NOTES
+2026-08-05).
+
 ---
 
 ## 1. What this project is
@@ -532,6 +556,9 @@ Headline results (`PAPER_NOTES.md`, `tools/tolerance_sweep.py`):
 | `ttu` | rank by TTPNR (physical deadline) | **predictive**; the safe core |
 | `hybrid` | TTPNR<`--guard` ⇒ emergency tier (ttu rule); else comfort tier (context rule) | fixed guarded triage |
 | `aguard` | hybrid with self-tuning guard θ=`--floor`+live round-trip | adaptive guarded triage |
+| `zband` | strict FP on (band, period, vehicle, kind); band = z3±240 ms at release | PROOF_DRAFT §3.1 proof object |
+| `frontier` | aguard's allocation + zone-aware F demotion/tiered heartbeat | FCHANNEL capacity contender (21 full-lap) |
+| `eskip` | RM + per-vehicle E decimation (`CPS_ESKIP_K`) | FCHANNEL instrument (rate-vs-delay) |
 
 Each predictive policy has an **`-honest`** twin (`ttu-honest`/`hybrid-honest`/
 `aguard-honest`) that ranks on a rollout from the cloud's *delayed* state
@@ -543,6 +570,9 @@ the TTPNR line dividing them. `context` = guard 0, `ttu` = guard ∞, `hybrid` =
 fixed guard, `aguard` = guard that tunes itself.
 
 ### Headline results (worst exec, kill-and-hold, 3 cores, 30 s unless noted)
+*(30 s-window figures — kept as recorded; the full-lap numbers of record are
+in the NOW/NEXT head section; the 30 s "aguard 18/21" marks are documented
+window artifacts, PAPER_NOTES 2026-08-05.)*
 - N=1: `age_path` 90.5 ms ≤ bound 120.8 (uncontended) / 216.6 (degenerate).
 - N=6 RM: 90.5/100.5 ms (fresh/path), 0 missed, veh 3 = 0.507 avg / 13.4% soft.
 - **Capacity:** classic policies die at N≈10–12 (RM@12: 4519 hard breaches, 2

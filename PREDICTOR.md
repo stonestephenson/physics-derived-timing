@@ -253,6 +253,8 @@ floor = fleet-min TTPNR ms; all zero hard breaches unless noted; **re-derived
 **aguard matches context at light load (the guard never fires — N≤12 columns are
 bit-identical to context), dominates ttu on comfort at every load, and carries 18
 vehicles zero-hard — 50 % more than the best classic policy.**
+*(Scope: 30 s window, oracle info. The full-lap records of record are
+frontier 21 / aguard-honest 19 — HANDOFF NOW/NEXT + PAPER_NOTES 2026-08-05.)*
 
 **`--floor` is now a live knob** (Finding A fixed). Its authority grows with load:
 at light load the guard never fires (N≤12: every `--floor` gives the same 12.0/245,

@@ -64,13 +64,13 @@ public:
         // state-blind allocator" cell. If this cell recovers the capacity
         // win, triage is not the active ingredient.
         rmAlloc_ = std::getenv("CPS_FRONTIER_RM_ALLOC") != nullptr;
-        if (rmAlloc_) name_ += "[rm-alloc]";
-        name_ = "Frontier[v9,floor=" + std::to_string(static_cast<int>(floorMs)) +
+        name_ = "Frontier[v12,floor=" + std::to_string(static_cast<int>(floorMs)) +
                 "ms,fhb=" + std::to_string(fHeartbeatTicks_ / 10) + "ms" +
                 (static_cast<int>(guardCapMs) != 450
                      ? ",cap=" + std::to_string(static_cast<int>(guardCapMs)) + "ms"
                      : "") +
                 std::string(fDemote_ ? "" : ",nofdemote") +
+                std::string(rmAlloc_ ? ",rm-alloc" : "") +
                 (info == InfoSet::Remote ? ",honest]" : "]");
     }
 

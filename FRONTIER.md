@@ -1,4 +1,7 @@
-# FRONTIER — scheduler capacity-limit study (branch: scheduler-frontier, throwaway)
+# FRONTIER — scheduler capacity-limit study
+*(Originated on the throwaway `scheduler-frontier` branch; PROMOTED to
+`paper-generalization` 2026-08-07 as a paper leg — this doc is the study's
+historical record; the living claims/results doc is `FCHANNEL.md`.)*
 
 ## VERDICT (2026-07-28, complete)
 

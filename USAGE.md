@@ -99,7 +99,14 @@ age_path untouched by construction, 0 = off)
 `--seed N`, `--headless`, `--csv FILE` (append per-vehicle summary rows for
 sweeps), `--save FILE`, `--replay FILE`, `--screenshot FILE` with
 `--screenshot-at N`, `--select N`, `--speed X` (aim scripted screenshots).
-Run `./build/cps --help` for the full list.
+THIS section is the flag reference of record (`./build/cps --help` prints a
+summary that has lagged it before — trust USAGE). Env-var knobs (no CLI):
+`CPS_FRONTIER_FHB_MS` (straight-zone F heartbeat, default 500),
+`CPS_FRONTIER_FHB_CRIT_MS` (critical-section heartbeat, default 100),
+`CPS_FRONTIER_NO_FDEMOTE` (ablation: byte-identical to aguard),
+`CPS_FRONTIER_RM_ALLOC` (attribution matrix: RM keys + F rules),
+`CPS_ESKIP_K` (eskip's E-decimation factor, default 11). All in
+`src/sched/policies/{Frontier,EskipProbe}.cpp`; FCHANNEL.md §8/§9.
 
 Fixed-priority policies use the strict total order (period, vehicle, kind) —
 deterministic across platforms and exactly the model BOUND.md §7 analyzes.
@@ -266,9 +273,13 @@ tools/demo_capacity.sh 10 12 18 20`.
 >   overwrite an existing file unless `--force`**. Regenerate a committed baseline on purpose
 >   with `--force`; experiment with `--out /tmp/...`.
 
-**The reproduce surface is split (not one command for everything):** `reproduce.py` covers
-only the *scheduling* CSVs (`capacity_sweep.csv`, `simcrit_sweep.csv`, `honest_sweep.csv`,
-`aguard_sweep.csv`, `tolerance_sweep.csv`). The physics/route CSVs are separate tools:
+**The reproduce surface (mostly one command, with named exceptions):**
+`reproduce.py` covers the scheduling CSVs AND (since 2026-07-04/07-17) the
+zone/occupancy/danger physics tables via delegation. Still OUTSIDE it:
+`fzone_tolerance.csv`/`bzone_tolerance.csv` (`tools/fzone_sweep.py`,
+FCHANNEL §5; registration queued §10), `fchannel_rawlogs/` (regenerate per
+its README), and the legacy `hybrid_guard_sweep`/`predictive_sweep*` CSVs
+(regenerable via the same framework, never registered). The underlying tools:
 `tools/zone_sweep.py` → `zone_tolerance.csv` (leg 1, causal `A(zone)`),
 `tools/occupancy_sweep.py` → `occupancy_sweep.csv` (leg 2, `Occ(s)`),
 `tools/danger_sweep.py` → `danger_sweep.csv` (leg 4, the `K(τ)` curve — both the

@@ -60,7 +60,9 @@ struct SimParams {
     // reaches fzoneHoldMs (two-part dose: k full F periods by suppression +
     // sub-period remainder via the delayed-publish path). Lateral only; 0 =
     // off -> byte-identical. See FCHANNEL.md §4.
-    int      fzoneTarget   = -2;   // -2 = off; -1 = all zones; 0..3 = one zone
+    int      fzoneTarget   = -2;   // -1 = all zones; 0..3 = one zone. OFF is
+                                   // governed by fzoneHoldMs == 0 (the CLI
+                                   // defaults the target to -1, hold to 0).
     double   fzoneHoldMs   = 0.0;
     // FCHANNEL A_B instrument: same, for Controller (B) publishes.
     int      bzoneTarget   = -2;
@@ -193,7 +195,9 @@ private:
 
     // --- Held-command prediction cache (drives TTU policy, viz, stats).
     //     TTV + polyline refresh every 10 ms (cheap single rollout); the PNR
-    //     binary search (the expensive part) every 50 ms; both age in between. ---
+    //     binary search also every 10 ms (warm-started — see below; it was
+    //     50 ms before warm-starting made 10 ms affordable); both age in
+    //     between. ---
     static constexpr long kPredictRefreshTicks = 100;  // 10 ms, like the metrics
     // PNR every 10 ms too: warm-started searches (PredictParams.
     // warmStartTtpnrTicks) make this affordable; gate is >= 10x at 12 veh.

@@ -52,7 +52,7 @@ frozen (EE-student territory; we consume `Trajectory::zoneAt` as-is).
 ## 3. ERRATUM — the ffExtra clamp (supersedes two recorded claims)
 
 `--ff-extra-ms` clamps the publish delay to F's next release
-(`TaskModel.cpp:317`: `min(step + ffExtraTicks, nextRelease − 1)`) —
+(`TaskModel.cpp`, the ffFinDueAt_ block: `min(step + extra, nextRelease − 1)`) —
 **maximum effective dose ~= one F period (20 ms), regardless of the flag
 value.** Consequences:
 - The FRONTIER.md log line "bounded F holds are ~free at N=1 (1000 ms
@@ -65,7 +65,7 @@ value.** Consequences:
   to N=21 — but achieved F staleness was never measured directly (the §2
   metric closes that), and it is overload-conditioned, not a clean-car dose.
 
-## 4. The A_F instrument (to build)
+## 4. The A_F instrument (BUILT 2026-08-10; spec kept as reference — results §9)
 
 `--fzone-target Z --fzone-hold-ms D` (+ `--fzone-hold-ms` alone = all
 zones): while the vehicle is inside zone Z, F PUBLISHES are suppressed until

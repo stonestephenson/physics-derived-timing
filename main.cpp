@@ -144,7 +144,8 @@ bool hasFlag(int argc, char** argv, const char* key) {
 void usage() {
     std::printf(
         "CPS Challenge Visualizer\n"
-        "  --scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard|zband   scheduling\n"
+        "  --scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard|zband|frontier|eskip\n"
+        "                               scheduling\n"
         "                               policy (default rm; context = oracle, honest =\n"
         "                               remote metrics only, ttu = predictive\n"
         "                               time-to-unsafe, hybrid = fixed TTPNR guard +\n"
