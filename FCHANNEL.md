@@ -47,7 +47,10 @@ frozen (EE-student territory; we consume `Trajectory::zoneAt` as-is).
 - **A_F(zone):** the largest sustained in-zone F-hold D (ms) such that one
   car, full lap (120 s), worst exec, with F held per §4 while inside the
   zone, takes ZERO hard breaches anywhere on the lap (breach-anywhere
-  criterion, manifestation != cause — same standard as A(zone)).
+  criterion, manifestation != cause — same standard as A(zone)). Entry
+  state: measured over entry phases via `--fzone-lead-ms` (§9.9); at the
+  cliff the enter-fresh arm binds, so the enter-fresh table IS the
+  min-over-phase A_F.
 
 ## 3. ERRATUM — the ffExtra clamp (supersedes two recorded claims)
 
@@ -121,8 +124,12 @@ rejected: it conflates staleness with load relief; noted for the council.
 (g) frontier N=6 ages are aguard-like (100.5/120.5) — the 80.5 ms
     sequencing result belongs to the abandoned v1–v8 line, not v12.
 
-## 9. Measured results (2026-08-10; all N=1, 120 s, worst exec, breach-anywhere,
-## zone-targeted sustained holds; CSVs: fzone_tolerance.csv, bzone_tolerance.csv)
+## 9. Measured results (batch 1: 2026-08-10; batch 2 (findings 9-11): 2026-08-11.
+## All N=1, 120 s (full lap per profile), worst exec, breach-anywhere,
+## zone-targeted sustained holds. CSVs: fzone_tolerance.csv, bzone_tolerance.csv;
+## batch 2: fzone_enterstale.csv, qzone_collapse.csv, fzone_tolerance_z3_v12.5/
+## _v15.csv, pclean_battery.csv, tuning_grid_n20.csv, attribution_matrix.csv,
+## coupling_grid.csv — all regenerable via reproduce.py fzone / fbattery / qzone)
 
 | zone | A_composite (netCA) | A_B (feedback hold) | A_F (reference hold) |
 |---|---|---|---|
@@ -143,7 +150,9 @@ Key findings, each machine-checked:
    200 ms uniform B-hold the lumped-budget null predicts A_F(z3) ~ 50 ms;
    measured > 200. 300 ms of B costs only 60-80 ms of z3 F-budget. Channels
    are far more independent than one command-staleness budget — per-channel
-   budgeting is a real scheduling lever. (2-D tool formalization pending.)
+   budgeting is a real scheduling lever. (Formalized 2026-08-11:
+   coupling_grid.csv, `fchannel_battery.py coupling` — every recorded cell
+   reproduced exactly.)
 3. **Failure modes differ qualitatively**: F-loss = bounded geometric drift
    (max|e_y| grows smoothly with dose); B-loss = instability (uniform 400 ms:
    4.15 m excursion; 600 ms: FMU numerical divergence).
@@ -171,8 +180,10 @@ Key findings, each machine-checked:
    council A-R1's saturation asymmetry with a mechanism. aguard's known
    N=14 margin fragility reproduces across phasings (2-5/10); frontier has
    no such pothole. Raw logs: committed under `fchannel_rawlogs/` (see its
-   README, incl. the hard-vs-soft parsing caution); CSV formalization
-   pending (§10).
+   README, incl. the hard-vs-soft parsing caution); formalized 2026-08-11
+   into pclean_battery.csv / tuning_grid_n20.csv via `fchannel_battery.py`
+   (--jobs parallel; 358-check cross-validation vs the raw logs: every
+   hard+soft count identical).
    **Analysis-erratum (recorded per the §3 discipline): the first
    tabulation of these logs summed hard+soft fields (an awk regex matching
    both blocks), yielding a false "P(clean)=0/10 everywhere" narrative for
@@ -189,19 +200,77 @@ Key findings, each machine-checked:
    = 21. Static F economics alone is +4 over classical but 7 short of the
    record; the levers are complementary (interaction sublinear: +4 on RM,
    +2 on aguard). "The win is just deleting redundant F recomputation" is
-   refuted by measurement.
+   refuted by measurement. (Formalized 2026-08-11: attribution_matrix.csv,
+   all four cells over bracketing N grids; the rm-alloc rows reproduce the
+   raw log exactly, incl. missed F=29143 at N=12.)
+9. **Enter-stale phase battery (C-O6/B-M5) — enter-fresh is the BINDING
+   phase at the cliff; the A_F table survives as a min-over-phase
+   quantity.** New arm `--fzone-lead-ms L`: the hold pre-arms while the car
+   is within L ms BEFORE the target zone (zoneAt lookahead — tape+clock
+   knowledge, exactly §8 P2's argument), so it enters carrying an already-
+   aged value at MATCHED peak dose: entry age ~= min(L, D), republish
+   D−L after entry (the suppression sawtooth caps age at D everywhere).
+   Grid D {200..300} x phase {0,.25,.5,.75}D, z3 (fzone_enterstale.csv):
+   every phase clean through 240; at 260 ONLY enter-fresh breaches (10 hard
+   vs 0; stale phases peak ~0.79 m); at 280-300 all phases breach and
+   severity GROWS with entry staleness (300 ms: 24 -> 37 hard). Mechanism:
+   the fresh capture holds start-of-maneuver geometry for the full dose
+   INSIDE the maneuver — in-zone exposure duration dominates value age
+   until well past the cliff. A_F(z3) = [240, 260) unchanged; §2's
+   enter-fresh label is the conservative arm at the cliff. The whole
+   battery reads age_path = 90.50 = baseline (C4 yet again).
+   All-zones-simultaneous companion (B-M8): a UNIFORM 240 ms hold (the
+   binding zone's budget, everywhere) stays clean at margin 12.3 mm (vs
+   73.5 mm z3-only) — min-budget composition holds for the F channel,
+   barely; the per-zone-VECTOR dose (each zone at its own budget) remains
+   untested (scalar instrument).
+10. **qzone collapse (reviewer B Factor A, §8 item 10) — the amplitude
+   unit does NOT collapse; the pre-registered v^-2 scaling is REFUTED
+   (disconfirming outcome, committed to print per §8 item 9).** Signed
+   zero-age curvature errors eps, 12 magnitudes x both signs x 4 zones x 3
+   profiles (qzone_collapse.csv): eps*(z3, v10) = [0.16, 0.20) 1/m — an
+   ORDER OF MAGNITUDE above the naive transfer a_tol/v^2 ~= 0.014 from the
+   delay cliff, and ~4x the sharpest real route curvature (0.0519).
+   eps* is roughly zone-flat but falls FASTER than 1/v^2 across profiles
+   (bracket-midpoint exponent ~ v^-3). Reading: a sustained DC curvature
+   error is largely rejected by the feedback loop (B trims it); F-staleness
+   damage comes from the MOVING transient during reference motion —
+   consonant with finding 9's exposure mechanism and the c~0.25 coupling.
+   Delta-a_ref = v^2*eps is NOT a valid cross-form dose unit: amplitude
+   tolerance and delay tolerance are different quantities (C5's
+   channel-typing caution, now with an in-house exhibit). Sign asymmetry:
+   z3 tolerates -eps ~1.5x more than +eps at v12.5/v15 (the lane change
+   has a direction).
+11. **Cross-profile A_F(z3) (C-O11) — sign-stable, and the v^3|dkappa/ds|
+   unit is a working UNDER-bound at held-out profiles.** Measured cliffs:
+   v10 [240, 260) / v12.5 [160, 180) / v15 [120, 140)
+   (fzone_tolerance_z3_v12.5/_v15.csv) — monotone tightening with speed,
+   z3 still binding. First-order prediction A_F_lb = a_tol /
+   max(v^3|dkappa/ds| in zone), a_tol fitted ONCE at (z3, v10) (per-zone
+   kinematics now printed by tools/proofchecks/zone_probe.cpp: max(v^3
+   |ff1|) = 4.59 / 8.97 / 15.5 across profiles): predicts [123, 133) at
+   v12.5 and [71, 77) at v15 — BELOW the measured cliffs both times
+   (conservatism 1.3-1.7x). Conservative in the safe direction at both
+   held-out profiles => usable as the analytic-A_F_lb leg's empirical
+   anchor. Claim scope per C-O11: the sign/under-bound property only;
+   magnitudes stay per-profile.
 
 ## 10. Queued (next session; NOT blocking the section's evidence)
 
-- Formalize the capacity-distribution logs + coupling grid into committed
-  CSVs (frontier_sweep.py-style tool) and register `fzone` (+ the battery)
-  in reproduce.py (Guo one-command directive; council A-R2/C-O13 column
-  spec already implemented in fzone_sweep.py).
-- The qzone collapse experiment (signed doses, speed factors, profile
-  transfer) — the analytic A_F_lb leg; EE-coordinated like Condition I.
-- Enter-stale dosing mode + hold-phase sweep (C-O6/M5) — A_F is currently
-  an enter-fresh quantity; labeled as such in §2.
-- Cross-profile retune (sign-stability claim, C-O11/A-M10c).
+*(The 2026-08-10 queue — CSV formalization + reproduce registration, qzone
+collapse, enter-stale dosing, cross-profile sign check — is DONE, findings
+§9.9-9.11. Remaining + follow-ons:)*
+
+- Analytic a_tol from the plant model (turn §9.11's fitted constant into a
+  derived one) — the remaining analytic-A_F_lb step; EE-coordinated like
+  Condition I.
+- Coupling surface at C2' standard: sub-grid resolution at the cliffs, both
+  directions, a second zone; per-zone VECTOR F dose (needs a
+  --fzone-hold-vector analogue of --zone-extra-vector) for the §9.9
+  composition remainder.
+- Bursty-skip eskip variant (pattern-dependence of the E ceiling, §8
+  item 14).
+- Honest-position zone_flagged sensitivity row (§8 P2 remainder).
 
 ## 8. Reviewer dispositions (4-reviewer council, 2026-08-07)
 

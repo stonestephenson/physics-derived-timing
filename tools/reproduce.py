@@ -23,8 +23,10 @@ so re-runs are byte-stable. `tolerance` delegates to tools/tolerance_sweep.py.
 SCOPE: the scheduling figures (capacity / simultaneous-criticality / honest A/B /
 the S5c aguard --floor sweep / the per-plant tolerance cliff) plus the route/physics
 sweeps that delegate to standalone tools (zones -> zone_sweep.py, occupancy ->
-occupancy_sweep.py, danger -> danger_sweep.py). BOUND.md's RTA table is verified
-separately by tools/rta_solve.py.
+occupancy_sweep.py, danger -> danger_sweep.py, fzone/fbattery/qzone -> the FCHANNEL
+tools fzone_sweep.py / fchannel_battery.py / qzone_sweep.py). BOUND.md's RTA table
+is verified separately by tools/rta_solve.py. NOTE: fbattery is the one HEAVY entry
+(~2.5 h at --jobs 8); everything else totals well under an hour.
 """
 import argparse
 import csv
@@ -292,6 +294,59 @@ def exp_occupancy(cps, out_dir, dur):
                        check=True)
 
 
+def exp_fzone(cps, out_dir, dur):
+    """A_F/A_B(zone) tables + the enter-stale phase battery + the cross-profile
+    z3 sign check (FCHANNEL §9.1/§9.9; grids = the committed CSVs' grids).
+    Delegates to tools/fzone_sweep.py (uses ./build/cps)."""
+    base = [sys.executable, os.path.join(HERE, "fzone_sweep.py"), "--force"]
+    runs = [
+        (["--channel", "f",
+          "--grid", "100,200,220,240,260,280,300,500,800,900,1000,1100,1200"],
+         "fzone_tolerance.csv"),
+        (["--channel", "b",
+          "--grid", "100,150,200,250,300,350,400,600,800,1200"],
+         "bzone_tolerance.csv"),
+        (["--channel", "f", "--zones", "3", "--grid", "200,220,240,260,280,300",
+          "--lead-fracs", "0,0.25,0.5,0.75"], "fzone_enterstale.csv"),
+        (["--channel", "f", "--zones", "3", "--profile", "12.5",
+          "--duration", "95", "--grid", "60,80,100,120,140,160,180,200,240"],
+         "fzone_tolerance_z3_v12.5.csv"),
+        (["--channel", "f", "--zones", "3", "--profile", "15",
+          "--duration", "79", "--grid", "40,60,80,100,120,140,160,200"],
+         "fzone_tolerance_z3_v15.csv"),
+    ]
+    if QUICK:
+        runs = [(["--channel", "f", "--zones", "3", "--duration", "30",
+                  "--grid", "200,300"], "fzone_tolerance.csv")]
+    for extra, out in runs:
+        subprocess.run(base + extra + ["--out", os.path.join(out_dir, out)],
+                       check=True)
+
+
+def exp_fbattery(cps, out_dir, dur):
+    """FCHANNEL capacity/coupling battery -> pclean_battery.csv,
+    tuning_grid_n20.csv, attribution_matrix.csv, coupling_grid.csv
+    (FCHANNEL §9.7/§9.8/§9.2). Delegates to tools/fchannel_battery.py.
+    HEAVY: ~350 x 120 s honest runs (~2.5 h at --jobs 8)."""
+    cmd = [sys.executable, os.path.join(HERE, "fchannel_battery.py"),
+           "--force", "--out-dir", out_dir]
+    if QUICK:
+        cmd += ["--quick"]
+    subprocess.run(cmd, check=True)
+
+
+def exp_qzone(cps, out_dir, dur):
+    """qzone collapse experiment: signed zero-age curvature-error doses x
+    zones x profiles -> qzone_collapse.csv (FCHANNEL §9.10). Delegates to
+    tools/qzone_sweep.py."""
+    cmd = [sys.executable, os.path.join(HERE, "qzone_sweep.py"), "--force",
+           "--out", os.path.join(out_dir, "qzone_collapse.csv")]
+    if QUICK:
+        cmd += ["--zones", "3", "--profiles", "10", "--grid", "0.1,0.3",
+                "--duration", "30"]
+    subprocess.run(cmd, check=True)
+
+
 def exp_danger(cps, out_dir, dur):
     """K(tau) danger-relative criticality, rm vs aguard at N=18 (v10; THE PLAN
     leg 4, THEOREM_BRIEF S3.6/S9.2c + the orthogonal-axes finding). Delegates to
@@ -311,6 +366,9 @@ REGISTRY = {
     "zones":     (exp_zones,     "causal A(zone) tables + fine z3 cliffs, all profiles -> zone_tolerance*.csv (THEOREM_BRIEF S3.2)"),
     "occupancy": (exp_occupancy, "packed-z3 Occ + rm/aguard pairing, all profiles -> occupancy_sweep*.csv (THEOREM_BRIEF S3.5)"),
     "danger":    (exp_danger,    "K(tau) danger-relative criticality, rm vs aguard (v10) -> danger_sweep.csv (THEOREM_BRIEF S3.6/S9.2c)"),
+    "fzone":     (exp_fzone,     "A_F/A_B(zone) + enter-stale phases + cross-profile z3 -> fzone_tolerance*.csv, bzone_tolerance.csv, fzone_enterstale.csv (FCHANNEL S9)"),
+    "fbattery":  (exp_fbattery,  "P(clean) capacity battery + tuning grid + attribution matrix + coupling grid -> 4 CSVs (FCHANNEL S9.7/S9.8/S9.2; HEAVY ~2.5 h)"),
+    "qzone":     (exp_qzone,     "qzone collapse: signed curvature-error doses x zones x profiles -> qzone_collapse.csv (FCHANNEL S9.10)"),
 }
 
 QUICK = False

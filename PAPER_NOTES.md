@@ -10,6 +10,57 @@ Newest first.
 
 ---
 
+## 2026-08-11 — FCHANNEL §10 executed: enter-fresh binds at the A_F cliff, the amplitude unit does NOT collapse (delay-transients are the mechanism), and the v³|dκ/ds| under-bound transfers to held-out profiles
+
+**What it is.** The four queued FCHANNEL §10 items run to ground in one
+session (FCHANNEL §9.9-9.11 = the record; all CSVs committed and registered
+in `reproduce.py fzone/fbattery/qzone`). Paper-facing results:
+
+1. **A_F is a min-over-phase quantity and the committed table survives
+   (C-O6 closed).** New `--fzone-lead-ms` enters the zone with an
+   already-aged F value at matched peak dose. At the z3 cliff ONLY the
+   enter-fresh phase breaches (260 ms: 10 hard vs 0 at every stale phase);
+   past the cliff severity inverts and GROWS with entry staleness (300 ms:
+   24→37 hard). Mechanism sentence for the paper: *what breaches is not how
+   old the reference is, but how long the maneuver runs on pre-maneuver
+   geometry* — in-zone exposure duration dominates value age at the
+   boundary. (fzone_enterstale.csv)
+2. **The pre-registered amplitude-collapse FAILS — and that's the useful
+   outcome.** Signed zero-age curvature errors: ε*(z3,v10) ≈ [0.16,0.20)
+   1/m — 10× above the naive a_tol/v² transfer from the delay cliff and 4×
+   the sharpest real curvature on the route; ε* is zone-flat-ish and falls
+   ~v⁻³ (steeper than the predicted v⁻²). A sustained DC reference error is
+   rejection-limited (B trims it); delay damage is the moving transient.
+   Consequence for the paper: amplitude tolerance and delay tolerance are
+   DIFFERENT quantities — delay tables cannot be derived from amplitude
+   doses (in-house exhibit for the C5 channel-typing warning). Sign
+   asymmetry: z3 tolerates −ε ~1.5× more than +ε at higher speeds.
+   (qzone_collapse.csv)
+3. **First standing A_F_lb: the v³|dκ/ds| unit under-bounds at held-out
+   profiles.** A_F(z3) measured [240,260) / [160,180) / [120,140) at
+   v10/12.5/15; with a_tol fitted once at v10, the formula predicts
+   [123,133) and [71,77) — below the measured cliffs both times
+   (conservatism 1.3-1.7×, safe direction). Sign-stability across profiles
+   confirmed (C-O11); z3 stays binding. Per-zone kinematics now printed by
+   zone_probe. The remaining analytic step is deriving a_tol from the plant
+   model instead of fitting it (EE-coordinated).
+4. **Composition nuance:** a uniform all-zones F-hold at the BINDING zone's
+   budget (240 ms) stays clean at 12.3 mm margin (vs 73.5 mm z3-only) —
+   min-budget composition holds for the F channel, unlike the composite
+   A-table (which failed composition, A1). The per-zone-vector dose remains
+   untested.
+5. **Evidence hygiene:** the 2026-08-10 raw-log batteries are formalized
+   into committed CSVs (`fchannel_battery.py`, 358-check cross-validation —
+   every hard+soft count reproduced line-for-line) and the whole FCHANNEL
+   CSV surface regenerates by one command (Guo directive).
+
+**Where it lands.** §9.9-9.11 feed the Condition-I-per-channel section
+(C1'/C2') and the A_F_lb future-work → now-preliminary-result upgrade;
+item 2 is a Discussion/limitations exhibit; item 5 is artifact-appendix
+material.
+
+---
+
 ## 2026-08-10 — The F-channel section measured: per-channel per-zone staleness budgets (A_F/A_B triple), rejected separability, the C4 exhibit, distributional capacity dominance, and the two-lever attribution matrix
 
 **What it is.** The FCHANNEL leg executed end-to-end (reviewer-council-shaped

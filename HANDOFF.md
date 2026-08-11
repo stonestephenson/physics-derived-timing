@@ -11,19 +11,28 @@ owning design doc **in the same commit as the code**.
 
 ## NOW / NEXT (read this; everything below §1 is layered history)
 
-**NOW (2026-08-11):** the FCHANNEL measurement campaign is COMPLETE and
-committed (owning doc `FCHANNEL.md`; §9 = results, §8 = reviewer
-dispositions). All gates green (`verify.sh --full`). Branch pushed.
-Stone's next activity: **paper writing** — entry points are
-`PAPER_OUTLINE_DRAFT.md` (untracked strawman, repo root) + PAPER_NOTES
-2026-08-10/08-05 + FCHANNEL §6's evidence table.
+**NOW (2026-08-11, second session):** the FCHANNEL §10 queue is EXECUTED —
+enter-stale dosing (`--fzone-lead-ms`; enter-fresh binds at the cliff, A_F
+table survives as min-over-phase), the qzone collapse experiment (amplitude
+unit does NOT collapse, ~v⁻³ and 10× above the naive transfer — the
+pre-registered disconfirmation), cross-profile A_F(z3) (sign-stable;
+v³|dκ/ds| under-bounds at both held-out profiles — the first standing
+A_F_lb), and the raw-log batteries formalized into committed CSVs
+(`fchannel_battery.py`, 358-check cross-validation) with everything
+registered in `reproduce.py fzone/fbattery/qzone`. Record: FCHANNEL
+§9.9-9.11 + PAPER_NOTES 2026-08-11. Fast gate green; NOT pushed this
+session. Stone's next activity: **paper writing** — entry points are
+`PAPER_OUTLINE_DRAFT.md` (untracked strawman, repo root; predates FCHANNEL,
+refresh against §9 + PAPER_NOTES 08-10/08-11 before use) + FCHANNEL §6's
+evidence table.
 
 **NEXT (the live queue — everything else in §5 is DONE or superseded):**
-1. `FCHANNEL.md §10`: reproduce.py registration of fzone/capacity sweeps,
-   CSV-formalize `fchannel_rawlogs/`, the qzone collapse experiment (the
-   analytic A_F_lb leg), enter-stale dosing, cross-profile sign-stability.
+1. `FCHANNEL.md §10` (requeued follow-ons): analytic a_tol from the plant
+   model (EE-coordinated), C2'-standard coupling surface + per-zone-vector
+   F dose, bursty eskip, honest-position zone-flag sensitivity row.
 2. Condition-I analytic A(zone) under-bound — DEFERRED pending the EE
    student's zone-work merge (do not race him; HANDOFF §5 plan-of-record #3).
+   (The F-channel analogue now has an empirical anchor: FCHANNEL §9.11.)
 3. Kurt: Lemma 2a soundness (unchanged; THEOREM_BRIEF §9).
 
 **Capacity numbers of record** (supersede every older figure below):

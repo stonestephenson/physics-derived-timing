@@ -83,9 +83,13 @@ cars on one lap phase = adversarial worst case; PAPER_NOTES 2026-06-25); `--pred
 `--pred-margin` = honest-predictor delayed-state age + safety margin §5e;
 FCHANNEL instruments (all off by default -> byte-identical; FCHANNEL.md §4/§9,
 `tools/fzone_sweep.py`): `--fzone-target Z --fzone-hold-ms D` = zone-gated F
-publish suppression (the A_F dose; Z=-1 all zones); `--bzone-target/--bzone-hold-ms`
+publish suppression (the A_F dose; Z=-1 all zones); `--fzone-lead-ms L` =
+enter-stale arm (pre-arm the hold within L ms BEFORE the named target zone, so
+the car enters with an already-aged value at matched peak dose; entry age
+~= min(L, D); FCHANNEL §9.9); `--bzone-target/--bzone-hold-ms`
 = the Controller twin (A_B; visible to age_path); `--qzone-target/--qzone-eps` =
-zero-age reference error in q (collapse experiment); `--offset-seed N` = random
+zero-age reference error in q (collapse experiment, signed;
+`tools/qzone_sweep.py`); `--offset-seed N` = random
 start-phase draw (with `--min-spacing MS` = F_spaced-constrained draw; capacity
 as P(clean) over seeds); `--guard-cap MS` = the aguard/frontier theta clamp
 (default 450; proven inert for honest configs). NOTE `--ff-extra-ms` clamps at
@@ -252,7 +256,7 @@ tables, all three profiles) and prints the table each backs:
 
 ```sh
 python3 tools/reproduce.py            # every experiment (--exec worst)
-python3 tools/reproduce.py --list     # capacity / simcrit / honest / floor / tolerance / zones / occupancy / danger
+python3 tools/reproduce.py --list     # capacity / simcrit / honest / floor / tolerance / zones / occupancy / danger / fzone / fbattery / qzone
 python3 tools/reproduce.py floor      # just one (e.g. re-derives PREDICTOR.md §5c)
 python3 tools/reproduce.py --quick    # SMALL grids (fast smoke) -- see warning below
 bash   tools/demo_capacity.sh         # quick rm-vs-aguard capacity table (N=10,12,18) for presentations
@@ -275,10 +279,14 @@ tools/demo_capacity.sh 10 12 18 20`.
 
 **The reproduce surface (mostly one command, with named exceptions):**
 `reproduce.py` covers the scheduling CSVs AND (since 2026-07-04/07-17) the
-zone/occupancy/danger physics tables via delegation. Still OUTSIDE it:
-`fzone_tolerance.csv`/`bzone_tolerance.csv` (`tools/fzone_sweep.py`,
-FCHANNEL §5; registration queued §10), `fchannel_rawlogs/` (regenerate per
-its README), and the legacy `hybrid_guard_sweep`/`predictive_sweep*` CSVs
+zone/occupancy/danger physics tables AND (since 2026-08-11) the FCHANNEL
+CSVs via delegation: `fzone` → `tools/fzone_sweep.py` (`fzone_tolerance.csv`,
+`bzone_tolerance.csv`, `fzone_enterstale.csv`, the cross-profile z3 files),
+`fbattery` → `tools/fchannel_battery.py` (`pclean_battery.csv`,
+`tuning_grid_n20.csv`, `attribution_matrix.csv`, `coupling_grid.csv` —
+**HEAVY: ~2.5 h at --jobs 8**; the CSVs supersede `fchannel_rawlogs/` as the
+citable artifact), `qzone` → `tools/qzone_sweep.py` (`qzone_collapse.csv`).
+Still OUTSIDE it: the legacy `hybrid_guard_sweep`/`predictive_sweep*` CSVs
 (regenerable via the same framework, never registered). The underlying tools:
 `tools/zone_sweep.py` → `zone_tolerance.csv` (leg 1, causal `A(zone)`),
 `tools/occupancy_sweep.py` → `occupancy_sweep.csv` (leg 2, `Occ(s)`),
