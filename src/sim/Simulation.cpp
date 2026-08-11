@@ -107,13 +107,31 @@ void Simulation::start() {
                 1, static_cast<long>(params_.minSpacingMs / (dt_ * 1000.0) + 0.5));
             offsets_ = packZoneOffsets(params_.packZone, spacingTicks);
         } else if (params_.offsetSeed > 0) {
-            // FCHANNEL capacity distribution (council A-R3): uniform random
-            // phasing draw. Each seed is one independent fleet arrangement;
-            // capacity is reported as P(clean) over seeds, not a single draw.
+            // FCHANNEL capacity distribution (council A-R3): random phasing
+            // draw. Each seed is one independent fleet arrangement; capacity
+            // is reported as P(clean) over seeds, not a single draw. With
+            // --min-spacing > 0 the draw is constrained to the F_spaced
+            // admissible class (stick-breaking: random points in the slack
+            // interval + i*s) — the fleet model Lemma 1 assumes; unspaced
+            // draws sample outside it (FCHANNEL §9: spacing shifts P(clean)
+            // moderately and policy-dependently).
             offsets_.resize(n);
             std::mt19937_64 orng(params_.offsetSeed);
-            std::uniform_int_distribution<long> dist(0, traj_->lapSteps() - 1);
-            for (int v = 0; v < n; ++v) offsets_[v] = dist(orng);
+            const long sTicks = params_.minSpacingMs > 0.0
+                ? static_cast<long>(params_.minSpacingMs / (dt_ * 1000.0) + 0.5)
+                : 0;
+            const long lap = traj_->lapSteps();
+            if (sTicks > 0 && n * sTicks < lap) {
+                const long slack = lap - n * sTicks;
+                std::uniform_int_distribution<long> dist(0, slack - 1);
+                std::vector<long> pts(n);
+                for (int v = 0; v < n; ++v) pts[v] = dist(orng);
+                std::sort(pts.begin(), pts.end());
+                for (int v = 0; v < n; ++v) offsets_[v] = pts[v] + v * sTicks;
+            } else {
+                std::uniform_int_distribution<long> dist(0, lap - 1);
+                for (int v = 0; v < n; ++v) offsets_[v] = dist(orng);
+            }
         } else {
             offsets_.resize(n);
             // alignOffsets scales the even spread toward a common phase: 0 = full

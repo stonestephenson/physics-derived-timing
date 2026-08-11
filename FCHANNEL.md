@@ -159,6 +159,26 @@ Key findings, each machine-checked:
 6. **Calibration discipline held**: delivered dose = commanded + R_F within
    2.3 ms in all 92 cells across both channels; cross-zone leakage visible
    and quantified in the delivered columns.
+7. **Capacity as a distribution (council A-R3) — the +2 survives.** Random
+   phasing draws (--offset-seed), 10 seeds per cell, 120 s, honest configs
+   (frontier m100 / aguard m80), three phasing families (unspaced, F_spaced
+   s=1 s, s=4 s). Frontier's P(clean) DOMINATES in every family at every
+   N >= 14, with the gap widest at the wall: at N=20 frontier is clean in
+   5/7/8 of 10 draws (fail mass: tens of frames) vs aguard 0/0/1 (fail
+   mass: 64k-112k). Tuning grid at N=20: frontier 9/9 clean at floors
+   100/140; aguard 0/9 at every floor. The guard-cap axis is PROVABLY INERT
+   for honest policies (est-TTPNR <= horizon - margin < 450), refuting
+   council A-R1's saturation asymmetry with a mechanism. aguard's known
+   N=14 margin fragility reproduces across phasings (2-5/10); frontier has
+   no such pothole. Raw logs: session scratchpad pclean_*.log,
+   tuning_grid_n20.log; formalization into a committed CSV pending (task).
+   **Analysis-erratum (recorded per the §3 discipline): the first
+   tabulation of these logs summed hard+soft fields (an awk regex matching
+   both blocks), yielding a false "P(clean)=0/10 everywhere" narrative for
+   ~1 hour before a direct probe caught it. Only chat-level reporting and
+   one (now-fixed) code comment carried it; no committed number was
+   affected. Lesson: validate the parser against one hand-checked run —
+   the analysis pipeline is an instrument too.**
 
 ## 8. Reviewer dispositions (4-reviewer council, 2026-08-07)
 
