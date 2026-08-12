@@ -464,7 +464,7 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   2026-07-07) remains the thermal section's source. No code changes; verify.sh
   fast gate re-run green (G1+G2, fidelity 1.490e-08).
 - **Sessions 2026-07-09/10: dossier review + learning aids (no repo code changes).**
-  Lead's Overleaf revision of `main2.tex` reviewed against the repo (the 5
+  Stone's Overleaf revision of `main2.tex` reviewed against the repo (the 5
   recommended edits verified landed; errata list returned to Stone for
   manual fixes — truncated §3.3 sentence, proposal-tense abstract, over-trimmed
   §2.2 age conventions, dropped fidelity-gate sentence, TTPNR typo). Built four
@@ -858,7 +858,7 @@ Instruments built: `--tau-crit`, `--danger-tau` (leg 4), `--pack-zone`/`--min-sp
 legs (1, 2, 4) are done + leg-3 sub-task 2a prototyped (`rta_solve.py --workload limited`,
 certified 5→8); the critical path is now Kurt's** — Lemma 2a *soundness* (the candidate is
 empirical-only) + Lemma 2b: compose the measured `Occ(R, F_spaced)` (leg 2) against the
-`A(zone)` deadlines over the BOUND §7 RTA. **Lead's leg (Stone, not AI):** draft **Lemma 1**
+`A(zone)` deadlines over the BOUND §7 RTA. **Stone's leg (not AI):** draft **Lemma 1**
 (the occupancy geometry — a counting argument with the `Occ` curve as backstop, THEOREM_BRIEF
 §6 #1). The `Occ(s)` + `K(τ)` curves are Kurt's empirical inputs. Note
 (THEOREM_BRIEF §3.2): the occupancy count, like `K`, ultimately needs **state** (TTPNR) for
@@ -1070,8 +1070,8 @@ task (0) below (**DONE 2026-06-22** — the empirical instrument). Cart-pole cal
 ```sh
 cmake --build build -j
 bash .claude/verify.sh                  # fast gate: G1+G2 vs golden (~5s); add --full for G3 (RTA)
-python3 tools/reproduce.py              # regenerate ALL scheduling CSVs + print tables (one command)
-python3 tools/reproduce.py --list       # experiments (capacity/simcrit/honest/floor/tolerance/zones/occupancy) + which doc table each backs
+python3 tools/reproduce.py              # regenerate ALL CSVs (includes the ~2.5 h fbattery leg -- name experiments to skip it)
+python3 tools/reproduce.py --list       # experiments (capacity/simcrit/honest/floor/tolerance/zones/occupancy/danger/fzone/fbattery/qzone) + which doc table each backs
 ./build/cps --headless --vehicles 14 --scheduler aguard --exec worst --duration 30
 # the tournament (read hard / worst soft% / min_pnr per row):
 for s in rm context ttu aguard; do ./build/cps --headless --vehicles 14 --scheduler $s --exec worst --duration 30; done
@@ -1079,20 +1079,30 @@ for s in rm context ttu aguard; do ./build/cps --headless --vehicles 14 --schedu
 ./build/cps --headless --vehicles 14 --scheduler ttu --exec worst --duration 60 --save ttu14.cpsr
 ./build/cps --replay ttu14.cpsr --speed 16     # press ] to cycle cars; watch the error strip
 ```
-Flags: `--scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard|zband` (zband = the
-PROOF_DRAFT §3.1 proof-object ZB-F-X; USAGE has the one-paragraph spec), `--zone-extra-vector A,B,C,D`/`--zone-flag-window MS` (envelope experiment, PROOF_DRAFT §8.2), `--ff-extra-ms D` (A2, §8.3), `--vehicles
+Flags (USAGE.md is the flag reference of record — this is the short list):
+`--scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard|zband|frontier|eskip`
+(+ `ttu/hybrid/aguard/frontier-honest`; zband = the
+PROOF_DRAFT §3.1 proof-object ZB-F-X; frontier/eskip = the FCHANNEL leg,
+FCHANNEL.md; USAGE has the one-paragraph specs), `--zone-extra-vector A,B,C,D`/`--zone-flag-window MS` (envelope experiment, PROOF_DRAFT §8.2), `--ff-extra-ms D` (A2, §8.3), `--vehicles
 N`, `--cores N`, `--profile 10|12.5|15`, `--duration SEC`, `--exec
 avg|worst|best|pert`, `--overrun kill|skip`, `--guard MS` (hybrid), `--floor MS`
 (aguard), `--tau-crit MS` (sim-criticality, §5 item 0 / PREDICTOR §5d), `--danger-tau FRAC` (danger-relative criticality, lateral; delivered age vs `τ·A(zone)` ∪ state; §5 leg 4 / PREDICTOR §5d / PAPER_NOTES 2026-06-29), `--pack-zone Z`/`--min-spacing MS` (worst-case zone occupancy, lateral; pack zone Z's arcs at the F_spaced gap; §5 leg 2 / THEOREM_BRIEF §3.5 / PAPER_NOTES 2026-06-29), `--align-offsets FRAC` (adversarial car phasing for leg A, 0=spread default..1=all aligned; PAPER_NOTES 2026-06-25), `--pred-staleness MS`/`--pred-margin MS` (honest predictor, §5 item 3 / PREDICTOR §5e), `--triage`, `--delta-max RAD`, `--u-max N`/`--shove-force N`/`--theta-max RAD` (cartpole calibration, GENERALIZATION §4), `--net-delay MS`, `--validate-predictor`,
 `--csv FILE`, `--save/--replay FILE`, `--select N`, `--speed X`, `--screenshot[-at]`.
 
 ## 7. Key files
+*(docs: CLAUDE.md's reading map is the pointer graph of record — this list
+is the code-side companion)*
 - `CLAUDE.md` — agent bootstrap (invariants, reading map).
 - `DATA_AGE.md` — age metric + conventions (§4d = dual conventions).
 - `BOUND.md` — analytical bound v0.1 + RTA (§7, machine-verified); review flags inline.
-- `PAPER_NOTES.md` — running log of paper-worthy findings (cert gap, phasing, hold-free).
+- `PROOF_DRAFT.md` / `THEOREM_BRIEF.md` — fleet-safety theorem candidate +
+  the Kurt-facing formal statement.
+- `PAPER_NOTES.md` — running log of paper-worthy findings (newest first).
 - `PREDICTOR.md` — TTV/TTPNR, policies, fidelity gate, sweeps (§5–5c).
-- `ZONE_TOLERANCE.md` — EE experiment spec.
+- `ZONE_TOLERANCE.md` — EE experiment spec + zone algorithm/constants.
+- `GENERALIZATION.md` — the Plant seam + cart-pole case study.
+- `FCHANNEL.md` / `FRONTIER.md` — the F-channel leg (claims, instruments,
+  §9 results) + the frontier study history.
 - `src/sim/Plant.h` — plant-agnostic seam; `LateralPlant.{h,cpp}` (FMU wrapper),
   `CartPolePlant.{h,cpp}` (inverted-pendulum 2nd plant: dynamics + chain + predictor).
 - `src/sim/Predictor.{h,cpp}` — car plant port, rollouts, warm-started PNR search.

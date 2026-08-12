@@ -81,8 +81,9 @@ Then by task:
    stamps) and require `missed jobs: 0` (precondition P1) — check it.
 4. Fixed-priority tie order is the strict total order (period, vehicle,
    kind). Changing tie-breaking or `--overrun` changes the analyzed system:
-   re-run the `HANDOFF.md` baselines and update HANDOFF + `BOUND.md` §7 in
-   the same commit.
+   re-run the `HANDOFF.md` baselines and update HANDOFF + `BOUND.md` §7 +
+   the goldens hard-coded in `.claude/verify.sh` in the same commit (the
+   done-gate stays red otherwise).
 5. `BOUND.md` is unverified draft until humans sign off. Numbers marked
    "preliminary / hand-iterated" must be machine-verified before use. No
    lemma goes into a paper without human re-derivation.
@@ -93,9 +94,11 @@ Then by task:
    baselines after touching the seam (the refactor was verified byte-identical).
 7. Git: push to `physics-derived-timing` only (the remote formerly named
    `tempbosch`; GitHub repo renamed 2026-07-06). NEVER push to `origin` (the Bosch
-   upstream). `relatedPapers/` and `ContextForGuo/` stay untracked (local to
-   Stone's Mac; on a fresh clone their doc pointers dangle — ask Stone for
-   the PDFs/dossier rather than treating that as breakage).
+   upstream). Four items stay untracked (local to Stone's Mac; on a fresh
+   clone their doc pointers dangle — ask Stone rather than treating that as
+   breakage): `relatedPapers/`, `ContextForGuo/`, `f1tenth_cloud_control/`
+   (stale vendored HIL copy; live code = the lab repo, HANDOFF §2), and
+   `PAPER_OUTLINE_DRAFT.md` (the paper-writing strawman).
 
 ## How to work here
 
@@ -119,7 +122,7 @@ Then by task:
     ./build/cps --headless --vehicles 6 --scheduler rm --exec worst --duration 30
     ./build/cps --headless --plant cartpole --vehicles 8 --scheduler aguard --exec worst
     ./build/cps --headless --vehicles 1 --scheduler rm --exec worst --duration 120 --validate-predictor  # gate: 1.490e-08 m (scales w/ run length -> use 120 s)
-    python3 tools/reproduce.py            # regenerate all scheduling CSVs + tables (one command)
+    python3 tools/reproduce.py            # regenerate ALL CSVs (no-arg includes the ~2.5 h fbattery leg -- name experiments to skip it)
     # schedulers: rm | prm | edf | context(oracle) | honest | ttu | hybrid | aguard | zband(proof-object)
     #   | frontier (aguard + zone-aware F economics; FCHANNEL) | eskip(instrument)
     #   (+ ttu/hybrid/aguard-honest: predict from delayed state, not ground truth)

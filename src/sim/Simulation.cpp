@@ -420,7 +420,10 @@ void Simulation::buildViews() {
                  fzInLead)) {
                 const long holdTicks =
                     static_cast<long>(params_.fzoneHoldMs / (dt_ * 1000.0) + 0.5);
-                const long fPeriod = 200;  // F period in ticks (20 ms)
+                // F period in ticks (20 ms). TWIN: TaskModel.cpp's challenge
+                // default F period + tools/fzone_sweep.py PERIOD_MS — change
+                // in lockstep or the two-part dose mis-quantizes.
+                const long fPeriod = 200;
                 views_[v].fz_hold_ticks  = (holdTicks / fPeriod) * fPeriod;
                 views_[v].fz_delta_ticks = holdTicks % fPeriod;
                 if (views_[v].fz_hold_ticks == 0)  // sub-period dose: delta only

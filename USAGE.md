@@ -50,7 +50,9 @@ needs the usual GL/X11 dev headers. macOS note: the filesystem is case-insensiti
 ```
 
 Key options: `--scheduler rm|prm|edf|context|honest|ttu|hybrid|aguard|ttu-honest|
-hybrid-honest|aguard-honest|zband` (`zband` = the PROOF_DRAFT §3.1 proof-object
+hybrid-honest|aguard-honest|zband|frontier|frontier-honest|eskip` (`frontier` =
+aguard's allocation + zone-aware F economics, `eskip` = the RM + E-decimation
+instrument — both FCHANNEL.md; `zband` = the PROOF_DRAFT §3.1 proof-object
 zone-band scheduler ZB-F-X: job priority (band, period, vehicle, kind) with the band
 stamped at release — band 0 iff the car is within ±240 ms of a z3 arc and the kind is
 E/B/M; F never elevates; prediction-free; equals rm when nothing is flagged; the ±240 ms
@@ -92,7 +94,9 @@ zero-age reference error in q (collapse experiment, signed;
 `tools/qzone_sweep.py`); `--offset-seed N` = random
 start-phase draw (with `--min-spacing MS` = F_spaced-constrained draw; capacity
 as P(clean) over seeds); `--guard-cap MS` = the aguard/frontier theta clamp
-(default 450; proven inert for honest configs). NOTE `--ff-extra-ms` clamps at
+(default 450; proven inert for honest configs; the full guard formula is
+theta = min(cap, floor + max(60, fleet age_recent)) — the 60 ms inner floor
+is fixed in code, `AdaptiveGuard.cpp`/`Frontier.cpp`). NOTE `--ff-extra-ms` clamps at
 one F period (FCHANNEL §3 erratum) — use `--fzone-hold-ms` for real F doses.
 `--zone-extra-vector A,B,C,D` = envelope experiment (PROOF_DRAFT §8.2): per-zone extra
 netCA delay (ms) {z0,z1,z2,z3} applied by each car's current zone, overriding
@@ -103,6 +107,9 @@ age_path untouched by construction, 0 = off)
 `--seed N`, `--headless`, `--csv FILE` (append per-vehicle summary rows for
 sweeps), `--save FILE`, `--replay FILE`, `--screenshot FILE` with
 `--screenshot-at N`, `--select N`, `--speed X` (aim scripted screenshots).
+NOTE `--screenshot FILE`: raylib writes the BASENAME into the process working
+directory — directory components of FILE are silently ignored, so `cd` to the
+target dir (or move the file after) when scripting figures.
 THIS section is the flag reference of record (`./build/cps --help` prints a
 summary that has lagged it before — trust USAGE). Env-var knobs (no CLI):
 `CPS_FRONTIER_FHB_MS` (straight-zone F heartbeat, default 500),
@@ -236,8 +243,9 @@ could touch scheduling-visible behavior (CLAUDE.md invariants 3–6):
 definition of "didn't break anything." **If you intentionally change scheduling-visible
 behavior** (tie-break, `--overrun`, periods/WCETs, the `Plant` seam), the golden numbers
 *are expected to move*: re-run G1–G3, and **update the numbers in `HANDOFF.md` + `BOUND.md`
-§7 in the same commit** (CLAUDE.md invariant 4). There is no separate golden file to bless;
-the prose in those docs *is* the baseline of record.
+§7 + the goldens hard-coded in `.claude/verify.sh` in the same commit** (CLAUDE.md
+invariant 4). The prose in those docs is the baseline of record, and `verify.sh` carries a
+machine-checked copy — miss it and the done-gate stays permanently red.
 
 **Automated gate runner.** `.claude/verify.sh` runs G1+G2 and checks the golden numbers
 (fast, ~5 s); `.claude/verify.sh --full` also runs G3 (the RTA solver, ~15–100 s). The

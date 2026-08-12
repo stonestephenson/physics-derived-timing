@@ -101,10 +101,14 @@ std::unique_ptr<CorePolicy> makeAdaptiveGuardPolicy(double floorMs, bool triage,
 // band bounds. See ZoneBand.cpp.
 std::unique_ptr<CorePolicy> makeZoneBandPolicy();
 
-// FRONTIER (scheduler-frontier branch, FRONTIER.md — capacity-limit study):
+// FRONTIER (promoted 2026-08-07; owning doc FCHANNEL.md, history FRONTIER.md):
 // eskip = RM + per-vehicle Estimator decimation (env CPS_ESKIP_K), the
-// refresh-rate-tolerance instrument; frontier = aguard tiering + chain-head
-// serialization + F demotion/heartbeat + finish-line + hopeless-cull.
+// refresh-rate-tolerance instrument; frontier v12 = aguard's tiering and
+// allocation VERBATIM + zone-aware F economics (F demotion near/inside z3
+// windows, tiered F heartbeat 500/100 ms). The v1-v8 mechanisms (chain-head
+// serialization, finish-line, hopeless-cull) were abandoned/deleted
+// (FRONTIER.md log; cull removed per council A-M10) — see Frontier.cpp's
+// header for the current design rationale.
 std::unique_ptr<CorePolicy> makeEskipProbePolicy();
 std::unique_ptr<CorePolicy> makeFrontierPolicy(double floorMs,
                                                InfoSet info = InfoSet::Oracle,

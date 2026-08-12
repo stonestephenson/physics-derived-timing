@@ -1,8 +1,8 @@
 # Paper Notes — running log of paper-worthy observations
 
 A scratchpad for "worth a sentence in the paper" moments: findings, framings,
-and cautions surfaced while working, before they're polished into Route A / B
-prose. **Not** a formal doc — claims here still need the usual verification
+and cautions surfaced while working, before they're polished into paper
+prose (target: the main-track paper, HANDOFF §1 plan of record). **Not** a formal doc — claims here still need the usual verification
 (`BOUND.md` invariants, Kurt sign-off) before they leave this file. Each entry:
 what it is, the evidence/repro, and where it would land.
 
