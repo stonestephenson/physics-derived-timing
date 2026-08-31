@@ -6,7 +6,8 @@ for N vehicles sharing `N_cores` cloud cores under a scheduling policy you choos
 records the run, and shows the cars lapping the track — the reference path, the
 actual driven path, the lateral error, and where a car breaches its bounds.
 
-The FMU itself is documented in [`readme.md`](readme.md); the task/network/metric
+The FMU itself is documented in
+[`LateralMotionControl/FMU_README.md`](LateralMotionControl/FMU_README.md); the task/network/metric
 parameters are in [`examples/`](examples).
 
 ## Build
