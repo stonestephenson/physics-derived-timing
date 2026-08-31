@@ -65,7 +65,7 @@ Then by task:
   stamp propagation, `releaseIfDue` = overrun policies),
   `PolicyScheduler.cpp`, `policies/*.cpp`, interfaces in `Scheduler.h` +
   `CorePolicy.h`.
-- **FMU semantics**: `readme.md` (Bosch's) and
+- **FMU semantics**: `LateralMotionControl/FMU_README.md` (Bosch's) and
   `LateralMotionControl/sources/LateralMotionControl.c` —
   `process_trigger_events` is ground truth for data routing.
 - **Challenge requirements / framing**: `ChallengeProposal/RTAS2026_Invited.pdf`

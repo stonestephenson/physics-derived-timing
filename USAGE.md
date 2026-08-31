@@ -6,7 +6,8 @@ for N vehicles sharing `N_cores` cloud cores under a scheduling policy you choos
 records the run, and shows the cars lapping the track — the reference path, the
 actual driven path, the lateral error, and where a car breaches its bounds.
 
-The FMU itself is documented in [`readme.md`](readme.md); the task/network/metric
+The FMU itself is documented in
+[`LateralMotionControl/FMU_README.md`](LateralMotionControl/FMU_README.md); the task/network/metric
 parameters are in [`examples/`](examples).
 
 ## Build
@@ -26,8 +27,7 @@ The executable is `build/cps`.
 CMake bakes the platform dylib path at configure time, so on Linux the build configures
 and compiles fine but **`--plant lateral` fails at runtime** (the FMU can't load);
 **`--plant cartpole` works on Linux** (pure C++, no FMU). On Linux, raylib's fetch also
-needs the usual GL/X11 dev headers. macOS note: the filesystem is case-insensitive, so
-`readme.md` (Bosch's FMU doc) and `README.md` are the same file.
+needs the usual GL/X11 dev headers.
 
 ## Run
 

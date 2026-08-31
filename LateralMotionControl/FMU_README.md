@@ -1,14 +1,3 @@
-<!-- ───────────────────────────────────────────────────────────────────────
-     NOTE: this file is BOSCH's documentation for the LateralMotionControl FMU
-     (case study #1's plant), NOT the project README. (On a case-insensitive
-     filesystem README.md == this file, and GitHub renders it as the repo readme.)
-     For the CPS Challenge Visualizer project itself, start here:
-       • USAGE.md     — build, run, flags, verification & baselines
-       • HANDOFF.md   — what's true right now (state, baselines, backlog)
-       • CLAUDE.md    — agent guide (invariants, reading map)
-     The rest of this file is the FMU's own spec, below.
-     ─────────────────────────────────────────────────────────────────────── -->
-
 # Lateral Motion Control FMU
 
 ## 1. Overview
