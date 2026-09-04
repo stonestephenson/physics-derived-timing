@@ -119,6 +119,19 @@ has a **zone map**: the sequence/fraction of track length in each zone.
 
 The lane-change is ~2–3× tighter than the rest.
 
+**Min over phase (2026-09-04; PAPER_NOTES 2026-09-04) — SUPERSEDES the
+single-phase numbers above and below.** A(zone) depends on the chain-release
+phase at zone entry (period 20 ms, lap-invariant); every value quoted before
+this date was measured at the luckiest phase. 21-phase enumeration (1 ms grid
+plus the 19.9 ms last tick; `zone_sweep.py --phases-ms 0:20:1`,
+`zone_tolerance_*phase*.csv`): **A(z3) = 150.5 (v10), 140.5 (v12.5), 110.5
+(v15)**; z0 290.5 / 290.5 / 240.5, z1 400.5 / 240.5 / 190.5, z2 290.5 / 190.5 /
+140.5. The conservative 140 this brief's packet is stated against holds at
+every phase on v10 and v12.5 (on v12.5 by one instrument step). The uniform
+F-demoted N=8 bound (151.6, limited-t) is NOT certified on v10 (by 1.1 ms,
+inside the instrument's 10 ms resolution: at the boundary) nor on v12.5 (by
+11.1 ms: clearly below it) — PROOF_DRAFT §8.1 addendum.
+
 **Refined + generalized (2026-07-04; PROOF_DRAFT §8.1).** The 50 ms grid hid
 margin: delivered ages quantize in T_E = 10 ms steps (the instrument's true
 resolution), and finer grids give **A(z3) = 170 (v10), 160 (v12.5), 90 (v15)**

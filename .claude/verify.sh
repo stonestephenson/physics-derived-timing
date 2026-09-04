@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Fast, SAFE verification gates (USAGE.md §Verification & baselines).
-# Default: G1 (baseline) + G2 (predictor fidelity) — ~5s, for the every-finish
+# Default: G0 (tool unit tests) + G1 (baseline) + G2 (predictor fidelity) — ~5s, for the every-finish
 # done-gate. With `--full`: also G3 (RTA cross-check, ~15-100s) — for /ship or
 # before committing. Asserts the golden numbers. READ-ONLY: writes no committed
 # file — it never calls the destructive reproduce/sweep scripts.
@@ -26,6 +26,13 @@ if [ ! -x "$CPS" ]; then
 fi
 if ! cmake --build build -j >/tmp/cps_verify_build.log 2>&1; then
   echo "BUILD FAILED:"; tail -20 /tmp/cps_verify_build.log; exit 1
+fi
+
+echo "G0 tool unit tests (tools/tests, mocked simulator):"
+if python3 -m unittest discover -s tools/tests -p 'test_*.py' >"$out" 2>&1; then
+  printf '  PASS  %s\n' "$(grep -E '^Ran [0-9]+ tests' "$out")"
+else
+  printf '  FAIL  unit tests\n'; tail -15 "$out"; fail=1
 fi
 
 echo "G1 baseline (vehicles 6, rm, worst, 30s):"

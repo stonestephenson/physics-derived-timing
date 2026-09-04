@@ -259,6 +259,7 @@ def exp_zones(cps, out_dir, dur):
     PROOF_DRAFT S0/S6; fine grids pin the z3 cliff to the 10 ms instrument
     resolution). Delegates to tools/zone_sweep.py (uses ./build/cps)."""
     base = [sys.executable, os.path.join(HERE, "zone_sweep.py"), "--force"]
+    PH = ["--phases-ms", "0:20:1", "--jobs", str(max(1, (os.cpu_count() or 2) - 2))]
     runs = [
         (["--profile", "10", "--duration", "120"], "zone_tolerance.csv"),
         (["--profile", "12.5", "--duration", "95"], "zone_tolerance_v12.5.csv"),
@@ -269,10 +270,37 @@ def exp_zones(cps, out_dir, dur):
         (["--profile", "12.5", "--duration", "95", "--zones", "3",
           "--min-extra", "50", "--max-extra", "100", "--step", "10"],
          "zone_tolerance_z3_fine_v12.5.csv"),
+        # MIN-OVER-PHASE tables (PAPER_NOTES 2026-09-04): every grid point at
+        # 21 chain phases (--phases-ms 0:20:1 = one hyperperiod at 1 ms plus
+        # the last tick, 19.9 ms, which the tool appends — the worst phase);
+        # A(zone) = largest age hard-clean at EVERY phase. z3 on the fine
+        # grid; z0-z2 bracketed around their coarse-grid values.
+        (["--profile", "10", "--duration", "120", "--zones", "3",
+          "--min-extra", "0", "--max-extra", "100", "--step", "10"] + PH,
+         "zone_tolerance_z3_phase.csv"),
+        (["--profile", "12.5", "--duration", "95", "--zones", "3",
+          "--min-extra", "0", "--max-extra", "100", "--step", "10"] + PH,
+         "zone_tolerance_z3_phase_v12.5.csv"),
+        (["--profile", "15", "--duration", "79", "--zones", "3",
+          "--min-extra", "0", "--max-extra", "70", "--step", "10"] + PH,
+         "zone_tolerance_z3_phase_v15.csv"),
+        (["--profile", "10", "--duration", "120", "--zones", "0,1,2",
+          "--min-extra", "150", "--max-extra", "350", "--step", "50"] + PH,
+         "zone_tolerance_spot_phase.csv"),
+        (["--profile", "12.5", "--duration", "95", "--zones", "0,1,2",
+          "--min-extra", "100", "--max-extra", "250", "--step", "50"] + PH,
+         "zone_tolerance_spot_phase_v12.5.csv"),
+        (["--profile", "15", "--duration", "79", "--zones", "0,1,2",
+          "--min-extra", "50", "--max-extra", "200", "--step", "50"] + PH,
+         "zone_tolerance_spot_phase_v15.csv"),
     ]
     if QUICK:
         runs = [(["--profile", "10", "--duration", "30", "--zones", "3",
-                  "--max-extra", "100", "--step", "50"], "zone_tolerance.csv")]
+                  "--max-extra", "100", "--step", "50"], "zone_tolerance.csv"),
+                (["--profile", "10", "--duration", "30", "--zones", "3",
+                  "--min-extra", "60", "--max-extra", "70", "--step", "10",
+                  "--phases-ms", "0,19.9", "--jobs", "2"],
+                 "zone_tolerance_z3_phase.csv")]
     for extra, out in runs:
         subprocess.run(base + extra + ["--out", os.path.join(out_dir, out)],
                        check=True)
@@ -363,7 +391,7 @@ REGISTRY = {
     "honest":    (exp_honest,    "oracle-vs-honest A/B -> honest_sweep.csv (PREDICTOR S5e)"),
     "floor":     (exp_floor,     "aguard --floor re-sweep -> aguard_sweep.csv (PREDICTOR S5c)"),
     "tolerance": (exp_tolerance, "per-plant tolerance cliff -> tolerance_sweep.csv (PREDICTOR S5d)"),
-    "zones":     (exp_zones,     "causal A(zone) tables + fine z3 cliffs, all profiles -> zone_tolerance*.csv (THEOREM_BRIEF S3.2)"),
+    "zones":     (exp_zones,     "causal A(zone) tables + fine z3 cliffs + MIN-OVER-PHASE tables, all profiles -> zone_tolerance*.csv (THEOREM_BRIEF S3.2; PAPER_NOTES 2026-09-04)"),
     "occupancy": (exp_occupancy, "packed-z3 Occ + rm/aguard pairing, all profiles -> occupancy_sweep*.csv (THEOREM_BRIEF S3.5)"),
     "danger":    (exp_danger,    "K(tau) danger-relative criticality, rm vs aguard (v10) -> danger_sweep.csv (THEOREM_BRIEF S3.6/S9.2c)"),
     "fzone":     (exp_fzone,     "A_F/A_B(zone) + enter-stale phases + cross-profile z3 -> fzone_tolerance*.csv, bzone_tolerance.csv, fzone_enterstale.csv (FCHANNEL S9)"),

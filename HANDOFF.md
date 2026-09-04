@@ -1,6 +1,6 @@
 # Session Handoff — CPS Challenge Visualizer
 
-Resume point for a fresh agent. Last updated **2026-08-11**.
+Resume point for a fresh agent. Last updated **2026-09-04**.
 
 **Read order:** `CLAUDE.md` (stable bootstrap: invariants, reading map, rules) →
 this file (what's true *now*) → the owning design docs as your task needs them
@@ -11,29 +11,57 @@ owning design doc **in the same commit as the code**.
 
 ## NOW / NEXT (read this; everything below §1 is layered history)
 
-**NOW (2026-08-11, second session):** the FCHANNEL §10 queue is EXECUTED —
-enter-stale dosing (`--fzone-lead-ms`; enter-fresh binds at the cliff, A_F
-table survives as min-over-phase), the qzone collapse experiment (amplitude
-unit does NOT collapse, ~v⁻³ and 10× above the naive transfer — the
-pre-registered disconfirmation), cross-profile A_F(z3) (sign-stable;
-v³|dκ/ds| under-bounds at both held-out profiles — the first standing
-A_F_lb), and the raw-log batteries formalized into committed CSVs
-(`fchannel_battery.py`, 358-check cross-validation) with everything
-registered in `reproduce.py fzone/fbattery/qzone`. Record: FCHANNEL
-§9.9-9.11 + PAPER_NOTES 2026-08-11. Fast gate green; NOT pushed this
-session. Stone's next activity: **paper writing** — entry points are
-`PAPER_OUTLINE_DRAFT.md` (untracked strawman, repo root; predates FCHANNEL,
-refresh against §9 + PAPER_NOTES 08-10/08-11 before use) + FCHANNEL §6's
-evidence table.
+**NOW (2026-09-04): paper-writing phase.** Plan of record = `paper/PLAN.md`
+(UNTRACKED, repo root — RTAS 2027 Track 1, deadline **2026-11-05**, settled
+decisions in its §2, Kurt's sign-off requested for 2026-10-15;
+`paper/OUTREACH.md` = the Kurt/Guo email drafts, UNSENT and carrying stale
+numbers — see the banner at its top). Since 08-11: (a) **2026-08-24/26
+findings** (PAPER_NOTES 2026-08-24): the merger-grab — uniform F-demotion adds
+exactly +20 ms of realized `age_path` while tightening the bound; the car keeps
+49.5 ms of realized margin, the cart-pole dies at N=1; cart-pole = a second
+applicability-floor case; frontier crashes cart-poles (zone-aware F-demotion is
+the cause). (b) **2026-09-04: A(zone) is a MIN OVER THE 20 ms CHAIN PHASE**
+(PAPER_NOTES 2026-09-04). New harness flag `--start-offsets-ms` + `tools/
+zone_sweep.py --phases-ms 0:20:1` enumerate the phase (1 ms grid plus the
+interval's last tick, 19.9 ms = 21 phases; monotone, worst at 19.9, best at 0
+= the seed-0 phase every earlier table used, so every published A(zone) was
+the luckiest phase; a first pass without 19.9 under-reported v12.5 by one
+step — caught by cold review). **Numbers of record: A(z3) = 150.5 / 140.5 /
+110.5 ms (v10 / v12.5 / v15)**
+(were 170 / 160 / 120.5); z0 phase-robust on all profiles (290.5 / 290.5 /
+240.5); z1 400.5 / 240.5 / **190.5**; z2 290.5 / **190.5** / **140.5**. Six
+committed CSVs `zone_tolerance_*phase*.csv`; `reproduce.py zones` regenerates
+them; unit tests `tools/tests/` = new gate G0 in `verify.sh`. Consequences:
+the uniform F-demoted N=8 bound (151.6, limited-t) is NOT certified on v10
+(150.5: by 1.1 ms, inside the instrument's 10 ms — **v10 sits AT the capacity
+boundary**) nor on v12.5 (140.5: by 11.1 ms, more than one step — the
+decomposition is unambiguously load-bearing there). The conservative packet
+constant 140 survives at every phase on v10/v12.5. The Challenge's **soft** constraint (≥ 95 % within 0.2 m) binds
+much earlier (v10 z3 A_soft = 120.5; v15 violates it with no injection at
+N=1) — tables stay hard-only pending a decision. Fast gate green (G0+G1+G2);
+NOT pushed this session.
 
-**NEXT (the live queue — everything else in §5 is DONE or superseded):**
-1. `FCHANNEL.md §10` (requeued follow-ons): analytic a_tol from the plant
-   model (EE-coordinated), C2'-standard coupling surface + per-zone-vector
-   F dose, bursty eskip, honest-position zone-flag sensitivity row.
-2. Condition-I analytic A(zone) under-bound — DEFERRED pending the EE
-   student's zone-work merge (do not race him; HANDOFF §5 plan-of-record #3).
-   (The F-channel analogue now has an empirical anchor: FCHANNEL §9.11.)
-3. Kurt: Lemma 2a soundness (unchanged; THEOREM_BRIEF §9).
+**NEXT (the live queue):**
+1. **Decide (Stone + EE):** is the Challenge soft constraint normative for
+   A(zone)? Hard-only keeps A(z3) = 150.5 on v10; soft makes it 120.5.
+2. Re-measure the A2-corrected cliff min-over-phase (`--ff-extra-ms 13.5` ×
+   `--phases-ms 0:20:1`, z3, all profiles) before restating PROOF_DRAFT §8.5:
+   an F-demoted schedule must be compared against the F-demoted budget.
+3. Rewrite `paper/PLAN.md` §3's regime table around the new numbers (v10 at
+   the boundary, v12.5 below it), refresh and SEND the outreach drafts (Kurt's
+   10-15 date is six weeks out), then the LaTeX scaffold + figure pipeline
+   (PLAN.md §7 has slipped one window).
+4. Decide whether `paper/` gets tracked (it is the plan of record; CLAUDE.md
+   invariant 7 lists it as untracked for now).
+5. Carried: `FCHANNEL.md §10` follow-ons (F-channel leg is OUT of the paper —
+   follow-on); Condition-I analytic A(zone) under-bound (EE, do not race);
+   Kurt: Lemma 2a soundness (THEOREM_BRIEF §9).
+
+*Previous NOW (2026-08-11): the FCHANNEL §10 queue executed — enter-stale
+dosing, the qzone collapse disconfirmation, cross-profile A_F(z3), the raw-log
+batteries formalized (`fchannel_battery.py`), all registered in
+`reproduce.py fzone/fbattery/qzone`; record FCHANNEL §9.9-9.11 + PAPER_NOTES
+2026-08-10/11.*
 
 **Capacity numbers of record** (supersede every older figure below):
 honest full-lap (120 s) uniform-clean-through — **frontier 21, aguard 19,

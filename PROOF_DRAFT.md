@@ -651,6 +651,35 @@ exceed the uncontended chain latency for any scheduling result to exist. The
 nominal 90.5 ms pipeline itself rides the cliff. (For the paper: the clean
 statement of when the whole approach applies.)
 
+**Addendum 2026-09-04 — min over phase (PAPER_NOTES 2026-09-04).** The table
+above was measured at a single chain phase (seed 0 = lap index 0), which is the
+BEST phase on every profile: A(zone) depends on the phase of the E/B/F/M
+releases relative to zone entry (period 20 ms, lap-invariant), monotone across
+the hyperperiod with the worst phase at its sup. 21-phase enumeration — the
+1 ms grid plus the 19.9 ms last tick (`--start-offsets-ms` + `zone_sweep.py
+--phases-ms 0:20:1`; `zone_tolerance_z3_phase*.csv`,
+`zone_tolerance_spot_phase*.csv`):
+
+| profile | A(z3) min-over-phase (pass / first any-phase breach) | per-phase A(z3) range | non-z3 A min-over-phase |
+|---|---|---|---|
+| v10 | **150.5 / 160.5 (18/21 phases clean at 160.5)** | 150.5..170.5 | 290.5 / 400.5 / 290.5 (all phase-robust) |
+| v12.5 | **140.5 / 150.5 (20/21 clean at 150.5; phase 19.9 breaches by 1.7 mm)** | 140.5..160.5 | 290.5 / 240.5 / **190.5** (z2 was 240) |
+| v15 | **110.5 / 120.5 (14/21 clean at 120.5)** | 110.5..120.5 | 240.5 / **190.5** / **140.5** (z1, z2 were 240 / 190) |
+
+Consequences for this draft: (i) §8.5's boundary comparison (151.6 F-demoted
+top-band bound vs A(z3)) is now 151.6 > 150.5 on v10 — by 1.1 ms, inside the
+instrument's 10 ms resolution: "at the boundary" — and 151.6 > 140.5 on v12.5
+— by 11.1 ms, more than one step: clearly below it. The decomposition is
+load-bearing at N=8 on both. (ii) The conservative A(z3) = 140 packet
+constant survives at every phase on v10/v12.5 (on v12.5 by exactly one
+instrument step). (iii) §8.3's
+A2 shift (170 → 160) is a single-phase result; the F-demoted cliff must be
+re-measured min-over-phase before an F-demoted schedule is compared against it
+(queued). (iv) v15's floor tightens to 110.5 (single-phase 120.5), still below
+the 123.4 F-demoted uncontended bound — same conclusion. (v) The Challenge's
+soft constraint binds earlier still (v10 z3 A_soft = 120.5; v15 violates it
+uninjected); tables remain hard-only pending a decision.
+
 **Partition caveat on the v12.5/v15 rows [council-successor audit]:** the zone
 segmentation constants (`Trajectory.h` thresholds) were hand-tuned to v10's
 curvature scale and were NOT re-derived per profile (ZONE_TOLERANCE's standing

@@ -7,6 +7,20 @@ timing requirement (Challenge Q4) that the age-aware scheduler will enforce,
 and the empirical port of the Wilson et al. (MEMOCODE 2024) zone methodology
 from UPPAAL to the Bosch FMU.
 
+**Status 2026-09-04: A(zone) is a MIN OVER THE CHAIN PHASE.** Every earlier
+table was measured at one phase (seed 0 = lap index 0), which is the *luckiest*
+phase on every profile (PAPER_NOTES 2026-09-04). Tables of record are now the
+21-phase enumerations (1 ms grid + the 19.9 ms last tick)
+`zone_tolerance_z3_phase{,_v12.5,_v15}.csv` +
+`zone_tolerance_spot_phase{,_v12.5,_v15}.csv` (`tools/zone_sweep.py
+--phases-ms 0:20:1`, driven by the new `--start-offsets-ms` harness flag):
+**z3 = 150.5 / 140.5 / 110.5 ms (v10 / v12.5 / v15)**; z0 290.5 / 290.5 / 240.5;
+z1 400.5 / 240.5 / 190.5; z2 290.5 / 190.5 / 140.5 (hard criterion). The
+single-phase files below remain as the max-over-phase reference. The soft
+constraint (≥ 95 % within 0.2 m) is now recorded per row (`soft_pct`) and binds
+earlier (v10 z3: 120.5 ms; v15 violates it uninjected); the tables stay
+hard-only until that question is decided (EE side + Stone).
+
 **Status 2026-07-04: Phase-1 + Phase-2 IMPLEMENTED; fine-grid cliffs + v12.5/v15
 tables MEASURED (see the 2026-07-04 block below); a zone-consuming scheduler
 (`zband`) now EXISTS.** *(Original status 2026-06-26: Phase-1 + Phase-2 implemented.)* Per-zone breach
@@ -143,9 +157,19 @@ causality: delay only inside the zone.
 - **Velocity profiles are different difficulty levels**: do v10 first, then
   v12.5 / v15 (`--profile`) — expect A(zone) to shrink with speed. The
   three-profile family A_v(zone, speed) is the full Q4 abstraction.
+- **Phase.** A(zone) depends on the chain-release phase at zone entry (period
+  20 ms = the task-set hyperperiod; lap-invariant because every lap length is a
+  multiple of 200 ticks). Never quote a single-phase value: sweep
+  `--phases-ms 0:20:1` — the 1 ms grid plus the interval's last tick, 19.9 ms,
+  which the tool appends: the sup is the worst phase at every measured cliff,
+  and a grid without it under-reported v12.5's z3 by one step. At every
+  partially-clean cell the clean phases are exactly the lowest ones; best = 0,
+  the historical seed-0 phase. PAPER_NOTES 2026-09-04.
 - **Hard-violation counting is frame-decimated** (10 ms); for tolerance
   thresholds near the cliff, confirm with the FMU's own `threshold_error_cntr`
-  (exact, 10 ms windows) and treat `hard` counts as lower bounds.
+  (exact, 10 ms windows) and treat `hard` counts as lower bounds. (Checked
+  2026-09-04: the undecimated per-tick max |e_y| agreed with the decimated
+  counter on all 1,449 phase rows — the phase CSVs carry both.)
 - The applied-command age is what matters physically; use `age_path` (worst
   case of the conservative convention) as the per-run age statistic.
 
@@ -154,7 +178,9 @@ causality: delay only inside the zone.
 1. `A(zone)` table per profile + the violation-vs-age curves (Route A §"age ↔
    control performance"; Route B's requirement model). **(Done for ALL profiles
    2026-07-04: `zone_tolerance.csv` + `_v12.5` + `_v15` + fine z3 grids; one
-   command: `reproduce.py zones`. Partition caveat above applies to v12.5/v15.)**
+   command: `reproduce.py zones`. Partition caveat above applies to v12.5/v15.)
+   **2026-09-04: superseded by the min-over-phase tables (same command
+   regenerates both generations; status header above).**
 2. ~~The zone array as a CSV checked into `examples/` — the scheduler consumes it for
    mode switching.~~ **CORRECTION (2026-06-29): not built, and not the current design.**
    The zone array is computed **at runtime** in `Trajectory::computeTrackZones` and read

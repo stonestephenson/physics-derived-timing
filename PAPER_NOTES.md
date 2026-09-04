@@ -10,6 +10,353 @@ Newest first.
 
 ---
 
+## 2026-09-04 — A(zone) is a min over the chain phase: 21-phase enumeration; every published single-phase value was the LUCKIEST phase; new numbers of record
+
+**What it is.** The 2026-08-24 refutation (paper/PLAN.md §3) found that v10's
+A(z3) = 170.5 ms survived at 1 of 20 random start offsets. This entry closes
+it: the phase dependence is understood, exhaustively enumerated with a new
+instrument, and committed as the A(zone) tables of record. Five results.
+
+1. **The phase axis is the chain hyperperiod (20 ms), and it is lap-invariant.**
+   Start offsets that differ by a multiple of 20 ms give identical breach
+   counts (0 / 20 / 40 / 60 / 200 / 1000 / 5000 ms: all clean at z3 +80 on v10,
+   max |e_y| within 1.7 mm of each other); offsets 1..19 ms breach with
+   monotonically growing hard counts (7, 11, 18, 26, 31, 41 at 1, 2, 5, 10, 15,
+   19 ms) and 19.9 ms is the worst (43 hard, 0.9049 m). The three lap lengths
+   (1,178,000 / 944,000 / 786,000 ticks) are multiples of 200 ticks, so the
+   chain-release phase at a given track index is the same on every lap: the
+   quantity being sampled is the phase of the E/B/F/M releases relative to the
+   instant the in-zone injection starts. (A 60 ms secondary structure exists at
+   the 1-2 mm level — offsets 20/40/60 ms cycle 0.8000/0.7987/0.7983 m — and is
+   irrelevant at the instrument's 10 ms age resolution.) The effect is
+   monotone in phase across the half-open hyperperiod [0, 20): at all eight
+   partially-clean cells in the tables below, the clean phases are exactly the
+   lowest k. The enumeration of record is therefore the 1 ms grid PLUS the
+   interval's last representable tick, 19.9 ms (`--phases-ms 0:20:1` → 21 runs
+   per grid point; the tool appends the last tick itself). **Phase 0 — the
+   seed-0 / lap-index-0 phase every committed table used — is the BEST phase at
+   every grid point on every profile**, and 19.9 ms the worst (checked: best =
+   0 at all 30 z3 cells; worst = 19.9 at 26 of them and 19.0 at v12.5's four
+   fully-breached cells). Every published A(zone) was therefore the max over
+   phase, not a typical value. **Cold-review lesson (same day):** the first
+   pass used the 0..19 grid without 19.9 and reported v12.5's A(z3) as 150.5;
+   the sup breaches that cell at phase 19.9 by 1.7 mm (0.8017 m, 5 hard
+   frames). A phase grid that stops one step short of the interval's end
+   under-reports A(zone) — the tool now refuses to. The 08-24 "19 of 20
+   seeds breach" follows: random lap offsets are uniform in phase, and only
+   ~1 ms of the 20 ms window is clean at 170.5.
+
+2. **Numbers of record** (hard criterion, breach-anywhere, 21 phases,
+   delivered ages quantised at 10 ms; "robust" = 21/21 clean at the published
+   value and 0/20 at the next coarse step — z0-z2 were bracketed on the 50 ms
+   coarse grid only):
+
+   | profile | z3 lane-change | z0 straight | z1 slight | z2 sharp |
+   |---|---|---|---|---|
+   | v10 | **150.5** (was 170; per-phase 150.5..170.5; 18/21 clean at 160.5, 1/21 at 170.5) | 290.5 robust | 400.5 robust | 290.5 robust |
+   | v12.5 | **140.5** (was 160; 140.5..160.5; 20/21 clean at 150.5 — phase 19.9 breaches by 1.7 mm; 1/21 at 160.5) | 290.5 robust | 240.5 robust | **190.5** (was 240; 17/21 clean at 240.5) |
+   | v15 | **110.5** (was 120.5 [08-24 fine grid], 90 [coarse]; 110.5..120.5; 14/21 clean at 120.5) | 240.5 robust | **190.5** (was 240; 7/21 at 240.5) | **140.5** (was 190; 10/21 at 190.5) |
+
+   So PLAN.md's 08-26 scope statement ("confined to z3 on v10") holds on v10
+   and fails on the faster profiles: the tighter the zone or the faster the
+   car, the wider the phase spread (two 10 ms fine steps on v12.5's z3, one
+   50 ms coarse step on the affected non-z3 zones). z0 is phase-robust
+   everywhere.
+
+3. **The boundary claim: v10 sits AT the boundary; v12.5 is clearly below
+   it.** The uniform F-demoted N=8 bound is 151.6 ms (limited-t candidate).
+   On v10, against A(z3) = 150.5, it is NOT certified — by 1.1 ms; 18/21
+   phases are still clean at 160.5, so the worst-phase cliff lies in
+   [150.5, 160.5) and the instrument cannot say on which side of 151.6 it
+   falls. Certification uses the verified value, under which the
+   decomposition IS load-bearing at N=8, and the margin is below the
+   instrument's 10 ms resolution, so the paper presents v10 as "at the
+   boundary" — the same shape as v15's applicability floor. On v12.5, against
+   A(z3) = 140.5, the bound misses by 11.1 ms — more than one instrument step
+   — so the uniform mechanism is unambiguously insufficient there and the
+   decomposition is load-bearing without qualification. The corollary flip
+   PLAN.md feared is real, and it is no longer a coin toss on v12.5. **The
+   conservative packet constant A(z3) = 140 (THEOREM_BRIEF / BOUND /
+   PROOF_DRAFT Lemma-2 packet) survives at every phase on v10 and v12.5**
+   (140.5 clean 21/21 on both — on v12.5 by exactly one instrument step); on
+   v15 it does not (110.5), which changes nothing (v15 was already the
+   floor). QUEUED, not done: the A2 correction (F-demotion's +13.5 ms of
+   feedforward staleness moved the single-phase v10 cliff 170 → 160,
+   PROOF_DRAFT §8.3) must be re-measured min-over-phase (`--ff-extra-ms 13.5`
+   × `--phases-ms 0:20:1`) before an F-demoted schedule is compared against
+   anything; expect ≤ 150.5.
+
+4. **The soft constraint binds far earlier, and nothing was checking it.**
+   ZONE_TOLERANCE.md's definition of A(zone) includes the Challenge's soft
+   constraint (|e_y| ≤ 0.2 m for ≥ 95 % of the run; examples/constraints.md),
+   but `zone_sweep.py` only ever tested `total_hard == 0`. Polarity confirmed
+   in code (`Simulation.cpp:707`: soft% = share of the run OVER 0.2 m, so ≤ 5
+   passes). The phase CSVs now carry `soft_pct` per row and the tool reports
+   a secondary A_soft (hard-clean AND soft% ≤ 5 at every phase). Results:
+   v10 z3 A_soft = 120.5 ms (soft 4.56..5.41 % at 130.5) against hard 150.5;
+   v12.5 z3 A_soft = 90.5 (the uninjected baseline is already 3.15..4.94 %
+   and +10 ms pushes the worst phase to 5.46 %); **v15 violates the soft
+   constraint with NO injection at N=1 (9.06..12.19 %)** — the nominal v15
+   system is outside the Challenge's comfort envelope regardless of
+   scheduling. v10 z1/z2: A_soft 250.5 / 240.5 against hard 400.5 / 290.5;
+   z0 and the v12.5/v15 spot ranges start above their soft crossings
+   (A_soft unresolved there). **Decision needed (Stone + EE):** the committed
+   A(zone) tables stay hard-only and are labelled so; if the soft constraint
+   is normative, the binding budget on v10 becomes 120.5 and the theorem's
+   input changes accordingly. The sustained-vs-transient caveat (2026-08-24
+   item 4) applies to soft% exactly as to hard.
+
+5. **Instrument facts.** (a) The frame-decimated hard counter and the
+   undecimated per-tick max |e_y| agreed on every one of the 1,449 new rows
+   (no row with hard = 0 and max |e_y| ≥ 0.8, or the reverse), so the standing
+   "hard counts are lower bounds" pitfall did not bite at any measured cliff.
+   (b) Delivered age is identical across phases — the phase changes the
+   outcome, not the dose. (c) Worst-phase breaches at the non-z3 cliffs
+   manifest in *other* zones (v12.5 z2's first breach lands in z1; v15 z1's in
+   z1 + z2) — the manifestation-vs-cause distinction of 2026-06-26 again.
+
+**Evidence / repro.** New harness flag `--start-offsets-ms A[,B,..]`
+(main.cpp; explicit per-vehicle lap offsets; byte-identical when absent —
+G1/G2 unchanged) + `tools/zone_sweep.py --phases-ms 0:20:1 --jobs 8`
+(a range spec always gets the interval's last tick appended; `--offset-seeds
+K` = the random lap-position sampler of 08-24, kept for reproducibility;
+legacy single-phase mode byte-compatible — the five legacy tables regenerated
+byte-identically through the new tool; unit-tested in
+`tools/tests/test_zone_sweep.py`, gate G0). Committed:
+`zone_tolerance_z3_phase{,_v12.5,_v15}.csv` (z3, extra 0..100 / 0..100 / 0..70
+ms at 10 ms, 21 phases) and `zone_tolerance_spot_phase{,_v12.5,_v15}.csv`
+(z0-z2, coarse brackets, 21 phases); `reproduce.py zones`
+regenerates all six (~3 min at 8 jobs). The legacy single-phase tables are
+untouched and byte-reproducible; they are now the phase-0 (max-over-phase)
+reference.
+
+    # mechanism (v10, z3, +80 ms): multiples of 20 ms clean, 1..19.9 ms breach
+    for o in 0 20 1000 1 10 19 19.9; do ./build/cps --headless --vehicles 1 \
+        --scheduler rm --exec worst --duration 120 --profile 10 \
+        --zone-target 3 --zone-extra-ms 80 --start-offsets-ms $o; done
+    # tables of record (the six zone_sweep.py lines in reproduce.py exp_zones)
+    python3 tools/reproduce.py zones
+
+**Where it lands.** Item 1 is a methods paragraph (phase enumeration is part
+of the A(zone) definition from now on) and a specificity asset (paper/PLAN.md
+§5 item 8: the luckiest-phase table). Item 2 replaces every A(zone) number in
+THEOREM_BRIEF §3.2 / PROOF_DRAFT §8.1 / ZONE_TOLERANCE / paper/PLAN.md §3.
+Item 3 rewrites PLAN.md §3's regime table (v10 at the boundary, v12.5 below
+it). Item 4 is a limitations paragraph or a second table, depending on
+the soft decision. The FCHANNEL A_F min-over-phase (§9.9, entry phase via
+`--fzone-lead-ms`) and this chain-phase enumeration are different phase axes;
+both are needed.
+
+---
+
+## 2026-08-24 — The merger-grab: F-demotion tightens the bound and worsens the realized age by 20 ms (car survives with 49.5 ms; cart-pole dies at N=1) — plus the cart-pole is a second applicability-floor case
+
+**What it is.** A cart-pole analogue of the PROOF_DRAFT §8.5 boundary question
+("does occupancy earn capacity, or does uniform F-demotion already suffice?")
+turned up a mechanism defect in the uniform F-demotion lever itself, then a
+verification run confirmed the car's central claim survives it. Six results,
+ordered by how much they move the paper.
+
+1. **THE MERGER-GRAB (mechanism).** Demoting Feedforward below every vehicle's
+   E/B/M frees a core slot that the **Merger takes in the same tick as its own
+   Controller**, so it merges the *previous* controller output. `TaskModel.cpp:
+   368-370` snapshots `fbOutStamp_` at `merge_act`; if M activates before its
+   own B publishes `fb_fin`, the merged stamp — and the merged *value* — is one
+   controller period old. Cost: **exactly +20.0 ms (= T_B) of realized
+   `age_path`**, on both plants, at every N tested.
+   **Isolating experiment, no scheduler involved:** give plain RM a fourth core
+   at N=1 and realized `age_path` rises **90.5 → 110.5 ms** (identical at 5 and
+   6 cores). *Adding a core makes the delivered age worse* — and on the
+   cart-pole it makes safety worse: 0 → **10,831 hard-breach frames**, the pole
+   falls (|θ| → 223 rad). The car at 4 cores is unharmed (0 hard). This is a
+   property of the Challenge's own register-routing semantics (the merger reads
+   whatever is in the register; it does not block on a fresh input), not a
+   harness bug.
+
+2. **The car's boundary claim SURVIVES, with 49.5 ms of realized margin.**
+   Verification run (lateral v10, N=8, `--exec worst`, 3 cores, 120 s):
+
+   | | classical RM | uniform F-demoted |
+   |---|---|---|
+   | `missed jobs` (P1) | 0 | **0 — P1 HOLDS** |
+   | worst `age_path` | 90.5 ms | **110.5 ms** (+20.0) |
+   | hard breaches, all zones | 0 | **0** |
+   | hard **z3** | 0 | **0** |
+   | `K_age(τ=1.0)` max | 0 | 0 |
+   | fleet max \|e_y\| | 0.4133 m | 0.4284 m |
+
+   So the merger-grab is real on the car too, and it does **not** threaten
+   §8.5: realized 110.5 ms against the A2-corrected cliff of 160 leaves
+   **49.5 ms of realized margin**, where the analytic comparison (151.6 vs 160)
+   leaves only 8.4 ms. Realized age sits 41.1 ms *below* the top-band bound.
+   Not a counterexample.
+   **Secondary:** F-demotion lowers the car's *empirical* P1 ceiling from 10 to
+   9 (N=10 F-demoted: 2,377 missed, first hard breaches z1=67 z2=262, where
+   classical RM at N=10 is 0 missed / 0 hard) while raising the *certified* one
+   from 5-6 to 8. The two ceilings move in opposite directions.
+
+3. **Bound/reality divergence — the beyond-worst-case trap, exhibited.**
+   F-demotion **tightens the analytic age bound** (band-mode, limited-t:
+   N=1 125.2 → 123.4 ms; N=8 192.2 → **151.6** ms) while **worsening the
+   realized age** by 20 ms (90.5 → 110.5). Measurement stays under the bound at
+   every point (110.5 ≤ 123.4 at N=1, ≤ 151.6 at N=8), so **this is NOT
+   unsoundness** — the classical bound was simply loose where reality was
+   lucky. State it precisely: a mechanism whose bound-effect and reality-effect
+   point in opposite directions is exactly the beyond-worst-case hazard this
+   project exists to study. On a plant with 15 ms of slack it flips a safe
+   fleet into a crashing one; on the car, whose slack is 80 ms, it is invisible.
+
+4. **Sustained ≠ transient — a caveat on every A(zone) number we publish.**
+   The tolerance instrument injects *sustained uniform* delay; schedulers
+   produce *transient maxima*. These are not interchangeable and the cart-pole
+   proves it in both directions: **110.5 ms sustained kills the pole** (9,954
+   hard frames at `--net-delay 26`), while under aguard at N=16 every one of
+   the 16 poles runs at a worst-case `age_path` of **470-895 ms with zero hard
+   breaches** (max |θ| 0.171 vs the 0.21 bound) — 4-8× "over budget", harmless,
+   because the staleness lands outside the shove windows. Every A(zone) in
+   `ZONE_TOLERANCE.md` / FCHANNEL is a sustained-injection quantity and must be
+   labelled as such; PROOF_DRAFT §8.7's "injection is strictly harsher than
+   reality" is the car-side statement of the same thing, and here it is
+   load-bearing rather than reassuring.
+
+5. **The cart-pole is a SECOND applicability-floor case — reached by physics,
+   not by speed.** Re-measured at 120 s: **A(cart-pole) ∈ (105.5, 110.5] ms**
+   delivered `age_path` (105.5 → 0 hard; 110.5 → 9,954 hard). Measured
+   uncontended chain latency is **90.5 ms** — identical to the car, since the
+   chain model is plant-agnostic — so there is ~15 ms of empirical slack. But
+   the *analytic* uncontended bound is 120.8 ms (`BOUND.md` §5) / 123.4 ms
+   (F-demoted, band N=1) / 125.2 ms (classical), **all above the budget**: no
+   scheduling policy certifies even ONE cart-pole at these task periods. This
+   is the v15 result (PROOF_DRAFT §8.1) on a second plant, and it arrives for a
+   different reason — instability rather than speed. For the scope section: the
+   floor is a property of the *chain*, and a plant either clears it or the
+   scheduling question is vacuous.
+   Corollary for the §8.5 boundary question: the decomposition is **not**
+   load-bearing for the cart-pole. Its uniform-mechanism failure happens at
+   **N=1, with zero contention**, and nothing that reallocates contention can
+   recover that. Two further blockers, both structural: every zone injection
+   path is gated `plant == PlantKind::Lateral` (`Simulation.cpp:363, 379,
+   393-395`), so no causal A(zone) exists for the cart-pole; and
+   `CartPolePlant::initialize` sets `step_ = 0` for every plant with
+   `disturbance(step_)` a pure function of the plant's own tick, so **all N
+   poles shove in lockstep and Occ = N identically** — the occupancy premise
+   (Occ < N) is false by construction.
+
+6. **Same schedule, same ages, different consequences — the generalization
+   thesis in one table.** Under state-blind policies the schedule, delivered
+   ages and missed-job counts are **bit-identical across the two plants**
+   (verified at N=1,2,3,4,6,8,10,11,12,14,16). At N=11 an identical trace —
+   17,997 missed, worst `age_path` 100.5 ms — produces **11,408 hard frames /
+   2 vehicles on the car and 11,957 / 1 on the cart-pole**. Only the physics
+   differs. Instrument caveat surfaced alongside: at RM N=20 vehicles 5-19
+   report `age_path = n/a` (they never actuate at all), so at P1 collapse the
+   worst-case age metric is **blind to the damage channel** — the failure is
+   starvation, not staleness.
+
+**Two more, smaller.**
+
+- **The cart-pole's budget is entirely disturbance-driven, and the 10→16 gain
+  is online, not geometric.** At `--shove-force 0` the same plant tolerates
+  665.5 ms of age with θ ≡ 0 and zero breaches; at 8 N the cliff is
+  (105.5, 110.5]; at 6 N it sits exactly on 110.5 (36 hard); at ≤4 N, 110.5 is
+  clean. So the cart-pole's "zone" is the 50 ms shove every 2 s (2.5 % duty,
+  `CartPolePlant.h`) and **A(quiescent) is effectively unbounded against
+  A(shove) ≈ 110 ms** — a far sharper context split than the car's 170 vs
+  290/400 — but that A(quiescent) is *inferred* from a shove-free run, not
+  from an in-run zone-gated injection (no such instrument exists, above).
+  Classical RM keeps all poles crash-free through **N=10** (its P1 ceiling, ages
+  ≤ 95.5 ms, under budget), aguard through **N=16**; the gain comes from
+  *online context-conditioned allocation* (TTPNR triage), not from static zone
+  geometry. That is the version of Condition II the cart-pole actually
+  supports.
+- **frontier crashes 7 of 8 cart-poles at N=8 — a live limitation for the
+  F-channel leg.** The car's capacity champion (headline "frontier 21") is
+  unsafe on plant #2: 7/8 crashed at N=8, 10/12 at N=12, 11/16 at N=16, where
+  aguard crashes none. `CPS_FRONTIER_NO_FDEMOTE=1` reproduces aguard exactly →
+  **0 crashes**, so zone-aware F-demotion is the sole cause (on the cart-pole
+  `zone_flagged` is always false, so F is demoted everywhere and the merger-grab
+  is permanent). It even *improves* the axis it was designed for — 2,714 missed
+  vs aguard's 6,175 at N=8 — while crashing the plant. FCHANNEL's capacity
+  claim needs a "single-plant result" qualifier until this is addressed.
+
+**UNTESTED (inferred from utilization arithmetic only — no flag exists to run
+it).** The cart-pole's F computes identically zero (`CartPolePlant.cpp:77`,
+regulation), so the correct uniform mechanism for a *regulator* is to **delete**
+F, not demote it: per-vehicle worst-case cloud demand falls 28.5 % → 16 % of a
+core (E 1.1/10 + B 0.5/20 + F 2.5/20 + M 0.5/20), which would put RM's P1
+capacity near **18** instead of 10 at zero physical cost. This also means the
+F-channel economics the FCHANNEL leg studies (A_F, the cost of F staleness)
+have **no cart-pole analogue at all** — the plants are not comparable on that
+axis, and the paper should not imply they are.
+
+**Evidence / repro.** All runs `--exec worst`, 3 cores, 120 s; P1 (`missed
+jobs: 0`) checked and reported per row. "Uniform F-demotion" = the frontier
+policy's attribution toggles with the heartbeat disabled, which yields exactly
+"all non-F jobs by (period, vehicle, kind), then all F jobs" = the mechanism
+`rta_solve.py --band-demote-f` analyzes.
+
+    # (2) the car verification — P1 0, age 110.5, hard 0 in every zone incl. z3.
+    # NOTE: use the assignment-PREFIX form below; `env $VAR` with the three
+    # assignments in one shell variable does NOT word-split under zsh and
+    # silently sets only the first (check the printed scheduler name says
+    # fhb=100000000ms). The result is heartbeat-independent anyway — the
+    # committed defaults (CPS_FRONTIER_RM_ALLOC=1 alone) give the same
+    # 110.5 / 0 hard / 0 missed, since F is demoted but never starved.
+    CPS_FRONTIER_RM_ALLOC=1 CPS_FRONTIER_FHB_MS=100000000 \
+    CPS_FRONTIER_FHB_CRIT_MS=100000000 \
+        ./build/cps --headless --plant lateral --vehicles 8 \
+        --scheduler frontier --exec worst --duration 120
+    ./build/cps --headless --plant lateral --vehicles 8 --scheduler rm --exec worst --duration 120
+
+    # (1) the merger-grab, isolated — no scheduler involved
+    ./build/cps --headless --plant cartpole --vehicles 1 --scheduler rm --exec worst \
+        --duration 120 --cores 4        # age 90.5 -> 110.5, 10831 hard (cores 3 = clean)
+    ./build/cps --headless --plant lateral  --vehicles 1 --scheduler rm --exec worst \
+        --duration 120 --cores 4        # same age jump, 0 hard
+
+    # (3) the bound side (read-only; writes no CSV)
+    python3 tools/rta_solve.py --band 1 --band-n 1 --workload limited-t              # 125.2
+    python3 tools/rta_solve.py --band 1 --band-n 1 --band-demote-f --workload limited-t  # 123.4
+    python3 tools/rta_solve.py --band 8 --band-n 8 --band-demote-f --workload limited-t  # 151.6
+
+    # (4)+(5) the cliff, sustained; and the transient counter-case
+    ./build/cps --headless --plant cartpole --vehicles 1 --scheduler rm --exec worst \
+        --duration 120 --net-delay 24   # age 105.5, 0 hard
+    ./build/cps --headless --plant cartpole --vehicles 1 --scheduler rm --exec worst \
+        --duration 120 --net-delay 26   # age 110.5, 9954 hard
+    ./build/cps --headless --plant cartpole --vehicles 16 --scheduler aguard --exec worst \
+        --duration 120                  # per-veh age 470-895 ms, 0 hard, max|theta| 0.171
+
+    # (6) same schedule, two plants — ages/missed bit-identical, breaches differ
+    for p in lateral cartpole; do ./build/cps --headless --plant $p --vehicles 11 \
+        --scheduler rm --exec worst --duration 120; done
+
+    # disturbance-driven budget
+    ./build/cps --headless --plant cartpole --vehicles 1 --scheduler rm --exec worst \
+        --duration 30 --net-delay 300 --shove-force 0    # age 665.5, 0 hard, theta == 0
+
+    # frontier ablation on plant #2
+    ./build/cps --headless --plant cartpole --vehicles 8 --scheduler frontier \
+        --exec worst --duration 120                      # 7 of 8 crashed
+    CPS_FRONTIER_NO_FDEMOTE=1 ./build/cps --headless --plant cartpole --vehicles 8 \
+        --scheduler frontier --exec worst --duration 120 # 0 crashed (== aguard)
+
+**Where it lands.** Item 2 is a realized-margin row for PROOF_DRAFT §8.5 (the
+boundary statement now has both an analytic and a realized margin, 8.4 vs
+49.5 ms). Items 1+3 are the paper's sharpest beyond-worst-case exhibit — a
+lever that is provably good for the certificate and measurably bad for the
+system — and belong wherever the bound-vs-reality gap is discussed. Item 4 is a
+methodology caveat that must attach to every published A(zone)/A_F number
+(DATA_AGE / ZONE_TOLERANCE / FCHANNEL). Item 5 extends the scope/limitations
+section from one applicability-floor case (v15) to two, on independent
+grounds. Item 6 is the cleanest single-table statement of the generalization
+thesis and should go in the generalization section (GENERALIZATION §3, which
+currently says the cart-pole "binds on physics" — true of its injected
+tolerance, but under RM it binds on P1 at N=10/11, exactly where the car does).
+The frontier item is a limitations qualifier for the F-channel follow-on.
+
+---
+
 ## 2026-08-11 — FCHANNEL §10 executed: enter-fresh binds at the A_F cliff, the amplitude unit does NOT collapse (delay-transients are the mechanism), and the v³|dκ/ds| under-bound transfers to held-out profiles
 
 **What it is.** The four queued FCHANNEL §10 items run to ground in one

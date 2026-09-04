@@ -94,10 +94,11 @@ Then by task:
    baselines after touching the seam (the refactor was verified byte-identical).
 7. Git: push to `physics-derived-timing` only (the remote formerly named
    `tempbosch`; GitHub repo renamed 2026-07-06). NEVER push to `origin` (the Bosch
-   upstream). Four items stay untracked (local to Stone's Mac; on a fresh
+   upstream). Five items stay untracked (local to Stone's Mac; on a fresh
    clone their doc pointers dangle — ask Stone rather than treating that as
    breakage): `relatedPapers/`, `ContextForGuo/`, `f1tenth_cloud_control/`
-   (stale vendored HIL copy; live code = the lab repo, HANDOFF §2), and
+   (stale vendored HIL copy; live code = the lab repo, HANDOFF §2), `paper/`
+   (the RTAS'27 plan of record + style corpus; HANDOFF NOW points at it), and
    `PAPER_OUTLINE_DRAFT.md` (the paper-writing strawman).
 
 ## How to work here
@@ -129,7 +130,8 @@ Then by task:
     # plants: lateral (FMU car) | cartpole    other: --overrun, --net-delay MS,
     #   --guard/--floor MS, --tau-crit MS, --danger-tau FRAC, --pack-zone Z/--min-spacing MS,
     #   --pred-staleness/--pred-margin MS, --delta-max RAD,
-    #   --u-max/--shove-force/--theta-max (cartpole calibration; GENERALIZATION §4), --validate-predictor, --csv FILE, --seed N
+    #   --u-max/--shove-force/--theta-max (cartpole calibration; GENERALIZATION §4), --validate-predictor, --csv FILE, --seed N,
+    #   --start-offsets-ms A,B,.. (explicit lap phases; A(zone) is a MIN over the 20 ms chain phase — zone_sweep.py --phases-ms 0:20:1)
 
 ## Before you end a session (this keeps the system alive)
 

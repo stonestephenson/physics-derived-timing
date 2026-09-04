@@ -93,7 +93,11 @@ the car enters with an already-aged value at matched peak dose; entry age
 zero-age reference error in q (collapse experiment, signed;
 `tools/qzone_sweep.py`); `--offset-seed N` = random
 start-phase draw (with `--min-spacing MS` = F_spaced-constrained draw; capacity
-as P(clean) over seeds); `--guard-cap MS` = the aguard/frontier theta clamp
+as P(clean) over seeds); `--start-offsets-ms A[,B,..]` = explicit per-vehicle
+start offsets along the lap (ms of trajectory time, one per `--vehicles`;
+overrides every other placement; the phase-enumeration lever behind
+`tools/zone_sweep.py --phases-ms` — A(zone) is a min over the 20 ms chain
+phase, PAPER_NOTES 2026-09-04); `--guard-cap MS` = the aguard/frontier theta clamp
 (default 450; proven inert for honest configs; the full guard formula is
 theta = min(cap, floor + max(60, fleet age_recent)) — the 60 ms inner floor
 is fixed in code, `AdaptiveGuard.cpp`/`Frontier.cpp`). NOTE `--ff-extra-ms` clamps at
@@ -234,6 +238,7 @@ could touch scheduling-visible behavior (CLAUDE.md invariants 3–6):
 
 | # | Command | Expected (the golden) |
 |---|---|---|
+| **G0** tool unit tests | `python3 -m unittest discover -s tools/tests -p 'test_*.py'` | all pass (mocked simulator; `zone_sweep.py` min-over-phase arithmetic + schemas) |
 | **G1** byte-identical baseline | `./build/cps --headless --vehicles 6 --scheduler rm --exec worst --duration 30` | `90.50 / 100.50 ms`, `missed jobs: 0`, veh3 `0.507 / 13.43%` |
 | **G2** predictor fidelity gate | `./build/cps --headless --vehicles 1 --scheduler rm --exec worst --duration 120 --validate-predictor` | `max \|dev\| = 1.490e-08 m -> PASS` (value scales with lap coverage — use the full 120 s) |
 | **G3** RTA machine-check | `python3 tools/rta_solve.py --cross-check` | certified capacity `N=5`, empirical `10`, all checks pass, sound vs sim |
@@ -247,7 +252,7 @@ behavior** (tie-break, `--overrun`, periods/WCETs, the `Plant` seam), the golden
 invariant 4). The prose in those docs is the baseline of record, and `verify.sh` carries a
 machine-checked copy — miss it and the done-gate stays permanently red.
 
-**Automated gate runner.** `.claude/verify.sh` runs G1+G2 and checks the golden numbers
+**Automated gate runner.** `.claude/verify.sh` runs G0+G1+G2 and checks the golden numbers
 (fast, ~5 s); `.claude/verify.sh --full` also runs G3 (the RTA solver, ~15–100 s). The
 agentic *done-gate* runs the fast form on every finish and blocks on failure; run `--full`
 before committing a scheduling-visible change. It is read-only — it never touches the
@@ -296,7 +301,12 @@ CSVs via delegation: `fzone` → `tools/fzone_sweep.py` (`fzone_tolerance.csv`,
 citable artifact), `qzone` → `tools/qzone_sweep.py` (`qzone_collapse.csv`).
 Still OUTSIDE it: the legacy `hybrid_guard_sweep`/`predictive_sweep*` CSVs
 (regenerable via the same framework, never registered). The underlying tools:
-`tools/zone_sweep.py` → `zone_tolerance.csv` (leg 1, causal `A(zone)`),
+`tools/zone_sweep.py` → `zone_tolerance.csv` (leg 1, causal `A(zone)`; with
+`--phases-ms 0:20:1` [deterministic chain-phase enumeration: the 1 ms grid plus
+the 19.9 ms last tick, 21 phases] or `--offset-seeds K` [random lap positions]
+it writes the MIN-OVER-PHASE tables `zone_tolerance_z3_phase*.csv`
+/ `zone_tolerance_spot_phase*.csv` — extended schema with per-phase soft% and
+undecimated max |e_y|; `--jobs N` parallelises; PAPER_NOTES 2026-09-04),
 `tools/occupancy_sweep.py` → `occupancy_sweep.csv` (leg 2, `Occ(s)`),
 `tools/danger_sweep.py` → `danger_sweep.csv` (leg 4, the `K(τ)` curve — both the
 `[age-only]` and `[+state]` axes, v10 only; `reproduce.py danger` delegates to it), and

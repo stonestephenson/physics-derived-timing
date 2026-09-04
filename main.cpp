@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <cmath>
 #include <sstream>
 #include <string>
 
@@ -191,6 +192,12 @@ void usage() {
         "                               simultaneity experiment. 0 = even spread (default);\n"
         "                               1 = all on the same lap phase (adversarial). See\n"
         "                               HANDOFF leg (A).\n"
+        "  --start-offsets-ms A[,B,..]  explicit per-vehicle start offsets along the lap\n"
+        "                               (ms of trajectory time; one value per --vehicles,\n"
+        "                               wrapped into the lap). Overrides the spread /\n"
+        "                               --align-offsets / --pack-zone / --offset-seed\n"
+        "                               placements. Phase enumeration for min-over-phase\n"
+        "                               A(zone) (tools/zone_sweep.py --phases-ms).\n"
         "  --zone-target Z              Phase-2 causal A(zone): inject extra command delay\n"
         "                               only while in curvature zone Z (0=straight 1=slight\n"
         "                               2=sharp 3=lane-change); -1 = off (default)\n"
@@ -288,6 +295,30 @@ int main(int argc, char** argv) {
         params.packZone      = std::atoi(argValue(argc, argv, "--pack-zone", "-1"));
         params.minSpacingMs  = std::atof(argValue(argc, argv, "--min-spacing", "0"));
         params.alignOffsets  = std::atof(argValue(argc, argv, "--align-offsets", "0"));
+        {   // --start-offsets-ms A,B,... (explicit lap phases; count must match N)
+            const std::string offs = argValue(argc, argv, "--start-offsets-ms", "");
+            if (!offs.empty()) {
+                std::stringstream ss(offs);
+                std::string tok;
+                while (std::getline(ss, tok, ',')) {
+                    char* end = nullptr;
+                    const double ms = std::strtod(tok.c_str(), &end);
+                    if (tok.empty() || end == tok.c_str() || *end != '\0') {
+                        std::fprintf(stderr, "--start-offsets-ms: bad value '%s'\n", tok.c_str());
+                        return 1;
+                    }
+                    params.startOffsets.push_back(static_cast<long>(
+                        std::llround(ms / (vr::kBaseStepSeconds * 1000.0))));
+                }
+                if (static_cast<int>(params.startOffsets.size()) != params.nVehicles) {
+                    std::fprintf(stderr,
+                                 "--start-offsets-ms needs exactly one value per vehicle "
+                                 "(--vehicles %d), got %zu\n",
+                                 params.nVehicles, params.startOffsets.size());
+                    return 1;
+                }
+            }
+        }
         params.zoneTarget    = std::atoi(argValue(argc, argv, "--zone-target", "-1"));
         params.zoneExtraMs   = std::atof(argValue(argc, argv, "--zone-extra-ms", "0"));
         {   // --zone-extra-vector A,B,C,D (ms per zone; exactly 4 or rejected)
