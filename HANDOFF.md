@@ -12,10 +12,10 @@ owning design doc **in the same commit as the code**.
 ## NOW / NEXT (read this; everything below §1 is layered history)
 
 **NOW (2026-09-04): paper-writing phase.** Plan of record = `paper/PLAN.md`
-(UNTRACKED, repo root — RTAS 2027 Track 1, deadline **2026-11-05**, settled
-decisions in its §2, Kurt's sign-off requested for 2026-10-15;
-`paper/OUTREACH.md` = the Kurt/Guo email drafts, UNSENT and carrying stale
-numbers — see the banner at its top). Since 08-11: (a) **2026-08-24/26
+(UNTRACKED by Stone's decision 2026-09-04, repo root — RTAS 2027 Track 1,
+deadline **2026-11-05**, settled decisions in its §2; the Kurt/Guo alignment
+emails were SENT before 2026-09-04 — as-sent text is in Stone's mail, the
+repo drafts were removed). Since 08-11: (a) **2026-08-24/26
 findings** (PAPER_NOTES 2026-08-24): the merger-grab — uniform F-demotion adds
 exactly +20 ms of realized `age_path` while tightening the bound; the car keeps
 49.5 ms of realized margin, the cart-pole dies at N=1; cart-pole = a second
@@ -44,15 +44,19 @@ NOT pushed this session.
 **NEXT (the live queue):**
 1. **Decide (Stone + EE):** is the Challenge soft constraint normative for
    A(zone)? Hard-only keeps A(z3) = 150.5 on v10; soft makes it 120.5.
+   Recommendation on record (2026-09-04): certify HARD-only (safety is the
+   certified property; the comfort chance-constraint is whole-run, not
+   per-zone, so a zone budget derived from it is a design choice, not a
+   physics fact) and REPORT the soft data as a stated limitation — the paper
+   raises it before a reviewer does.
 2. Re-measure the A2-corrected cliff min-over-phase (`--ff-extra-ms 13.5` ×
    `--phases-ms 0:20:1`, z3, all profiles) before restating PROOF_DRAFT §8.5:
    an F-demoted schedule must be compared against the F-demoted budget.
-3. Rewrite `paper/PLAN.md` §3's regime table around the new numbers (v10 at
-   the boundary, v12.5 below it), refresh and SEND the outreach drafts (Kurt's
-   10-15 date is six weeks out), then the LaTeX scaffold + figure pipeline
-   (PLAN.md §7 has slipped one window).
-4. Decide whether `paper/` gets tracked (it is the plan of record; CLAUDE.md
-   invariant 7 lists it as untracked for now).
+3. PLAN.md §3's regime table is rewritten (done); the outreach emails are
+   sent. Next: the LaTeX scaffold + figure pipeline from committed CSVs, then
+   sections 2 / 5 / 6 (model, evaluation, hardware) — the parts that depend
+   only on committed data (PLAN.md §7 has slipped one window).
+4. `paper/` stays UNTRACKED (Stone, 2026-09-04). Gate G0 stays (Stone).
 5. Carried: `FCHANNEL.md §10` follow-ons (F-channel leg is OUT of the paper —
    follow-on); Condition-I analytic A(zone) under-bound (EE, do not race);
    Kurt: Lemma 2a soundness (THEOREM_BRIEF §9).
