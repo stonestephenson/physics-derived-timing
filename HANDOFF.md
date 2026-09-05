@@ -100,6 +100,53 @@ are keyed to 140 / 290 / 400, not to the min-over-phase values of record.
 Neither changes a number in the paper; both are documented in USAGE.
 
 **NEXT (the live queue):**
+0. **THEOREM 2 VERIFICATION — three paths, logged 2026-09-05 (Stone's
+   decision: the fresh agent does path 2, then 3, with 1 as an option; do all
+   three if 2 lands within about a week).** Context: the two open obligations
+   are THEOREM_BRIEF §9.4b #2 (at most m−1 carry-in under synchronous release)
+   and #6 (Lemma 2a stopping-rule soundness for the non-monotone limited
+   interference); the paper's boundary threshold IS this candidate, there is
+   no framing that routes around it (paper/PLAN.md §6); Kurt's sign-off is
+   requested for 2026-10-15; **fallback trigger 2026-10-08** — no yes by then
+   → switch to the de-risked framing (framework + Lemma 1 + measured slack).
+   Standing rule, unchanged and load-bearing: the AI WRITES and ATTACKS
+   proofs, it never declares one verified — this session produced three
+   confident wrong results that only an independent check caught
+   (PAPER_NOTES 2026-09-04 (a)–(c)). "Verified" means checked by something
+   that is not the author.
+   - **Path 2 — DO FIRST (a human verifies rather than derives).** Write
+     `PROOF_LEMMA2.md`: a complete, self-contained proof of obligations #2 and
+     #6 in Guan RTA-LC notation (statement = THEOREM_BRIEF §9.4a; model =
+     `rta_solve.py::hp_interference` / `solve_rta`, tick quantum,
+     kill-and-hold, m = 3, synchronous release), every step numbered, every
+     assumption explicit, then attacked by at least two COLD-CONTEXT reviews
+     (one fresh subagent per obligation, given only the statement and the
+     proof, told to break it, allowed to run `tools/proofchecks`). Header
+     says UNVERIFIED until Kurt signs. Ends with a "what Kurt must check"
+     list. Deliverable: a document Kurt checks line by line instead of
+     deriving — days of his time, not weeks; send it to him the day it is
+     done. Also a good place to write the "hardness receipt" sentence
+     (GAO_RHETORIC (d) item 5).
+   - **Path 3 — ALONGSIDE (exhaustive checks on a STATED finite domain).**
+     Extend `tools/proofchecks/lemma2a_check.py` / `redteam_band.py`: state
+     the domain explicitly (N range, release phasings, Θ ranges, the
+     workload's x range), enumerate obligation #2's carry-in count and #6's
+     stopping rule exhaustively on it, record domain + case counts + runtime
+     in PROOF_DRAFT §2 / §3.6 and `tools/proofchecks/README.md`. The paper
+     reports these as "machine-checked on domain D" — evidence, never proof
+     (the hold-free bound once survived a simulation check by 0.3 ms).
+   - **Path 1 — OPTION, TIME-BOXED (a proof assistant makes the checker not
+     the author).** Lean 4 + Mathlib formalization in a new `formal/`
+     directory: the tick-quantum task model, `hp_interference`, `solve_rta`'s
+     fixed point, then obligations #2 and #6. Time box: two sessions to reach
+     (a) the formal statement reviewed against §9.4a and (b) the workload
+     lemma (S3) proved; go / no-go there. If it closes, Kurt's job shrinks to
+     the formalization gap (does the formal statement say what the paper
+     claims?) and the paper can say "machine-checked in Lean". Start it only
+     AFTER path 2 exists — the informal proof is the formalization's spec.
+     Toolchain: `elan` + `lake` on Stone's Mac (not installed yet).
+   Order: 2 → 3 → 1. The LaTeX scaffold (item 3 below) runs in parallel —
+   sections 2, 5 and 6 do not depend on the theorem.
 1. **DECIDED (Stone, 2026-09-04): A(zone) is certified HARD-only; the soft
    (comfort chance-constraint) data is reported as a stated limitation, never
    certified** (it is whole-run, not per-zone). Kurt/Guo informed by Stone.

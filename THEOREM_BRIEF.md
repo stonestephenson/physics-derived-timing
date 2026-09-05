@@ -586,6 +586,14 @@ the age bound toward measured), then **(ii)** compose that bound against the `A(
 under the occupancy cap `Occ(R, s)` — the mixed-deadline / occupancy-parameterized schedulability
 test, of which the §9.2d aguard run is the existence witness.
 
+> **Verification paths (2026-09-05; HANDOFF NEXT item 0):** the AI writes the
+> full proof of obligations #2 and #6 as `PROOF_LEMMA2.md` for Kurt to CHECK
+> rather than derive (path 2, first), extends the exhaustive finite-domain
+> checks with the domain stated (path 3), and optionally formalizes the model
+> and the two obligations in Lean 4 (path 1, time-boxed, after path 2). None of
+> these lets the AI declare the theorem verified; the checker must not be the
+> author. Fallback trigger 2026-10-08.
+
 ### 9.4a Theorem 2 (limited carry-in) in standard Guan-RTA-LC notation — the statement to prove
 
 **Dr. Guo's directive (2026-07-17):** Theorem 2 — the limited-carry-in RTA — carries the headline
