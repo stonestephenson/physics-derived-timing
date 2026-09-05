@@ -39,11 +39,13 @@ frozen (EE-student territory; we consume `Trajectory::zoneAt` as-is).
   itself demands (from the reference trajectory) — anticipatory,
   geometry-driven. The merger composes command = F(road) + B(error
   correction). F does the bulk of steering in curves; B trims residuals.
-- **F staleness (achieved), per vehicle:** at each merger activation,
-  `step − lastFfPublishStep` — the age of the F value the merger consumes.
-  A NEW parallel quantity (pre-approved 2026-08-07): stamped at F publish
-  (ff_fin), read at merger activation. `age_path`, `age_fresh`, and every
-  DATA_AGE §4 convention are UNTOUCHED. Reported as per-zone max + fleet max.
+- **F staleness (achieved), per vehicle:** the age of the value in F's
+  output register, stamped at F's ACTIVATION tick (DATA_AGE §4a style — §8
+  item 6 changed this from publish-stamped) and sampled EVERY tick
+  (`TaskModel.h` `ffStale*`, `Simulation.cpp`), reported as per-zone max +
+  fleet max (the `F staleness (act-stamped, ms)` summary line). A parallel
+  quantity: `age_path`, `age_fresh`, and every DATA_AGE §4 convention are
+  UNTOUCHED.
 - **A_F(zone):** the largest sustained in-zone F-hold D (ms) such that one
   car, full lap (120 s), worst exec, with F held per §4 while inside the
   zone, takes ZERO hard breaches anywhere on the lap (breach-anywhere
@@ -145,8 +147,9 @@ distributional evidence + symmetric tuning + artifacts. Dispositions:
    `--theta-max` (default 450 = byte-identical) and 2-D tune (floor x
    thetaMax) BOTH schedulers; report clamp-hit fraction per run. If aguard
    reaches 21, C3 is restated as a health claim — pre-registered.
-3. **Artifacts** (A-R2): `tools/frontier_sweep.py` + committed CSVs +
-   `reproduce.py frontier` for EVERY number in the section, with the full
+3. **Artifacts** (A-R2): `tools/fchannel_battery.py` + committed CSVs +
+   `reproduce.py fbattery` (shipped names; the plan said `frontier_sweep.py` /
+   `reproduce.py frontier`) for EVERY number in the section, with the full
    column set + commanded AND delivered dose + commit SHA + fidelity value
    (C-O13).
 4. **Instrument rebuilt** (C-O1/O2, A-m17): two-part dose (suppress k
@@ -319,7 +322,7 @@ attribution_matrix.csv, coupling_grid.csv — all regenerable via
 | z0 straight | 290 | [400, 600) | > 1200 (range top; margin flat) |
 | z1 slight | 400 | [600, 800) | > 1200 (margin 0.34->0.62) |
 | z2 sharp | 290 | [400, 600) | [1000, 1100) (breach manifests in z1) |
-| z3 lane-change | 140-170 | [300, 350) | [240, 260) |
+| z3 lane-change | 140 (packet) / 150.5 min-over-phase of record (HANDOFF "Numbers of record") | [300, 350) | [240, 260) |
 
 Key findings, each machine-checked:
 1. **Different zone-orderings per channel.** A_B reproduces the composite's

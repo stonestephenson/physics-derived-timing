@@ -87,9 +87,10 @@ std::unique_ptr<CorePolicy> makeTimeToUnsafePolicy(bool triage,
 std::unique_ptr<CorePolicy> makeHybridPolicy(double guardMs, bool triage,
                                              InfoSet info = InfoSet::Oracle);
 
-// Hybrid with a self-tuning guard: theta(t) = floorMs + live fleet round-trip
-// estimate (clamped), plus rescue-clearance tie-breaking in the emergency
-// tier. See AdaptiveGuard.cpp / PREDICTOR.md §5c.
+// Hybrid with a self-tuning guard, PER VEHICLE: theta_v = min(cap, floorMs +
+// max(60, v.age_recent_ms)) (the pre-2026-06-22 fleet-max form was the bug
+// that made --floor inert, HANDOFF §4 Finding A), plus rescue-clearance
+// tie-breaking in the emergency tier. See AdaptiveGuard.cpp / PREDICTOR.md §5c.
 std::unique_ptr<CorePolicy> makeAdaptiveGuardPolicy(double floorMs, bool triage,
                                                    InfoSet info = InfoSet::Oracle,
                                                    double guardCapMs = 450.0);

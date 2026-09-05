@@ -19,6 +19,11 @@ Companion problem statement: `THEOREM_BRIEF.md` (§5, §9). Model ground truth:
 `BOUND.md` §1/§7. No Lean/Coq on this machine; machine checks are brute-force /
 replication scripts (session scratchpad), outputs quoted, logic described.
 
+*(Numbers of record for everything below — A(zone), certified capacities, the
+corollary — live in ONE place: `HANDOFF.md` "Numbers of record". The dated
+blocks in this draft are the derivation history; when a figure here disagrees
+with that table, the table wins.)*
+
 **Headline (v10, m = 3 cores, `--exec worst`).** Composing Lemmas 1 + 2a + 2b:
 
 > **8 cars at ≥ 4 s headway are certified lane-change-safe on 3 cores** —

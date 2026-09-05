@@ -20,10 +20,13 @@ namespace cps {
 enum class Profile { V10, V12_5, V15 };
 
 // Curvature-based track partition used by analysis exports and the visualizer.
-// ff_ref_0 is treated as a curvature proxy. z3 is a curvature-transition /
-// lane-change proxy: it uses ff_ref_1, a short-window curvature range, and an
-// oracle-style lookahead/lookbehind pass so the whole maneuver is tagged, not
-// only the highest-derivative samples.
+// Units: ff_ref_0 ~ path curvature kappa (1/m) and ff_ref_1 ~ d(kappa)/ds (1/m
+// per m; FCHANNEL §8 item 5) -- the thresholds below are in those units. z3 is
+// a curvature-transition / lane-change proxy: it uses ff_ref_1, a short-window
+// curvature range, and an oracle-style lookahead/lookbehind pass so the whole
+// maneuver is tagged, not only the highest-derivative samples.
+// Sign convention (Recording.h / Vec2.h): the driven point is pointAt + e_y *
+// normalAt with normal = perp(b - a) = (-dy, dx), so +e_y is LEFT of travel.
 enum class TrackZone {
     Z0Straight = 0,
     Z1SlightTurn = 1,

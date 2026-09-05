@@ -34,9 +34,11 @@ students do the bulk of verification). Status and timeline: `HANDOFF.md`.
 ## Reading map (in order; stop when your task is covered)
 
 Always:
-1. This file.
-2. `HANDOFF.md` — current state, baselines, key facts, open next-steps.
-   Do NOT re-derive or contradict its "key facts" without evidence.
+1. This file (`README.md` carries the plain-English framing + the Linux/FMU
+   caveat; agents start here, humans there).
+2. `HANDOFF.md` — current state, the canonical **Numbers of record** table,
+   key facts, open next-steps. Do NOT re-derive or contradict its "key facts"
+   or that table without evidence.
 
 Then by task:
 - **Running / experiments**: `USAGE.md` (build, flags, adding a scheduler).
@@ -46,7 +48,9 @@ Then by task:
   verified); the fleet-safety theorem candidate + machine checks are
   `PROOF_DRAFT.md`, the Kurt-facing formal statement is `THEOREM_BRIEF.md`,
   and corrections-of-record / paper-worthy findings live in `PAPER_NOTES.md`
-  (newest first — check it before quoting any headline number). Literature in `relatedPapers/`: Li et al. RTSS'24 = tightest
+  (newest first); the machine checks behind PROOF_DRAFT's "[PROVEN —
+  machine-checked]" tags are `tools/proofchecks/README.md`. Quote headline
+  numbers from HANDOFF's "Numbers of record" table, nowhere else. Literature in `relatedPapers/`: Li et al. RTSS'24 = tightest
   multi-rate chain bounds (`DirectlyRelated.../Priority_Optimization_for_
   Autonomous_Driving_Systems...pdf`; citation verified 2026-07-17); Arafat et al. DAC'22
   (chain RTA machinery) and Wilson et al. MEMOCODE'24 (Route B's prior)
@@ -69,7 +73,8 @@ Then by task:
   `LateralMotionControl/sources/LateralMotionControl.c` —
   `process_trigger_events` is ground truth for data routing.
 - **Challenge requirements / framing**: `ChallengeProposal/RTAS2026_Invited.pdf`
-  (§III–IV) and `examples/*.md` (task parameters, constraints).
+  (§III–IV), `examples/*.md` (task parameters, constraints) and Bosch's
+  per-profile `examples/example_v_*/readme.md`.
 
 ## Invariants (violating these silently invalidates the research)
 
@@ -98,8 +103,10 @@ Then by task:
    clone their doc pointers dangle — ask Stone rather than treating that as
    breakage): `relatedPapers/`, `ContextForGuo/`, `f1tenth_cloud_control/`
    (stale vendored HIL copy; live code = the lab repo, HANDOFF §2), `paper/`
-   (the RTAS'27 plan of record + style corpus; HANDOFF NOW points at it), and
-   `PAPER_OUTLINE_DRAFT.md` (the paper-writing strawman).
+   (`PLAN.md` = the RTAS'27 plan of record, `OUTLINE.md` = the section outline,
+   `STYLE_SHEET.md` + `GAO_RHETORIC.md` = the measured style corpus, `tools/` =
+   the prose-stats scripts; HANDOFF NOW mirrors PLAN.md's settled decisions), and
+   `PAPER_OUTLINE_DRAFT.md` (the July strawman; superseded by `paper/OUTLINE.md`).
 
 ## How to work here
 
@@ -119,7 +126,7 @@ Then by task:
 ## Quick reference
 
     cmake -B build -S . -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
-    bash .claude/verify.sh   # fast G1+G2 gate vs golden (add --full for G3); the done-gate runs this
+    bash .claude/verify.sh   # fast G0 (tool unit tests) + G1 + G2 gate vs golden (add --full for G3); the done-gate runs this
     ./build/cps --headless --vehicles 6 --scheduler rm --exec worst --duration 30
     ./build/cps --headless --plant cartpole --vehicles 8 --scheduler aguard --exec worst
     ./build/cps --headless --vehicles 1 --scheduler rm --exec worst --duration 120 --validate-predictor  # gate: 1.490e-08 m (scales w/ run length -> use 120 s)

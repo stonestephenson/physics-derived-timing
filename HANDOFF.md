@@ -1,6 +1,6 @@
 # Session Handoff — CPS Challenge Visualizer
 
-Resume point for a fresh agent. Last updated **2026-09-04**.
+Resume point for a fresh agent. Last updated **2026-09-05**.
 
 **Read order:** `CLAUDE.md` (stable bootstrap: invariants, reading map, rules) →
 this file (what's true *now*) → the owning design docs as your task needs them
@@ -11,9 +11,11 @@ owning design doc **in the same commit as the code**.
 
 ## NOW / NEXT (read this; everything below §1 is layered history)
 
-**NOW (2026-09-04): paper-writing phase.** Plan of record = `paper/PLAN.md`
+**NOW (2026-09-05): paper-writing phase.** Plan of record = `paper/PLAN.md`
 (UNTRACKED by Stone's decision 2026-09-04, repo root — RTAS 2027 Track 1,
-deadline **2026-11-05**, settled decisions in its §2; the Kurt/Guo alignment
+deadline **2026-11-05**, settled decisions in its §2; the minimal section
+outline of record is `paper/OUTLINE.md` (2026-09-05; supersedes the root
+strawman `PAPER_OUTLINE_DRAFT.md`); the Kurt/Guo alignment
 emails were SENT before 2026-09-04 — as-sent text is in Stone's mail, the
 repo drafts were removed). Since 08-11: (a) **2026-08-24/26
 findings** (PAPER_NOTES 2026-08-24): the merger-grab — uniform F-demotion adds
@@ -73,6 +75,30 @@ Six CSVs
 new provenance columns (`f_stale_max_ms`, `ff_extra_ms`). Fast gate green
 (G0+G1+G2); NOT pushed this session.
 
+**Settled paper decisions (mirror of the UNTRACKED `paper/PLAN.md` §2, so a
+fresh clone can read them; the file wins if they ever differ):** (1) claim the
+composed theorem in full — Kurt on the critical path, sign-off requested
+2026-10-15; (2) RTAS 2027 Track 1, systems framing; (3) style corpus split:
+structure from the real-time corpus (primary template Wilson et al. RTAS'25),
+first-page rhetoric from the Gao robotics corpus (`paper/STYLE_SHEET.md`,
+`paper/GAO_RHETORIC.md`); (4) F1TENTH hardware validation IN, its own section;
+(5) the F-channel leg (`FCHANNEL.md`) OUT — follow-on paper; (6) proofs in an
+anonymized extended version, body carries statements + sketches; (7) A(zone)
+certified hard-only, the comfort data reported as a limitation; (8) the
+corollary stated as the per-profile honest chain; (9) 11 pages,
+double-anonymous, Wilson et al. in the third person, no repo link. Section map
+and page budget: `paper/OUTLINE.md` (mirrors PLAN.md §4: Intro 1.0 / Model
+1.25 / Framework 3.5 / Composition + boundary 1.0 / Evaluation 2.25 / Hardware
+0.75 / Related work 0.75, second-to-last / Limitations + conclusion 0.5).
+
+**Flagged by the 2026-09-05 cold audit — CODE, not docs, Stone's call:**
+(i) `main.cpp` accepts unknown arguments silently (`--scheduler nosuch` runs
+RateMonotonic, `--bogus-flag` is ignored) — a typo in a sweep script yields
+mislabelled data; (ii) `kAZoneMs` (`Simulation.cpp`) is the conservative
+packet table, so `--danger-tau`, `reproduce.py danger` and `danger_sweep.csv`
+are keyed to 140 / 290 / 400, not to the min-over-phase values of record.
+Neither changes a number in the paper; both are documented in USAGE.
+
 **NEXT (the live queue):**
 1. **DECIDED (Stone, 2026-09-04): A(zone) is certified HARD-only; the soft
    (comfort chance-constraint) data is reported as a stated limitation, never
@@ -101,6 +127,30 @@ dosing, the qzone collapse disconfirmation, cross-profile A_F(z3), the raw-log
 batteries formalized (`fchannel_battery.py`), all registered in
 `reproduce.py fzone/fbattery/qzone`; record FCHANNEL §9.9-9.11 + PAPER_NOTES
 2026-08-10/11.*
+
+## Numbers of record (CANONICAL — every other doc points here, none restates)
+
+Updated 2026-09-05. A value quoted anywhere else that disagrees is stale; fix
+the pointer, not the copy. Sources are committed CSVs / tools.
+
+| Quantity | v10 | v12.5 | v15 | Source |
+|---|---|---|---|---|
+| **A(z3)** — certified constant: min over the 21 chain phases, hard constraint only | **150.5** | **140.5** | **110.5** | `zone_tolerance_z3_phase{,_v12.5,_v15}.csv` |
+| A(z0) / A(z1) / A(z2), min-over-phase (z1 = min delivered age; non-z3 values are 50 ms brackets except v12.5's z2) | 290.5 / 390.5 / 290.5 | 290.5 / 240.5 / 230.5 | 240.5 / 190.5 / 140.5 | `zone_tolerance_spot_phase*.csv`, `zone_tolerance_z2_fine_phase_v12.5.csv` |
+| Base-band budget (smallest non-z3 A) | 290.5 | 230.5 | 140.5 | `corollary_capacity.csv` |
+| Packet constants in the code twins (conservative; NOT the values of record) | z3 140, z0/z2 290, z1 400 | — | — | `Simulation.cpp kAZoneMs`, `rta_solve.py A_ZONE_MS` |
+| Superseded single-phase (phase-0) z3 values, kept for the record only | 170 | 160 | 120.5 (90 coarse) | `zone_tolerance_z3_fine*.csv` |
+| A_soft(z3) — comfort constraint, reported, never certified | 120.5 | 90.5 | none (baseline 9–12 %) | phase CSVs `soft_pct` |
+| Classical certified N, Θ=R / Θ=T (`limited` / `limited-t`) | 4 / 3 | 3 / 2 | 0 | `corollary_capacity.csv` |
+| + fleet-wide F-demotion | 8 / 7 | 6 / 4 | 0 | same |
+| Composed (Occ⁺ = 4 at s ≥ 4 s) | **8 / 8** | **8 / 8** | 0 (floor) | same |
+| P1 certified capacity (classical): full / limited / limited-t | 5 / 8 / 8 | | | `rta_solve.py` (G3) |
+| Empirical P1 ceiling (car, all profiles measured) | 10 | | | HANDOFF §5 |
+| Car capacity, honest full lap 120 s: frontier / aguard / rm | 21 / 19 / 10 | | | FCHANNEL §9.7 |
+| Cart-pole capacity, aguard / rm: 120 s (20 s window) | 16 (17) / 10 | | | PAPER_NOTES 2026-08-24, GENERALIZATION §3 |
+| Uncontended `age_path` (N = 1) | 90.5 ms | 90.5 | 90.5 | G1 |
+| F-lateness effect on A(z3) (A2) | binary at 7.7 ms added delay; constants unchanged | | | `zone_tolerance_z3_a2*_phase*.csv` |
+| Partition sensitivity (v12.5, ±20 % / ±50 %) | A(z3) 140.5–150.5, composed 8/8 | | | `zone_sensitivity_v12.5_summary.csv` |
 
 **Capacity numbers of record** (supersede every older figure below):
 honest full-lap (120 s) uniform-clean-through — **frontier 21, aguard 19,
@@ -160,9 +210,11 @@ formal claims; first author of the MEMOCODE'24 paper Route B extends).
   older entries below say "pushed to tempbosch", same remote. Do NOT create a new
   repo under the old name (it would kill GitHub's redirect for teammates who
   haven't updated their remotes). `main` holds through the RTA
-  solver (`4f49f46`); the cart-pole generalization (Plant seam + second plant +
-  Phase-3 evidence, 4 commits) lives on the branch. **Push only to `physics-derived-timing`.
-  NEVER push to `origin`** (the Bosch upstream). `relatedPapers/` untracked.
+  solver (`4f49f46`) plus a README; everything since — the cart-pole
+  generalization, the FCHANNEL leg, the 2026-09-04 re-measures — lives on the
+  branch (90+ commits ahead). **Push only to `physics-derived-timing`.
+  NEVER push to `origin`** (the Bosch upstream). Five items untracked (CLAUDE.md
+  invariant 7).
 - **Session 2026-07-27/28: NEW SUBPROJECT — F1TENTH cloud-control HIL (real car
   + simulated cars, one scheduler).** Council-reviewed plan, then built. Two
   code homes: (a) the lab repo **`~/repos/cloud_control_demo`**
@@ -612,7 +664,8 @@ Headline results (`PAPER_NOTES.md`, `tools/tolerance_sweep.py`):
   vs cart-pole ~110 ms (sharp ~5 ms cliff). Same chain, same delivered age per
   delay; only the physics differs.
 - **Age-criticality scheduling generalizes:** aguard carries **17** cart-poles
-  crash-free vs RM's **10** (N=16: 0 vs 9 crashed; 20 s worst).
+  crash-free vs RM's **10** (N=16: 0 vs 9 crashed; 20 s worst; **16 at the full
+  120 s lap — PAPER_NOTES 2026-08-24; the 120 s figure is the value of record**).
 - The two plants bind on *different legs*: car on scheduling (overrun ~N=11),
   cart-pole on physics (age-tolerance ~110 ms).
 - **Calibrated 2026-06-23** (was first-pass): cart-pole params derived by the car's
@@ -1136,9 +1189,9 @@ task (0) below (**DONE 2026-06-22** — the empirical instrument). Cart-pole cal
 
 ```sh
 cmake --build build -j
-bash .claude/verify.sh                  # fast gate: G1+G2 vs golden (~5s); add --full for G3 (RTA)
+bash .claude/verify.sh                  # fast gate: G0 (tool unit tests) + G1 + G2 vs golden (~5s); add --full for G3 (RTA)
 python3 tools/reproduce.py              # regenerate ALL CSVs (includes the ~2.5 h fbattery leg -- name experiments to skip it)
-python3 tools/reproduce.py --list       # experiments (capacity/simcrit/honest/floor/tolerance/zones/occupancy/danger/fzone/fbattery/qzone) + which doc table each backs
+python3 tools/reproduce.py --list       # experiments (capacity/simcrit/honest/floor/tolerance/zones/corollary/partition/sensitivity/occupancy/danger/fzone/fbattery/qzone) + which doc table each backs
 ./build/cps --headless --vehicles 14 --scheduler aguard --exec worst --duration 30
 # the tournament (read hard / worst soft% / min_pnr per row):
 for s in rm context ttu aguard; do ./build/cps --headless --vehicles 14 --scheduler $s --exec worst --duration 30; done

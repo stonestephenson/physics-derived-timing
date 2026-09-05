@@ -156,6 +156,18 @@ true worst case.
 
 ## 5. Faithfulness and caveats
 
+- **Register semantics can make MORE cores deliver a STALER command.** The
+  Merger reads whatever is in the controller-output register at its own
+  activation, even if its controller has not published this period
+  (`TaskModel.cpp`, the `fbOutStamp_` snapshot at `merge_act`). When a freed
+  core lets the Merger activate in the same tick as its Controller it merges
+  the previous output and the delivered `age_path` rises by exactly one
+  controller period (+20 ms) — the "merger-grab", PAPER_NOTES 2026-08-24. The
+  same semantics make the Feedforward value one period old at the Merger
+  under the N = 1 RM order (PAPER_NOTES 2026-09-04 (b)). This is the
+  Challenge's own routing, faithfully shadowed, not a harness artefact; the
+  §4 conventions are untouched by it.
+
 - **Ordering.** Within one FMU step, all receives/publishes happen before all
   samples/computes/sends. We apply stamp updates in that same order (network
   receives first), so cross-stage same-tick dependencies match the FMU. This is

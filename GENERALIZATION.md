@@ -71,7 +71,9 @@ See `PAPER_NOTES.md` (2026-06-18 entries) and `tools/tolerance_sweep.py`:
   vs cart-pole ~110 ms (sharp ~5 ms cliff) — same chain, same delivered age per
   delay; only the physics differs.
 - **Age-criticality scheduling generalizes:** aguard carries **17** cart-poles
-  crash-free vs RM's **10** (N=16: 0 vs 9 crashed; 20 s worst). (This 17 vs the
+  crash-free vs RM's **10** (N=16: 0 vs 9 crashed; 20 s worst; **16 at the full
+  120 s lap, the value of record — PAPER_NOTES 2026-08-24; HANDOFF "Numbers of
+  record"**). (This 17 vs the
   pre-2026-06-22 ~14 is mostly the per-vehicle-θ floor fix, commit `3214880`, not
   the calibration — at uMax=10 aguard already reaches 0/17; calibration only trims
   N=18 from 3→1 crashes.)
@@ -124,7 +126,13 @@ calibration itself (the floor fix `3214880` did the work). Overridable for sweep
 Implement `Plant` (`src/sim/`), add a `PlantKind` value (`Plant.h`), a branch in
 `Simulation::start`, a `--plant` token in `main.cpp::parsePlant`, and the source
 to `CMakeLists.txt`. Everything else (scheduler, age, bound, `rta_solve.py`) is
-reused. Map the plant's safety quantity into `VehicleOutputs::e_y_real` and set
+reused. Know what is NOT plant-generic: every zone / occupancy / danger
+instrument (`--zone-target`, `--pack-zone`, `--danger-tau`, the F/B/q-zone
+doses) is gated `plant == PlantKind::Lateral` in `Simulation.cpp`; `kAZoneMs`
+is v10-only; the lateral `Trajectory` (and its CSVs) is loaded regardless of
+plant; and the predictor's "recovered" test differs per plant (car: inside
+the soft band at any instant after 50 ms, `Predictor.cpp`; cart-pole: 50 ms
+continuously inside, `CartPolePlant.cpp`). Map the plant's safety quantity into `VehicleOutputs::e_y_real` and set
 `hardBound()/softBound()`. Route the 16 triggers in `endTick` order (§2) so the
 age metric stays valid. (Editing a `Plant` *implementation* such as
 `CartPolePlant.cpp` is allowed — CLAUDE.md invariant 6 forbids touching the

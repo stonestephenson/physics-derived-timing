@@ -105,7 +105,7 @@ the reference trajectory's curvature (`|ff_ref_0|`, see `ZONE_TOLERANCE.md`):
 expanded over the whole maneuver (see `Trajectory.h`). A route `R`
 has a **zone map**: the sequence/fraction of track length in each zone.
 
-### 3.2 A(zone): tolerable data age **[measured 2026-06-26 — causal table]**
+### 3.2 A(zone): tolerable data age **[measured 2026-06-26 — causal table; values of record: `HANDOFF.md` "Numbers of record"]**
 
 `A(z)` = the largest data age at which a car whose commands are staled *while in zone
 `z`* still satisfies the hard bound (no |e_y| > 0.8 m anywhere). Measured **causally**
@@ -378,7 +378,9 @@ All `--exec worst`, `m = 3` cores, reproducible via `tools/reproduce.py` /
 - **Round-trip / uncontended age:** `age_path` = 90.5 ms at N=1 (sets `θ`'s floor).
 - **A(plant):** car ≈ 245 ms, cart-pole ≈ 110 ms (`tolerance_sweep.csv`).
 - **Capacity gap (the §7 headline):** RTA certifies N=5 (full carry-in); the sim runs
-  breach-free through **N=10**; aguard carries **18** cars / **17** cart-poles. The
+  breach-free through **N=10**; aguard carries **18** cars / **17** cart-poles
+  (30 s / 20 s windows; the 120 s values of record are 19 cars / 16 cart-poles —
+  HANDOFF "Numbers of record"). The
   2× gap *is* the limited-carry-in re-derivation target.
 - **`k` depends on the horizon (why a count alone won't do):** cart-pole aguard N=16,
   same run — `k = 10/16` at τ=100 ms (0.17 % of run over cores) but `k = 16/16` at

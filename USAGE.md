@@ -10,8 +10,7 @@ The FMU itself is documented in
 [`LateralMotionControl/FMU_README.md`](LateralMotionControl/FMU_README.md); the task/network/metric
 parameters are in [`examples/`](examples).
 
-## Build
-
+\1\n> Python side: every `tools/*.py` script is standard-library only (Python 3.10+; 3.14 verified) — nothing to `pip install`.\n> **Unknown arguments are accepted silently** by `./build/cps` (`--scheduler nosuch` runs RateMonotonic and\n> prints its name; `--bogus-flag` is ignored) — check the printed `scheduler:` line of every run you rely on\n> (flagged by the 2026-09-05 audit; HANDOFF NOW lists it as a code item for Stone).\n\n
 Requires CMake ≥ 3.16 and a C++17 compiler. raylib is fetched and built
 automatically the first time you configure (needs network once).
 
@@ -104,9 +103,13 @@ defaults 0.0215,0.0035,0.0040,50,100,350 = byte-identical; the
 partition-sensitivity instrument behind `tools/zone_sensitivity.py`,
 PAPER_NOTES 2026-09-04 (d)); `--guard-cap MS` = the aguard/frontier theta clamp
 (default 450; proven inert for honest configs; the full guard formula is
-theta = min(cap, floor + max(60, fleet age_recent)) — the 60 ms inner floor
-is fixed in code, `AdaptiveGuard.cpp`/`Frontier.cpp`). NOTE `--ff-extra-ms` clamps at
+PER VEHICLE, theta_v = min(cap, floor + max(60, v.age_recent_ms)) — the 60 ms
+inner floor is fixed in code, `AdaptiveGuard.cpp`/`Frontier.cpp`; the older
+fleet-max form was the bug that made `--floor` inert, HANDOFF §4 Finding A). NOTE `--ff-extra-ms` clamps at
 one F period (FCHANNEL §3 erratum) — use `--fzone-hold-ms` for real F doses.
+`--zone-target Z --zone-extra-ms D` = the Phase-2 CAUSAL A(zone) instrument (inject D ms
+of extra command delay only while the car is in zone Z; every A(zone) table comes from it,
+`tools/zone_sweep.py`; ZONE_TOLERANCE.md);
 `--zone-extra-vector A,B,C,D` = envelope experiment (PROOF_DRAFT §8.2): per-zone extra
 netCA delay (ms) {z0,z1,z2,z3} applied by each car's current zone, overriding
 `--zone-target`; `--zone-flag-window MS` uses the z3 entry whenever the car is within
@@ -191,8 +194,16 @@ There is **no numeric gate** for this view (the cart-pole predictor skips
   overlay faithfully (those aren't serialized; the replay rollout uses the
   calibrated defaults — θ bounds *are* serialized, so `--theta-max` is exact).
 
-## Add your own scheduling method
+**Knobs: build-time constants vs runtime.** Runtime = every flag above and the
+`CPS_FRONTIER_*` / `CPS_ESKIP_K` env vars. Build-time (edit + rebuild, re-run the
+baselines): the task set `TaskModel.cpp::challengeDefault()` (mirrors
+`examples/parameters.md`), `nCores = 3` (`Scheduler.h`), the guard's 60 ms inner
+floor (`AdaptiveGuard.cpp`/`Frontier.cpp`), `kZbFlagTicks = 2400` (`Simulation.cpp`),
+`kAZoneMs` / `kDangerTauGrid` (`Simulation.cpp` — the conservative packet table,
+feeds `--danger-tau` only), `PredictParams` (`Predictor.h`), and the zone-partition
+constants (`Trajectory.h`; runtime-overridable via `--zone-consts`).
 
+\1
 The common case is a new **core-arbitration policy**: given the cloud jobs that
 want to run this tick (across all vehicles) and the shared core count, decide
 which get a core. You may use each vehicle's live control metrics (`VehicleView`)
@@ -224,6 +235,20 @@ for context-aware decisions.
 
 2. Declare `makeMyPolicy()` in [`src/sched/policies/Policies.h`](src/sched/policies/Policies.h)
    and add a case to `makePolicy()` in [`main.cpp`](main.cpp). Rebuild — done.
+
+**What a policy sees each tick (read before trusting `VehicleView`).** The
+view is built from the PREVIOUS tick's plant outputs plus a prediction cache
+refreshed every 100 ticks (`Simulation.cpp`, `kPredictRefreshTicks` /
+`kPnrRefreshTicks` in `Simulation.h`) — a one-tick information lag by
+construction. The delayed-state ("honest") fields are populated only when the
+scheduler NAME matches one of the `-honest` / `h`-prefixed twins listed in
+`main.cpp` (`ttu-honest`, `hybrid-honest`, `aguard-honest`, `frontier-honest`
+and their short forms); a new policy named `foo-honest` gets no delayed-state
+fields unless you add it there. `age_recent_ms` is two rotating 1 s buckets
+(`TaskModel.h`, `kLatchAgeBucketTicks`), measured at the actuator with a
+zero-delay backchannel (FCHANNEL §7(d)). The comfort tier's ranking rule is
+`comfortUrgencyOracle` in `Policies.h`: `3.0·|e_y| + 1.0·rolling + 0.5·critical
++ 1.0·violated`.
 
 See [`RateMonotonic.cpp`](src/sched/policies/RateMonotonic.cpp) and
 [`ContextAware.cpp`](src/sched/policies/ContextAware.cpp) for worked examples.
@@ -257,7 +282,10 @@ behavior** (tie-break, `--overrun`, periods/WCETs, the `Plant` seam), the golden
 invariant 4). The prose in those docs is the baseline of record, and `verify.sh` carries a
 machine-checked copy — miss it and the done-gate stays permanently red.
 
-**Automated gate runner.** `.claude/verify.sh` runs G0+G1+G2 and checks the golden numbers
+**Automated gate runner.** (The "done-gate" that runs it automatically is a USER-level
+hook, `~/.claude/hooks/done-gate.py` in Stone's global Claude settings — not in this
+repo. On any other machine, run the script yourself before finishing.)
+`.claude/verify.sh` runs G0+G1+G2 and checks the golden numbers
 (fast, ~5 s); `.claude/verify.sh --full` also runs G3 (the RTA solver, ~15–100 s). The
 agentic *done-gate* runs the fast form on every finish and blocks on failure; run `--full`
 before committing a scheduling-visible change. It is read-only — it never touches the
@@ -274,7 +302,7 @@ tables, all three profiles) and prints the table each backs:
 
 ```sh
 python3 tools/reproduce.py            # every experiment (--exec worst)
-python3 tools/reproduce.py --list     # capacity / simcrit / honest / floor / tolerance / zones / occupancy / danger / fzone / fbattery / qzone
+python3 tools/reproduce.py --list     # capacity / simcrit / honest / floor / tolerance / zones / corollary / partition / sensitivity / occupancy / danger / fzone / fbattery / qzone
 python3 tools/reproduce.py floor      # just one (e.g. re-derives PREDICTOR.md §5c)
 python3 tools/reproduce.py --quick    # SMALL grids (fast smoke) -- see warning below
 bash   tools/demo_capacity.sh         # quick rm-vs-aguard capacity table (N=10,12,18) for presentations
@@ -304,8 +332,11 @@ CSVs via delegation: `fzone` → `tools/fzone_sweep.py` (`fzone_tolerance.csv`,
 `tuning_grid_n20.csv`, `attribution_matrix.csv`, `coupling_grid.csv` —
 **HEAVY: ~2.5 h at --jobs 8**; the CSVs supersede `fchannel_rawlogs/` as the
 citable artifact), `qzone` → `tools/qzone_sweep.py` (`qzone_collapse.csv`).
-Still OUTSIDE it: the legacy `hybrid_guard_sweep`/`predictive_sweep*` CSVs
-(regenerable via the same framework, never registered). The underlying tools:
+Still OUTSIDE it: the legacy `hybrid_guard_sweep`/`predictive_sweep*` and
+`frontier_sweep.csv` CSVs (regenerable via the same framework, never registered).
+Run artifacts: `*.cpsr` recordings and `cps_shot*.png` screenshots in the root are
+git-ignored scratch (`--save` / `--screenshot` output); `stress_overlay.png` is a
+kept demo still. The underlying tools:
 `tools/zone_sweep.py` → `zone_tolerance.csv` (leg 1, causal `A(zone)`; with
 `--phases-ms 0:20:1` [deterministic chain-phase enumeration: the 1 ms grid plus
 the 19.9 ms last tick, 21 phases] or `--offset-seeds K` [random lap positions]

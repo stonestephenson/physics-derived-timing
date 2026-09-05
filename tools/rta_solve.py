@@ -22,10 +22,10 @@ sim violates, which is flagged loudly.
 Model (verified against code, 2026-06-17):
   - Params:    TaskModel.cpp:38-52 challengeDefault() == examples/parameters.md
   - Priority:  RateMonotonic.cpp:26-32  (period_ms, vehicle, kind), cloud-only
-  - Scheduler: PolicyScheduler.cpp:19-41  global / free-migration / fully
+  - Scheduler: PolicyScheduler.cpp:21-59  global / free-migration / fully
                preemptive / 1-tick quanta;  m = nCores = 3 (Scheduler.h:21)
   - Tick = 1e-4 s = 0.1 ms (Scheduler.h:22).  --exec worst uses WCET.
-  - P1:        TaskModel.cpp:135-154  missed++ iff response time > period,
+  - P1:        TaskModel.cpp:135-160  missed++ iff response time > period,
                so "missed jobs: 0"  <=>  empirical "all R <= T".
 
 Usage:
@@ -62,9 +62,11 @@ CLOUD_KINDS = ("Estimator", "Controller", "Feedforward", "Merger")
 # Causal A(zone) deadlines (ms), v10 lateral -- zone_tolerance.csv / THEOREM_BRIEF
 # section 3.2. z3 (lane-change) is the binding deadline; the bound-vs-N sweep flags
 # where the fleet-max age bound crosses each (so we see how much the per-zone +
-# occupancy decomposition has to do). CONSERVATIVE 50 ms-grid values (fine-grid
-# cliff = 170, PROOF_DRAFT section 8.1). TWIN: src/sim/Simulation.cpp kAZoneMs --
-# change both in lockstep.
+# occupancy decomposition has to do). CONSERVATIVE packet constants, NOT the
+# values of record: the min-over-phase constants are 150.5 / 140.5 / 110.5
+# (v10 / v12.5 / v15) -- HANDOFF.md "Numbers of record"; override per run with
+# --a-z3 / --a-base. TWIN: src/sim/Simulation.cpp kAZoneMs -- change both in
+# lockstep.
 A_ZONE_MS = {"z3 lane-change (binding)": 140.0,
              "z0/z2 straight/sharp": 290.0,
              "z1 slight": 400.0}
@@ -598,7 +600,7 @@ def main():
                          "150.5 (v10) / 140.5 (v12.5) / 110.5 (v15)")
     ap.add_argument("--a-base", type=float, default=None, metavar="MS",
                     help="override the base-band budget (smallest non-z3 A(zone); "
-                         "default 290). Of record: 290.5 (v10) / 190.5 (v12.5) / "
+                         "default 290). Of record: 290.5 (v10) / 230.5 (v12.5) / "
                          "140.5 (v15)")
     ap.add_argument("--soundness-grid", default="", metavar="N1,N2,...",
                     help="cross-check: also verify measured age <= per-vehicle "

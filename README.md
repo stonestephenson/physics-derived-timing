@@ -73,7 +73,9 @@ cart.
 The two respond very differently to the same delivered age, which is what makes
 the per-context argument worth making at all. The car degrades gradually, and
 its whole-plant tolerance brackets somewhere between 245 and 345 ms, while the
-binding figure on its tightest context, a lane change, is 140 ms. The pendulum has almost no gradual
+binding figure on its tightest context, a lane change, is 140 ms in the conservative
+constant the proof packet is stated against (the measured minimum over the control
+chain's phase is 150.5 ms — `HANDOFF.md` "Numbers of record"). The pendulum has almost no gradual
 regime. It holds to roughly 110 ms, then falls over inside a window about 5 ms
 wide.
 
@@ -130,8 +132,7 @@ gate, which holds the ported plant model to 1.5e-08 m of divergence across a
 | [`DATA_AGE.md`](DATA_AGE.md) | what data age means here and how it is tracked |
 | [`BOUND.md`](BOUND.md) | the analytical bound and the response-time analysis |
 | [`PREDICTOR.md`](PREDICTOR.md) | time-to-violation and point-of-no-return |
-| [`ZONE_TOLERANCE.md`](ZONE_TOLERANCE.md) | measuring age tolerance per route context |
-| [`USAGE.md`](USAGE.md) | build, run, flags, adding a scheduler |
+\1| [`CLAUDE.md`](CLAUDE.md) / [`HANDOFF.md`](HANDOFF.md) | where AI agents start; the current state and the canonical numbers-of-record table |\n| [`USAGE.md`](USAGE.md) | build, run, flags, adding a scheduler |
 
 Current work is on the `paper-generalization` branch, which is well ahead of
 `main`. `GENERALIZATION.md`, `FCHANNEL.md` and the proof drafts live there.

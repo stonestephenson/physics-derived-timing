@@ -16,8 +16,9 @@ namespace cps {
 namespace {
 // Danger-relative criticality (THE PLAN leg 4 / THEOREM_BRIEF §3.6): per-zone
 // tolerable data age A(zone) in ms — the causal table (zone_tolerance.csv, V10,
-// lateral only; z3 lane-change is binding; the CONSERVATIVE 50 ms-grid values —
-// the fine-grid cliff is 170, PROOF_DRAFT §8.1). Indexed by TrackZone
+// lateral only; z3 lane-change is binding; the CONSERVATIVE packet constants,
+// NOT the values of record — the min-over-phase constants are 150.5 / 140.5 /
+// 110.5 for v10 / v12.5 / v15, HANDOFF.md "Numbers of record"). Indexed by TrackZone
 // {z0,z1,z2,z3}. TWIN: tools/rta_solve.py A_ZONE_MS — change both in lockstep
 // (and re-tune Trajectory.h's zone partition first if the profile changes).
 constexpr double kAZoneMs[4] = {290.0, 400.0, 290.0, 140.0};

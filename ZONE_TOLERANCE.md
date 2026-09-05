@@ -50,8 +50,10 @@ tables MEASURED (see the 2026-07-04 block below); a zone-consuming scheduler
 attribution lives in `Simulation` (buckets frame breaches/occupancy by
 `Trajectory::zoneAt`); causal in-zone injection is `--zone-target Z` /
 `--zone-extra-ms D`; `tools/zone_sweep.py` runs the causal sweep → `zone_tolerance.csv`.
-**Causal A(zone): z3 lane-change 140 ms (binding) / z0 straight & z2 sharp 290 ms /
-z1 slight 400 ms** (PAPER_NOTES 2026-06-26; THEOREM_BRIEF §3.2). `--net-delay` and
+**Causal A(zone), 2026-06-26 single-phase coarse grid: z3 lane-change 140 ms (binding) /
+z0 straight & z2 sharp 290 ms / z1 slight 400 ms** (PAPER_NOTES 2026-06-26; THEOREM_BRIEF
+§3.2) — historic; the values of record are in the 2026-09-04 header above and in HANDOFF
+"Numbers of record". `--net-delay` and
 `--csv` also available. AI drives the sweep scripts/plots; the zone-boundary and
 tolerance-threshold *judgment* calls are the EE side's.
 
@@ -89,8 +91,11 @@ Better resolution: bin the track by |ff_ref_0| (curvature proxy) from
 `examples/example_v_10/feedforward_sequence_0.csv`:
 - **The adopted implementation (`Trajectory::zoneAt`) uses FOUR zones:** Z0 straight,
   Z1 slight turn, Z2 sharp turn (all by `|ff_ref_0|` thresholds), and **Z3 lane-change**
-  — seeded by curvature-*rate* (`ff_ref_1`) + a local curvature range, then oracle-
-  expanded over the whole maneuver. **Z3 is the BINDING zone (causal A = 140 ms)**;
+  — seeded by the curvature's spatial gradient dκ/ds (`ff_ref_1`; FCHANNEL §8 item
+  5 verified it is per metre, not per second) + a local curvature range, then oracle-
+  expanded over the whole maneuver. **Z3 is the BINDING zone (causal A = 140 ms on the
+  original single-phase grid; 150.5 / 140.5 / 110.5 min-over-phase of record — HANDOFF
+  "Numbers of record")**;
   the challenge's double-lane-change is the most demanding maneuver (> 0.5 g). (The
   old 3-zone `|ff_ref_0|`-only binning below is superseded by this.)
 Map each recorded frame to its zone via `Frame.refStep` (the wrapped trajectory
@@ -100,11 +105,13 @@ work, join on time × known start offset).
 ### Zone segmentation — algorithm + constants (code-only; re-examine per profile)
 
 The zone array is built once per profile in **`Trajectory::computeTrackZones`
-(`src/trace/Trajectory.cpp:139-248`)** and read in-process via `zoneAt`. The algorithm
+(`src/trace/Trajectory.cpp:146-255`)** and read in-process via `zoneAt`. Units: `ff_ref_0`
+≈ path curvature κ and `ff_ref_1` ≈ dκ/ds, both in 1/m (the plant consumes q = κ +
+0.2·dκ/ds, FCHANNEL §5), so the thresholds below are in 1/m. The algorithm
 (not previously documented anywhere but the code):
 1. **Per-tick base zone** by `|ff_ref_0|` (curvature proxy): `Z0` if ≤ `kZoneZeroEpsilon`,
    `Z1` if `< kZoneSharpThreshold`, else `Z2` (`trackZoneFromFf0`).
-2. **Z3 (lane-change) seeds** at ticks where the curvature *rate* is high —
+2. **Z3 (lane-change) seeds** at ticks where the curvature gradient dκ/ds is high —
    `|ff_ref_1| ≥ kZoneLaneFf1Threshold` **or** a windowed curvature *range*
    `curvatureDelta ≥ kZoneLaneCurvatureDeltaThreshold`. The range is the max−min of
    `ff_ref_0` over a ±`kZoneLaneHalfWindowTicks` window, computed with a **monotonic-deque

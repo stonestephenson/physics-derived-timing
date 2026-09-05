@@ -1,5 +1,6 @@
 // Frontier.cpp — the capacity-frontier contender (--scheduler frontier[-honest]).
-// FRONTIER.md S1, v9.
+// FRONTIER.md S1 (design v9; the shipped name string is v12 — the
+// allocation is unchanged since v9, the F rules moved on).
 //
 // v1-v8 (git history) explored ordering/serialization/anticipation structures.
 // Per-vehicle diagnosis at N=19 (FRONTIER.md log) showed they all spend the
@@ -23,11 +24,11 @@
 //      CPS_FRONTIER_FHB_MS) elevates to comfort-top: bounded F staleness is
 //      measured ~free (ff-extra probe, FRONTIER.md), indefinite starvation is
 //      the §8.7 damage channel.
-//   2. Hopeless-job cull: a job that cannot complete before its own next
-//      release even if granted every remaining tick is never granted — under
-//      kill-and-hold its compute is already forfeit. "now" is estimated as
-//      max(releaseStep) over the pool (assign() has no clock); the estimate
-//      lags true now, which only under-culls (conservative).
+//   2. (DELETED per council A-M10/17 — kept here so the numbering in
+//      FRONTIER.md still resolves.) Hopeless-job cull: a job that could not
+//      complete before its own next release was never granted. Proven a
+//      no-op, and its remainingTicks read was oracular under pert; see the
+//      ablation-toggle comment in the constructor below.
 //
 // All keys end in the strict static total order (period, vehicle, kind) —
 // deterministic across STLs (CLAUDE.md invariant 4).
