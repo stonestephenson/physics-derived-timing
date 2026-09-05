@@ -349,6 +349,28 @@ def exp_corollary(cps, out_dir, dur):
                    check=True)
 
 
+def exp_sensitivity(cps, out_dir, dur):
+    """Zone-partition sensitivity on v12.5 (PAPER_NOTES 2026-09-04 (d)): the
+    z3 and z2 cliffs min-over-phase under +-20 % thresholds and +-50 % lane-
+    change time constants (`cps --zone-consts`), plus the composed certificate
+    at each variant's budgets. ~8 min at 8 jobs. -> zone_sensitivity_v12.5.csv
+    + zone_sensitivity_v12.5_summary.csv"""
+    jobs = str(max(1, (os.cpu_count() or 2) - 2))
+    cmd = [sys.executable, os.path.join(HERE, "zone_sensitivity.py"), "--profile", "12.5",
+           "--jobs", jobs, "--force", "--out", os.path.join(out_dir, "zone_sensitivity_v12.5")]
+    if QUICK:
+        cmd += ["--z3-grid", "50:60:10", "--z2-grid", "140:150:10"]
+    subprocess.run(cmd, check=True)
+
+
+def exp_partition(cps, out_dir, dur):
+    """Zone-partition invariance across profiles (PAPER_NOTES 2026-09-04 (d)):
+    every zone run per profile in ticks and track metres, from the read-only
+    route probe (needs `c++`). Seconds. -> zone_partition_runs.csv"""
+    subprocess.run([sys.executable, os.path.join(HERE, "zone_partition.py"), "--force",
+                    "--out", os.path.join(out_dir, "zone_partition_runs.csv")], check=True)
+
+
 def exp_occupancy(cps, out_dir, dur):
     """Packed-z3 worst-case occupancy + rm/aguard safety pairing, all profiles
     (THEOREM_BRIEF S3.5/S9.2, Lemma 1's empirical backstop). Delegates to
@@ -436,6 +458,8 @@ REGISTRY = {
     "tolerance": (exp_tolerance, "per-plant tolerance cliff -> tolerance_sweep.csv (PREDICTOR S5d)"),
     "zones":     (exp_zones,     "causal A(zone) tables + fine z3 cliffs + MIN-OVER-PHASE tables + A2-corrected z3 (F delayed 13.5 / 20 ms), all profiles -> zone_tolerance*.csv (THEOREM_BRIEF S3.2; PAPER_NOTES 2026-09-04)"),
     "corollary": (exp_corollary, "certified capacities at the min-over-phase budgets: classical / F-demoted / composed, per profile x workload -> corollary_capacity.csv (PAPER_NOTES 2026-09-04 (c))"),
+    "partition": (exp_partition, "zone runs per profile in ticks + track metres (partition invariance across profiles) -> zone_partition_runs.csv (PAPER_NOTES 2026-09-04 (d))"),
+    "sensitivity": (exp_sensitivity, "zone-partition sensitivity on v12.5: A(z3), A(z2), composed certificate under perturbed segmentation constants -> zone_sensitivity_v12.5{,_summary}.csv (PAPER_NOTES 2026-09-04 (d))"),
     "occupancy": (exp_occupancy, "packed-z3 Occ + rm/aguard pairing, all profiles -> occupancy_sweep*.csv (THEOREM_BRIEF S3.5)"),
     "danger":    (exp_danger,    "K(tau) danger-relative criticality, rm vs aguard (v10) -> danger_sweep.csv (THEOREM_BRIEF S3.6/S9.2c)"),
     "fzone":     (exp_fzone,     "A_F/A_B(zone) + enter-stale phases + cross-profile z3 -> fzone_tolerance*.csv, bzone_tolerance.csv, fzone_enterstale.csv (FCHANNEL S9)"),

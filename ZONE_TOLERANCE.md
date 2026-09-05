@@ -34,6 +34,15 @@ the min over both measured regimes under constant lateness. Stated, not
 measured: the fresh-Merger regime (unreachable at N=1 RM) and per-job regime
 mixing at N=8 (`--ff-extra-ms`; `zone_tolerance_z3_a2{cert,p1}_phase*.csv`;
 PAPER_NOTES 2026-09-04 (b)).
+**Partition caveat CLOSED 2026-09-04 (d):** the partition is the same track
+partition at every speed (curvature proxies identical across profiles;
+boundaries match v10 to 0.30 m on v12.5 / 0.81 m on v15; only the time-based
+lane-change expansion is speed-dependent — conservative, and it merges two
+arcs on v15), and on v12.5 the certified constant, the z2 budget and the
+composed N = 8 are unchanged under ±20 % thresholds and ±50 % lane-change
+timing (`--zone-consts`; `tools/zone_partition.py`, `tools/zone_sensitivity.py`;
+`zone_partition_runs.csv`, `zone_sensitivity_v12.5{,_summary}.csv`;
+PAPER_NOTES 2026-09-04 (d)).
 
 **Status 2026-07-04: Phase-1 + Phase-2 IMPLEMENTED; fine-grid cliffs + v12.5/v15
 tables MEASURED (see the 2026-07-04 block below); a zone-consuming scheduler
@@ -103,7 +112,17 @@ The zone array is built once per profile in **`Trajectory::computeTrackZones`
    ±`kZoneLaneOraclePadTicks` and **bridged** across gaps ≤ `kZoneLaneOracleBridgeTicks`
    (the "oracle" expand pass) so the whole maneuver — not just its onset — is labelled Z3.
 
-**The constants (`src/trace/Trajectory.h:33-39`) — code-only, not CLI flags, hand-tuned
+**2026-09-04 (d):** the constants are now overridable at runtime
+(`cps --zone-consts S,F,D,W,P,B`, `ZoneParams` in `Trajectory.h`; defaults =
+the constants below, byte-identical), and the standing "re-examine per
+profile" instruction is answered: the curvature thresholds are
+speed-independent (same track), the partition matches v10 to the metre on
+v12.5/v15, and v12.5's certified numbers are insensitive to ±20 % / ±50 %
+perturbations (PAPER_NOTES 2026-09-04 (d)). What remains speed-dependent is
+the time-based lane-change expansion (window/pad/bridge in ms), which grows
+z3 with speed and bridges two arcs on v15.
+
+**The constants (`src/trace/Trajectory.h:33-39`) — code-only until 2026-09-04, hand-tuned
 for v10, with no formal derivation:**
 
 | constant | value | role |

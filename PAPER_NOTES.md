@@ -10,6 +10,98 @@ Newest first.
 
 ---
 
+## 2026-09-04 (d) — The zone partition is the same track partition at every speed, and v12.5's certified numbers do not move under ±20 % thresholds or ±50 % lane-change timing: the "re-derive the partition per profile" caveat is closed
+
+**What it is.** ZONE_TOLERANCE.md has carried, since 2026-07-04, the caveat
+that the six segmentation constants (`Trajectory.h`: the sharp-turn |ff0|
+threshold, the two lane-change seed thresholds, and the lane-change
+window/pad/bridge in ms) were hand-tuned on v10 and never re-derived for
+v12.5/v15; PLAN.md §3 listed it as owed "if v12.5 carries weight". v12.5 now
+carries the cleanest decomposition result (2026-09-04 (c)), so it was
+answered in two parts. Three results.
+
+1. **The partition is spatially invariant — no per-profile re-derivation is
+   needed.** The curvature proxies are the same on every profile (max |ff0|
+   0.0519, max |ff1| 0.0063 on all three: same track, different speed
+   profile), so the curvature thresholds classify the same track geometry
+   regardless of speed. `tools/zone_partition.py` (a CSV mode on the
+   read-only route probe `tools/proofchecks/zone_probe.cpp`, converted to
+   track metres from the x/y traces; `zone_partition_runs.csv`) gives per-zone
+   lengths over the 1,000.2 m lap of 482 / 155 / 276 / 87 m (v10), 482 / 155 /
+   276 / 88 m (v12.5) and 475 / 155 / 276 / 94 m (v15), and boundary
+   positions that match v10's nearest same-zone boundary to **0.30 m on v12.5
+   and 0.81 m on v15** — every sharp-turn boundary (the zone that feeds the
+   base band) to the metre. The only speed dependence is the time-based
+   lane-change expansion (pad ±100 ms, bridge 350 ms, window ±50 ms), which
+   lengthens z3 with speed (86.8 → 88.3 → 94.2 m — conservative: more track
+   is labelled binding) and on v15 bridges the gap between the first two
+   lane-change arcs (K = 3, not 4; the two v10 boundaries at 677 / 682 m have
+   no v15 partner). Two 20 cm slivers where the curvature passes through zero
+   (z0 at 356 m on v10, 315 m on v12.5) are labelling noise, set aside by the
+   tool (threshold 0.5 m; the shortest genuine zone run is 4.3 m).
+
+2. **Sensitivity on v12.5: nothing certified moves.** New harness flag
+   `--zone-consts S,F,D,W,P,B` (runtime `ZoneParams`, defaults = the
+   constants → byte-identical, G1/G2 unchanged) and `tools/zone_sensitivity.py`
+   (`zone_sensitivity_v12.5{,_summary}.csv`, `reproduce.py sensitivity`):
+   seven partitions, each with the z3 cliff (the certified constant) and the
+   z2 cliff (the base-band budget) min-over-phase on the 10 ms grid, plus the
+   composed certificate at the variant's budgets (base = min of z0 290.5, z1
+   240.5 and the variant's A(z2)):
+
+   | variant | frames z0 / z1 / z2 / z3 | A(z3) | A(z2) | base budget | composed Θ=R / Θ=T |
+   |---|---|---|---|---|---|
+   | baseline | 4185 / 1370 / 3086 / 859 | **140.5** | 230.5 | 230.5 | 8 / 8 |
+   | sharp threshold ×0.8 | 4185 / 1114 / 3342 / 859 | 140.5 | 230.5 | 230.5 | 8 / 8 |
+   | sharp threshold ×1.2 | 4185 / 1630 / 2826 / 859 | 140.5 | 240.5 | 240.5 | 8 / 8 |
+   | lane-change seeds ×0.8 | 4144 / 1370 / 3086 / 900 | 150.5 | 230.5 | 230.5 | 8 / 8 |
+   | lane-change seeds ×1.2 | 4200 / 1502 / 3284 / **514** | 150.5 | 230.5 | 230.5 | 8 / 8 |
+   | lane-change timing ×0.5 | 4213 / 1373 / 3096 / 818 | 150.5 | 230.5 | 230.5 | 8 / 8 |
+   | lane-change timing ×1.5 | 4119 / 1189 / 2929 / **1263** | 150.5 | ≥ 290.5 (no breach in range; z1 binds) | 240.5 | 8 / 8 |
+
+   Under the seven partitions measured, the certified constant of record
+   (140.5) is the MINIMUM: every variant that changes the lane-change extent
+   — in either direction, from 514 to 1,263 frames — moves A(z3) UP one
+   instrument step to 150.5 (the baseline's 150.5 cell breaches by 1.7 mm at
+   phase 19.9; shifting the injection window by a few ticks either way clears
+   it), and the sharp-threshold variants leave it at 140.5. A(z2) is never
+   below 230.5 (it rises when z2 shrinks). The composed certificate is 8 / 8
+   under every variant. Within these perturbations the tolerance numbers
+   behave as a property of the manoeuvre, not of where the labels are drawn:
+   the lane-change zone can be halved or grown by half and the budget stays
+   within one instrument step, in the safe direction. Not re-measured per
+   variant: z0 and z1 (fixed at 290.5 / 240.5 in the base-budget minimum);
+   their slack over the N = 8 base bound is 94 / 44 ms, so a variant would
+   have to move one of them by more than four coarse steps' worth to bind.
+
+3. **What this does and does not close.** Closed: the v12.5 partition
+   caveat — its constants and its composed N = 8 are robust to ±20 %
+   thresholds and ±50 % lane-change timing, and the partition needs no
+   per-profile re-derivation. Not touched: v15 (the applicability floor;
+   the bridge merges two arcs there, the conservative direction) and a
+   distance-based expansion rule (would make z3's extent exactly
+   speed-invariant; future work — the plan of record says no new machinery).
+   PLAN.md §3's second open caveat ("v15's 90 ms is a coarse-grid result") is
+   moot: v15's z3 is 110.5 at 10 ms × 21 phases (2026-09-04).
+
+**Evidence / repro.** `python3 tools/zone_partition.py --force`
+(`reproduce.py partition`; needs `c++`) and `python3 tools/zone_sensitivity.py
+--profile 12.5 --jobs 8 --force` (`reproduce.py sensitivity`, ~8 min; 3,528
+runs). Any variant by hand: `./build/cps --headless --vehicles 1 --scheduler rm
+--exec worst --duration 95 --profile 12.5 --zone-consts 0.0215,0.0042,0.0048,50,100,350`
+(seeds ×1.2: z3 frames 859 → 514). Pins: `tools/tests/test_zone_consts.py`
+(the binary: defaults byte-identical, thresholds move the z1/z2 boundary,
+timing grows z3, malformed input rejected), `test_zone_sensitivity.py`,
+`test_zone_partition.py`; gate G0; G1/G2 byte-identical.
+
+**Where it lands.** Methods: one sentence that the partition is defined on
+the track and invariant across speed profiles (with the time-based
+expansion named); the sensitivity table as one row of the robustness
+paragraph or supplementary material. Limitations: the time-based expansion
+and the v15 arc merge, stated.
+
+---
+
 ## 2026-09-04 (c) — The corollary at the budgets of record: v10 8 vs classical 4 / 3 (2.0× / 2.67×), v12.5 8 vs 3 / 2 (2.67× / 4×), v15 the floor — and a 50 ms bracket nearly cost v12.5 a car
 
 **What it is.** paper/PLAN.md §3 ("the corollary ratio drops": 2.7× / 4× →

@@ -192,6 +192,13 @@ void usage() {
         "                               simultaneity experiment. 0 = even spread (default);\n"
         "                               1 = all on the same lap phase (adversarial). See\n"
         "                               HANDOFF leg (A).\n"
+        "  --zone-consts S,F,D,W,P,B    lateral only: override the zone-partition constants\n"
+        "                               (Trajectory.h): sharp-turn |ff0| threshold S, lane-\n"
+        "                               change seed thresholds |ff1| F and curvature-range D,\n"
+        "                               and the lane-change window/pad/bridge W/P/B in ms\n"
+        "                               (defaults 0.0215,0.0035,0.0040,50,100,350 =\n"
+        "                               byte-identical). Partition-sensitivity instrument\n"
+        "                               (tools/zone_sensitivity.py; ZONE_TOLERANCE.md).\n"
         "  --start-offsets-ms A[,B,..]  explicit per-vehicle start offsets along the lap\n"
         "                               (ms of trajectory time; one value per --vehicles,\n"
         "                               wrapped into the lap). Overrides the spread /\n"
@@ -252,6 +259,43 @@ int main(int argc, char** argv) {
     if (hasFlag(argc, argv, "--help") || hasFlag(argc, argv, "-h")) {
         usage();
         return 0;
+    }
+
+    // --zone-consts must precede EVERY Trajectory::load (sim and replay).
+    {   // --zone-consts S,F,D,W,P,B (exactly 6, validated; ms -> ticks for W/P/B)
+        const std::string zc = argValue(argc, argv, "--zone-consts", "");
+        if (!zc.empty()) {
+            std::stringstream ss(zc);
+            std::string tok;
+            std::vector<double> vals;
+            while (std::getline(ss, tok, ',')) {
+                char* end = nullptr;
+                const double v = std::strtod(tok.c_str(), &end);
+                if (tok.empty() || end == tok.c_str() || *end != '\0' || v < 0.0) {
+                    std::fprintf(stderr, "--zone-consts: bad value '%s'\n", tok.c_str());
+                    return 1;
+                }
+                vals.push_back(v);
+            }
+            if (vals.size() != 6) {
+                std::fprintf(stderr,
+                             "--zone-consts needs exactly 6 comma-separated values "
+                             "(sharp,ff1,delta,window_ms,pad_ms,bridge_ms), got %zu\n",
+                             vals.size());
+                return 1;
+            }
+            ZoneParams zp;
+            zp.sharpThreshold              = static_cast<float>(vals[0]);
+            zp.laneFf1Threshold            = static_cast<float>(vals[1]);
+            zp.laneCurvatureDeltaThreshold = static_cast<float>(vals[2]);
+            const auto ticks = [](double ms) {
+                return static_cast<long>(std::llround(ms / (vr::kBaseStepSeconds * 1000.0)));
+            };
+            zp.laneHalfWindowTicks   = ticks(vals[3]);
+            zp.laneOraclePadTicks    = ticks(vals[4]);
+            zp.laneOracleBridgeTicks = ticks(vals[5]);
+            setZoneParams(zp);   // before any Trajectory::load
+        }
     }
 
     const std::string replayFile = argValue(argc, argv, "--replay", "");

@@ -50,7 +50,15 @@ step: late-F A(z3) = 150.5 / 150.5 / 110.5 vs fresh-F 150.5 / 140.5 / 110.5.
 are retired.** Two stated assumptions (cold review): the fresh-Merger regime
 (unreachable at N=1 RM; benign 7.5 cm on the one single-core cell probed) and
 per-job mixing of the Estimator regimes at N=8 (untested — DECIDED: carried
-as a stated assumption). (d) **Corollary recomputed at the constants of
+as a stated assumption). (e) **Partition caveat closed (2026-09-04 (d))**:
+the zone partition is the same track partition at every speed (boundaries
+match v10 to 0.30 m on v12.5 / 0.81 m on v15; `tools/zone_partition.py` →
+`zone_partition_runs.csv`), and on v12.5 the certified constant, the z2
+budget and the composed N = 8 are unchanged under ±20 % thresholds and ±50 %
+lane-change timing (new harness flag `--zone-consts`, byte-identical
+defaults; `tools/zone_sensitivity.py` → `zone_sensitivity_v12.5{,_summary}.csv`;
+`reproduce.py partition sensitivity`). **All three pre-freeze items are
+done; the numbers can freeze.** (d) **Corollary recomputed at the constants of
 record (2026-09-04 (c))**, by the solver (`rta_solve.uniform_capacity` /
 `decomposition_capacity`, `--a-z3/--a-base` overrides with G3-identical
 defaults; `tools/corollary_table.py` → `corollary_capacity.csv`,
@@ -74,12 +82,11 @@ new provenance columns (`f_stale_max_ms`, `ff_extra_ms`). Fast gate green
    2026-09-04): per-job regime MIXING at N=8 is carried as a stated
    assumption in the limitations; no per-job instrument (build it only if
    Kurt or a reviewer asks).** **DONE 2026-09-04 (c):** the corollary recomputed at the
-   constants of record (NOW (d)). **Stone to decide (paper framing):** state
-   the corollary as the per-profile honest chain (recommended, PLAN.md §5
-   item 6) or as ratios. Next in the pre-freeze queue: the v12.5
-   zone-partition sensitivity check (v12.5 is now the cleanest
-   decomposition-load-bearing case, so ZONE_TOLERANCE's partition caveat is
-   load-bearing).
+   constants of record (NOW (d)). **DECIDED (Stone, 2026-09-04): the paper
+   states the corollary as the per-profile honest chain** (v10 4/3 → 8/7 →
+   8/8; v12.5 3/2 → 6/4 → 8/8; v15 nothing), ratios only as supporting
+   detail. **DONE 2026-09-04 (d):** the v12.5 zone-partition sensitivity check —
+   nothing certified moves (NOW (e)). The pre-freeze queue is EMPTY.
 3. PLAN.md §3's regime table is rewritten (done); the outreach emails are
    sent. Next: the LaTeX scaffold + figure pipeline from committed CSVs, then
    sections 2 / 5 / 6 (model, evaluation, hardware) — the parts that depend

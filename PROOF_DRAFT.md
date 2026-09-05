@@ -702,6 +702,14 @@ the 123.4 F-demoted uncontended bound — same conclusion. (v) The Challenge's
 soft constraint binds earlier still (v10 z3 A_soft = 120.5; v15 violates it
 uninjected); DECIDED 2026-09-04 (Stone): certified hard-only, soft data reported as a limitation.
 
+**Partition caveat — CLOSED 2026-09-04 (d) (PAPER_NOTES 2026-09-04 (d)):**
+the partition is spatially invariant across profiles (boundaries match v10 to
+0.30 m on v12.5, 0.81 m on v15; `zone_partition_runs.csv`) and v12.5's
+certified constant, z2 budget and composed N = 8 are unchanged under ±20 %
+threshold and ±50 % lane-change-timing perturbations (seven partitions,
+`zone_sensitivity_v12.5_summary.csv`); the certified 140.5 is the minimum
+over them. The original caveat, kept for the record:
+
 **Partition caveat on the v12.5/v15 rows [council-successor audit]:** the zone
 segmentation constants (`Trajectory.h` thresholds) were hand-tuned to v10's
 curvature scale and were NOT re-derived per profile (ZONE_TOLERANCE's standing

@@ -131,7 +131,8 @@ Then by task:
     #   --guard/--floor MS, --tau-crit MS, --danger-tau FRAC, --pack-zone Z/--min-spacing MS,
     #   --pred-staleness/--pred-margin MS, --delta-max RAD,
     #   --u-max/--shove-force/--theta-max (cartpole calibration; GENERALIZATION §4), --validate-predictor, --csv FILE, --seed N,
-    #   --start-offsets-ms A,B,.. (explicit lap phases; A(zone) is a MIN over the 20 ms chain phase — zone_sweep.py --phases-ms 0:20:1)
+    #   --start-offsets-ms A,B,.. (explicit lap phases; A(zone) is a MIN over the 20 ms chain phase — zone_sweep.py --phases-ms 0:20:1),
+    #   --zone-consts S,F,D,W,P,B (partition-sensitivity instrument; defaults byte-identical — zone_sensitivity.py)
 
 ## Before you end a session (this keeps the system alive)
 

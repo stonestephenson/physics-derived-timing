@@ -64,6 +64,7 @@ EY_RE = re.compile(r"max \|e_y\| \(per-tick\): fleet ([0-9.]+) m .*\| zones "
                    r"([0-9.]+) ([0-9.]+) ([0-9.]+) ([0-9.]+)")
 FST_RE = re.compile(r"F staleness \(act-stamped, ms\): zone max "
                     r"([0-9.]+) ([0-9.]+) ([0-9.]+) ([0-9.]+)")   # lateral only
+FRAMES_RE = re.compile(r"zone frames: z0=(\d+) z1=(\d+) z2=(\d+) z3=(\d+)")  # lateral only
 
 
 # ----------------------------------------------------------------------- parsing
@@ -74,7 +75,10 @@ def parse_output(out):
     if not (age and hard and soft and ey):
         return None
     fst = FST_RE.search(out)
+    fr = FRAMES_RE.search(out)
     return {
+        # the run's partition, as frames per zone (moves under --zone-consts)
+        "zone_frames": [int(fr.group(i)) for i in range(1, 5)] if fr else None,
         "age_path": float(age.group(1)),
         "hard": [int(hard.group(i)) for i in range(1, 5)],
         "soft_pct": float(soft.group(1)),
@@ -116,6 +120,18 @@ def parse_seeds(spec):
     return seeds
 
 
+def check_zone_consts(spec, legacy):
+    """--zone-consts must be six values and needs a phase mode (recorded in
+    the zone_consts column; the legacy schema cannot carry it)."""
+    if not spec:
+        return
+    if legacy:
+        sys.exit("--zone-consts needs a phase mode (--phases-ms / --offset-seeds): "
+                 "the legacy CSV schema has no column to record it")
+    if len(spec.split(",")) != 6:
+        sys.exit("--zone-consts needs exactly 6 values: sharp,ff1,delta,window_ms,pad_ms,bridge_ms")
+
+
 def check_ff_extra(ff_extra_ms, legacy):
     """--ff-extra-ms must be >= 0 and needs a phase mode (the legacy CSV
     schema has no column to record it)."""
@@ -138,7 +154,8 @@ def git_sha():
 
 
 # ----------------------------------------------------------------------- one run
-def build_cmd(zone, extra_ms, duration, profile, phase=None, ff_extra_ms=0.0):
+def build_cmd(zone, extra_ms, duration, profile, phase=None, ff_extra_ms=0.0,
+              zone_consts=""):
     cmd = [str(BIN), "--headless", "--vehicles", "1", "--scheduler", "rm",
            "--exec", "worst", "--duration", str(duration), "--profile", profile,
            "--zone-target", str(zone), "--zone-extra-ms", str(extra_ms)]
@@ -149,6 +166,9 @@ def build_cmd(zone, extra_ms, duration, profile, phase=None, ff_extra_ms=0.0):
         # period-old F); the Merger reads a period-old F at every dose under
         # the N=1 RM order. PAPER_NOTES 2026-09-04 (b).
         cmd += ["--ff-extra-ms", f"{ff_extra_ms:g}"]
+    if zone_consts:
+        # partition-sensitivity instrument (Trajectory.h constants; ZONE_TOLERANCE)
+        cmd += ["--zone-consts", zone_consts]
     if phase is not None:
         kind, val = phase
         if kind == "offset_ms":
@@ -160,9 +180,11 @@ def build_cmd(zone, extra_ms, duration, profile, phase=None, ff_extra_ms=0.0):
     return cmd
 
 
-def run(zone, extra_ms, duration, profile="10", phase=None, ff_extra_ms=0.0):
+def run(zone, extra_ms, duration, profile="10", phase=None, ff_extra_ms=0.0,
+        zone_consts=""):
     """Run one N=1 worst-case full-lap sim; return the parsed summary dict."""
-    out = subprocess.run(build_cmd(zone, extra_ms, duration, profile, phase, ff_extra_ms),
+    out = subprocess.run(build_cmd(zone, extra_ms, duration, profile, phase, ff_extra_ms,
+                                   zone_consts),
                          capture_output=True, text=True).stdout
     r = parse_output(out)
     if r is None:
@@ -300,6 +322,10 @@ def main():
     ap.add_argument("--soft-budget", type=float, default=SOFT_BUDGET_PCT,
                     help="soft%% ceiling for the secondary A_soft (default 5.0 = "
                          "the Challenge's >= 95%% within 0.2 m)")
+    ap.add_argument("--zone-consts", default="",
+                    help="partition-sensitivity: override the six zone constants "
+                         "(sharp,ff1,delta,window_ms,pad_ms,bridge_ms; see cps "
+                         "--help). Phase mode only; recorded per row.")
     ap.add_argument("--out", default="zone_tolerance.csv",
                     help="output CSV (refuses to overwrite an existing file unless --force)")
     ap.add_argument("--force", action="store_true",
@@ -321,6 +347,7 @@ def main():
         phases = [None]
     legacy = phases == [None]
     check_ff_extra(args.ff_extra_ms, legacy)
+    check_zone_consts(args.zone_consts, legacy)
     sha = git_sha()
 
     def log(z, extra, phase, r):
@@ -330,17 +357,20 @@ def main():
               f"maxEy={r['fleet_ey']:.4f}", flush=True)
 
     runner = lambda z, extra, phase: run(z, extra, args.duration, args.profile,
-                                         phase, args.ff_extra_ms)
+                                         phase, args.ff_extra_ms, args.zone_consts)
     rows, table = sweep(zones, grid, phases, runner, jobs=args.jobs,
                         soft_budget=args.soft_budget, log=log)
 
     extra_cols = () if legacy else ("profile", "duration_s", "git_sha", "ff_extra_ms")
+    tail = [] if legacy else [args.profile, args.duration, sha, args.ff_extra_ms]
+    if args.zone_consts:               # sensitivity runs carry their partition
+        extra_cols += ("zone_consts",)
+        tail.append(args.zone_consts)
     with open(args.out, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(csv_header(phases, extra_cols))
         for r in rows:
-            w.writerow(r if legacy else
-                       r + [args.profile, args.duration, sha, args.ff_extra_ms])
+            w.writerow(r if legacy else r + tail)
 
     if legacy:
         print("\n=== Causal A(zone) (largest delivered age with ZERO hard breaches) ===")

@@ -97,7 +97,12 @@ as P(clean) over seeds); `--start-offsets-ms A[,B,..]` = explicit per-vehicle
 start offsets along the lap (ms of trajectory time, one per `--vehicles`;
 overrides every other placement; the phase-enumeration lever behind
 `tools/zone_sweep.py --phases-ms` — A(zone) is a min over the 20 ms chain
-phase, PAPER_NOTES 2026-09-04); `--guard-cap MS` = the aguard/frontier theta clamp
+phase, PAPER_NOTES 2026-09-04); `--zone-consts S,F,D,W,P,B` = override the
+six zone-partition constants (sharp-turn |ff0| threshold, lane-change seed
+thresholds |ff1| and curvature range, lane-change window/pad/bridge in ms;
+defaults 0.0215,0.0035,0.0040,50,100,350 = byte-identical; the
+partition-sensitivity instrument behind `tools/zone_sensitivity.py`,
+PAPER_NOTES 2026-09-04 (d)); `--guard-cap MS` = the aguard/frontier theta clamp
 (default 450; proven inert for honest configs; the full guard formula is
 theta = min(cap, floor + max(60, fleet age_recent)) — the 60 ms inner floor
 is fixed in code, `AdaptiveGuard.cpp`/`Frontier.cpp`). NOTE `--ff-extra-ms` clamps at
@@ -308,7 +313,10 @@ it writes the MIN-OVER-PHASE tables `zone_tolerance_z3_phase*.csv`
 / `zone_tolerance_spot_phase*.csv` — extended schema with per-phase soft% and
 undecimated max |e_y| and the delivered F dose; `--jobs N` parallelises;
 `--ff-extra-ms D` writes the A2 tables `zone_tolerance_z3_a2{cert,p1}_phase*.csv`
-(F publish delayed D ms; PAPER_NOTES 2026-09-04 (b)); PAPER_NOTES 2026-09-04),
+(F publish delayed D ms; PAPER_NOTES 2026-09-04 (b)); `--zone-consts` passes a
+perturbed partition through and is recorded per row; `tools/zone_sensitivity.py`
+→ `zone_sensitivity_v12.5{,_summary}.csv` = the partition-sensitivity campaign,
+`reproduce.py sensitivity`; PAPER_NOTES 2026-09-04),
 `tools/occupancy_sweep.py` → `occupancy_sweep.csv` (leg 2, `Occ(s)`),
 `tools/danger_sweep.py` → `danger_sweep.csv` (leg 4, the `K(τ)` curve — both the
 `[age-only]` and `[+state]` axes, v10 only; `reproduce.py danger` delegates to it), and

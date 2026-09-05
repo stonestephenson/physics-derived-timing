@@ -60,16 +60,23 @@ const char* profileName(Profile p) {
     return "v10";
 }
 
+namespace {
+ZoneParams g_zoneParams{};   // defaults = the kZone* constants (byte-identical)
+}
+
+const ZoneParams& zoneParams() { return g_zoneParams; }
+void setZoneParams(const ZoneParams& p) { g_zoneParams = p; }
+
 TrackZone trackZoneFromFf0(float ff0) {
     const float curvature = std::fabs(ff0);
     if (curvature <= kZoneZeroEpsilon) return TrackZone::Z0Straight;
-    if (curvature < kZoneSharpThreshold) return TrackZone::Z1SlightTurn;
+    if (curvature < g_zoneParams.sharpThreshold) return TrackZone::Z1SlightTurn;
     return TrackZone::Z2SharpTurn;
 }
 
 TrackZone trackZoneFromRefs(float ff0, float ff1, float curvatureDelta) {
-    if (std::fabs(ff1) >= kZoneLaneFf1Threshold ||
-        curvatureDelta >= kZoneLaneCurvatureDeltaThreshold) {
+    if (std::fabs(ff1) >= g_zoneParams.laneFf1Threshold ||
+        curvatureDelta >= g_zoneParams.laneCurvatureDeltaThreshold) {
         return TrackZone::Z3LaneChange;
     }
     return trackZoneFromFf0(ff0);
@@ -138,7 +145,7 @@ std::shared_ptr<Trajectory> Trajectory::load(Profile profile,
 
 void Trajectory::computeTrackZones() {
     const long n = lapSteps_;
-    const long half = std::min<long>(kZoneLaneHalfWindowTicks, std::max<long>(0, n / 2));
+    const long half = std::min<long>(g_zoneParams.laneHalfWindowTicks, std::max<long>(0, n / 2));
     const long window = 2 * half + 1;
     curvatureDelta_.assign(static_cast<size_t>(n), 0.0f);
     zone_.resize(static_cast<size_t>(n));
@@ -199,7 +206,7 @@ void Trajectory::computeTrackZones() {
         }
     };
 
-    const long pad = std::min<long>(kZoneLaneOraclePadTicks, std::max<long>(0, n / 2));
+    const long pad = std::min<long>(g_zoneParams.laneOraclePadTicks, std::max<long>(0, n / 2));
     for (long i = 0; i < n; ++i) {
         if (laneSeed[static_cast<size_t>(i)])
             addCircular(i - pad, i + pad);
@@ -217,7 +224,7 @@ void Trajectory::computeTrackZones() {
     }
 
     if (anyLane && !allLane) {
-        const long bridge = std::min<long>(kZoneLaneOracleBridgeTicks, std::max<long>(0, n / 2));
+        const long bridge = std::min<long>(g_zoneParams.laneOracleBridgeTicks, std::max<long>(0, n / 2));
         long start = 0;
         while (start < n && !lane[static_cast<size_t>(start)]) ++start;
 

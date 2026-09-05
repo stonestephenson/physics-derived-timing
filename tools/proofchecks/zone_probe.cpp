@@ -15,11 +15,40 @@
 
 using namespace cps;
 
+#include <cstring>
+
 int main(int argc, char** argv) {
-    const char* dir = argc > 1 ? argv[1] : nullptr;
+    // --csv: dump every zone run as "profile,zone,start_tick,len_ticks" (one
+    // line each, circular wrap merged) for tools/zone_partition.py, instead of
+    // the human table. An optional examples dir may follow.
+    bool csvMode = false;
+    const char* dir = nullptr;
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--csv") == 0) csvMode = true;
+        else dir = argv[i];
+    }
+    if (csvMode) std::printf("profile,zone,start_tick,len_ticks\n");
     for (Profile p : {Profile::V10, Profile::V12_5, Profile::V15}) {
         auto traj = dir ? Trajectory::load(p, dir) : Trajectory::load(p);
         const long lap = traj->lapSteps();
+        if (csvMode) {
+            int cur = static_cast<int>(traj->zoneAt(0));
+            long start = 0;
+            struct R { int z; long s; long l; };
+            std::vector<R> rs;
+            for (long i = 1; i <= lap; ++i) {
+                const int z = i < lap ? static_cast<int>(traj->zoneAt(i)) : -1;
+                if (z != cur) { rs.push_back({cur, start, i - start}); cur = z; start = i; }
+            }
+            if (rs.size() > 1 && rs.front().z == rs.back().z) {   // circular merge
+                rs.front().s = rs.back().s;
+                rs.front().l += rs.back().l;
+                rs.pop_back();
+            }
+            for (const R& x : rs)
+                std::printf("%s,%d,%ld,%ld\n", profileName(p), x.z, x.s, x.l);
+            continue;
+        }
         std::printf("profile %s  lap=%ld ticks (%.1f s)\n", profileName(p), lap,
                     lap * 1e-4);
         // Run-length encode zoneAt over one lap, keeping each run's TRUE start

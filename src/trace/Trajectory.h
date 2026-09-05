@@ -38,6 +38,22 @@ inline constexpr long  kZoneLaneHalfWindowTicks = 500;  // +/- 50 ms at 0.1 ms/t
 inline constexpr long  kZoneLaneOraclePadTicks = 1000;  // +/- 100 ms around seeds
 inline constexpr long  kZoneLaneOracleBridgeTicks = 3500;  // fill gaps up to 350 ms
 
+// Runtime copy of the segmentation constants. Defaults are the constants
+// above, so an unset process partitions byte-identically; the CLI's
+// --zone-consts overrides them process-wide BEFORE any Trajectory is loaded
+// (the partition-sensitivity instrument, ZONE_TOLERANCE.md / PAPER_NOTES
+// 2026-09-04 (d)). Read by trackZoneFromFf0/Refs and computeTrackZones.
+struct ZoneParams {
+    float sharpThreshold              = kZoneSharpThreshold;
+    float laneFf1Threshold            = kZoneLaneFf1Threshold;
+    float laneCurvatureDeltaThreshold = kZoneLaneCurvatureDeltaThreshold;
+    long  laneHalfWindowTicks         = kZoneLaneHalfWindowTicks;
+    long  laneOraclePadTicks          = kZoneLaneOraclePadTicks;
+    long  laneOracleBridgeTicks       = kZoneLaneOracleBridgeTicks;
+};
+const ZoneParams& zoneParams();
+void setZoneParams(const ZoneParams& p);
+
 TrackZone trackZoneFromFf0(float ff0);
 TrackZone trackZoneFromRefs(float ff0, float ff1, float curvatureDelta);
 const char* trackZoneCode(TrackZone zone);

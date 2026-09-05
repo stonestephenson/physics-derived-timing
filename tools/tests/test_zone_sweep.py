@@ -55,6 +55,22 @@ class ParseTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             zs.check_ff_extra(-1.0, legacy=False)      # negative: never sent to the binary
 
+    def test_build_cmd_zone_consts(self):
+        # partition-sensitivity instrument: pass the six constants through
+        base = zs.build_cmd(2, 80, 95, "12.5", ("offset_ms", 0.0))
+        self.assertNotIn("--zone-consts", base)
+        zc = zs.build_cmd(2, 80, 95, "12.5", ("offset_ms", 0.0),
+                          zone_consts="0.0172,0.0035,0.0040,50,100,350")
+        self.assertEqual(zc[zc.index("--zone-consts") + 1], "0.0172,0.0035,0.0040,50,100,350")
+
+    def test_check_zone_consts_needs_phase_mode(self):
+        zs.check_zone_consts("", legacy=True)
+        zs.check_zone_consts("0.0215,0.0035,0.0040,50,100,350", legacy=False)
+        with self.assertRaises(SystemExit):
+            zs.check_zone_consts("0.0215,0.0035,0.0040,50,100,350", legacy=True)
+        with self.assertRaises(SystemExit):
+            zs.check_zone_consts("0.0215,0.0035", legacy=False)   # not six values
+
     def test_build_cmd_renders_phase_flags(self):
         base = zs.build_cmd(3, 80, 120, "10")
         self.assertNotIn("--start-offsets-ms", base)
@@ -239,6 +255,7 @@ class ParseOutputTests(unittest.TestCase):
         self.assertEqual(r["fleet_ey"], 0.7983)
         self.assertEqual(r["zone_ey"], [0.6816, 0.0937, 0.1069, 0.7983])
         self.assertEqual(r["f_stale_max"], 35.8)
+        self.assertEqual(r["zone_frames"], [5364, 1716, 3866, 1054])
 
     def test_parse_without_f_staleness_line(self):
         # cart-pole runs print no F-staleness line; the field is then None
