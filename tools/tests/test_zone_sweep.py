@@ -18,7 +18,7 @@ import zone_sweep as zs  # noqa: E402
 def result(age, hard, soft=2.7, ey=0.3):
     """Canned simulator result. hard = per-zone list."""
     return {"age_path": age, "hard": list(hard), "soft_pct": soft,
-            "fleet_ey": ey, "zone_ey": [ey, 0.1, 0.1, ey]}
+            "fleet_ey": ey, "zone_ey": [ey, 0.1, 0.1, ey], "f_stale_max": 22.3}
 
 
 class ParseTests(unittest.TestCase):
@@ -38,6 +38,22 @@ class ParseTests(unittest.TestCase):
     def test_phase_range_no_duplicate_last_tick(self):
         self.assertEqual(zs.parse_phases("0:1:0.1")[-1], 0.9)
         self.assertEqual(len(zs.parse_phases("0:1:0.1")), 10)
+
+    def test_build_cmd_ff_extra(self):
+        # A2 instrument (PROOF_DRAFT §8.3): delay every F publish by D ms.
+        # Off by default (byte-identical); rendered only when > 0.
+        base = zs.build_cmd(3, 80, 120, "10", ("offset_ms", 0.0))
+        self.assertNotIn("--ff-extra-ms", base)
+        ff = zs.build_cmd(3, 80, 120, "10", ("offset_ms", 0.0), ff_extra_ms=13.5)
+        self.assertEqual(ff[ff.index("--ff-extra-ms") + 1], "13.5")
+
+    def test_check_ff_extra(self):
+        zs.check_ff_extra(0.0, legacy=True)            # off: fine anywhere
+        zs.check_ff_extra(13.5, legacy=False)          # phase mode: fine
+        with self.assertRaises(SystemExit):
+            zs.check_ff_extra(13.5, legacy=True)       # legacy schema can't record it
+        with self.assertRaises(SystemExit):
+            zs.check_ff_extra(-1.0, legacy=False)      # negative: never sent to the binary
 
     def test_build_cmd_renders_phase_flags(self):
         base = zs.build_cmd(3, 80, 120, "10")
@@ -160,10 +176,10 @@ class PhaseTests(unittest.TestCase):
 
     def test_extended_row_matches_header_with_extra_cols(self):
         rows, _ = zs.sweep([3], [50], self.PH, self.runner)
-        header = zs.csv_header(self.PH, ("profile", "duration_s", "git_sha"))
+        header = zs.csv_header(self.PH, ("profile", "duration_s", "git_sha", "ff_extra_ms"))
         for r in rows:
-            self.assertEqual(len(r + ["10", 120, "abc-dirty"]), len(header))
-        self.assertEqual(header[-3:], ["profile", "duration_s", "git_sha"])
+            self.assertEqual(len(r + ["10", 120, "abc-dirty", 0.0]), len(header))
+        self.assertEqual(header[-4:], ["profile", "duration_s", "git_sha", "ff_extra_ms"])
 
     def test_rows_schema_and_order(self):
         rows, _ = zs.sweep([3], [50, 60], self.PH, self.runner)
@@ -173,6 +189,7 @@ class PhaseTests(unittest.TestCase):
         self.assertIn("soft_pct", header)
         self.assertIn("fleet_max_ey_m", header)
         self.assertIn("z3_max_ey_m", header)
+        self.assertIn("f_stale_max_ms", header)      # delivered F dose per row
         self.assertEqual(len(rows), 4)
         for r in rows:
             self.assertEqual(len(r), len(header))
@@ -201,6 +218,7 @@ class ParseOutputTests(unittest.TestCase):
   zone breaches (frame-decimated): hard z0=0 z1=0 z2=7 z3=4 | soft z0=393 z1=0 z2=0 z3=415
   zone frames: z0=5364 z1=1716 z2=3866 z3=1054
   max |e_y| (per-tick): fleet 0.7983 m (margin 0.0017 m to 0.8) | zones 0.6816 0.0937 0.1069 0.7983
+  F staleness (act-stamped, ms): zone max 35.8 35.8 35.8 35.8 | in-zone ticks >500ms: 0 0 0 0
 """
 
     def test_parse(self):
@@ -210,6 +228,12 @@ class ParseOutputTests(unittest.TestCase):
         self.assertEqual(r["soft_pct"], 6.73)
         self.assertEqual(r["fleet_ey"], 0.7983)
         self.assertEqual(r["zone_ey"], [0.6816, 0.0937, 0.1069, 0.7983])
+        self.assertEqual(r["f_stale_max"], 35.8)
+
+    def test_parse_without_f_staleness_line(self):
+        # cart-pole runs print no F-staleness line; the field is then None
+        r = zs.parse_output(self.SAMPLE.rsplit("\n  F staleness", 1)[0] + "\n")
+        self.assertIsNone(r["f_stale_max"])
 
     def test_parse_failure_is_none(self):
         self.assertIsNone(zs.parse_output("garbage"))

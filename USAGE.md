@@ -306,7 +306,9 @@ Still OUTSIDE it: the legacy `hybrid_guard_sweep`/`predictive_sweep*` CSVs
 the 19.9 ms last tick, 21 phases] or `--offset-seeds K` [random lap positions]
 it writes the MIN-OVER-PHASE tables `zone_tolerance_z3_phase*.csv`
 / `zone_tolerance_spot_phase*.csv` — extended schema with per-phase soft% and
-undecimated max |e_y|; `--jobs N` parallelises; PAPER_NOTES 2026-09-04),
+undecimated max |e_y| and the delivered F dose; `--jobs N` parallelises;
+`--ff-extra-ms D` writes the A2 tables `zone_tolerance_z3_a2{cert,p1}_phase*.csv`
+(F publish delayed D ms; PAPER_NOTES 2026-09-04 (b)); PAPER_NOTES 2026-09-04),
 `tools/occupancy_sweep.py` → `occupancy_sweep.csv` (leg 2, `Occ(s)`),
 `tools/danger_sweep.py` → `danger_sweep.csv` (leg 4, the `K(τ)` curve — both the
 `[age-only]` and `[+state]` axes, v10 only; `reproduce.py danger` delegates to it), and

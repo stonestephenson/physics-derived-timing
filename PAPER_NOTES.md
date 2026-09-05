@@ -10,6 +10,118 @@ Newest first.
 
 ---
 
+## 2026-09-04 (b) — The A2 correction is binary and within one instrument step: a period-old F at the Estimator moves A(z3) by ≤ 3 mm at the threshold; the min-over-phase constants stand (with two stated assumptions)
+
+**What it is.** PROOF_DRAFT §8.3 measured, at a single phase, that delaying
+every F publish by 13.5 ms (the N=8 certificate's worst F lateness) moves the
+v10 z3 cliff 170 → 160, and paper/PLAN.md §3 flagged that the F-demoted
+comparison must use an F-corrected budget. Re-measured min-over-phase (21
+phases) at two doses: 13.5 ms and the P1 boundary (20 ms commanded; the
+instrument clamps the publish to the tick before F's next release, delivered
+act-stamped F age 22.3 → 39.8 ms). Four results.
+
+1. **The F-lateness effect is binary, and the consumer that flips is the
+   ESTIMATOR, not the Merger** (cold review 2026-09-04; reproduced). Added
+   publish delay up to 7.5 ms changes nothing (v10 z3 +80, phase 0: max |e_y|
+   0.7983, 0 hard); from 8 ms to the P1 boundary every outcome is identical
+   (0.8032, 7 hard). Mechanism, pinned to the tick: under N=1 RM (3 cores; tie
+   order period, vehicle, kind with Controller < Feedforward < Merger) E, C
+   and F all start at tick 0, C finishes at tick 4, so the Merger activates at
+   tick 5 — BEFORE F publishes at tick 24 (C_F = 2.5 ms worst). The Merger
+   therefore reads a one-period-old F at every dose, including zero. What
+   flips is the Estimator's second job of each 20 ms period: it activates at
+   tick 100 and reads `ff_out` for its e_y-rate estimate
+   (`LateralMotionControl.c:711`). 24 + 76 = 100, and the threshold sits at
+   exactly 76 → 77 ticks of added delay (v12.5 z3 +60 phase 19.9: 0.8017 m /
+   5 hard at 7.6 ms, 0.7987 / 0 at 7.7). Decisive cross-check on a single
+   core (`--scheduler prm`: E 0–10, C 11–15, F 16–40, M 41–45): the same cell
+   shows THREE plateaus — 0.6935 m (Merger reads fresh F), 0.7683 (Merger
+   period-old, Estimator fresh), 0.7646 (both period-old) — flipping at
+   0.1 → 0.2 ms and 6.0 → 6.1 ms, exactly where that schedule predicts. So
+   the A2 instrument samples the two Estimator-read regimes with the Merger
+   pinned in its period-old regime; the certificate-dose and P1-boundary
+   tables are identical row for row (231/231 v10, 231/231 v12.5, 168/168
+   v15). The N=8 certificate is in the late Estimator regime (R_F 185 ticks
+   F-demoted, limited-t); classical RM at N=8 spans both (R_F 63–183 across
+   vehicles). Not a "merger-grab twin": the 2026-08-24 merger-grab is the
+   controller output merged late; here the Merger's F read is period-old by
+   construction of the nominal N=1 RM order.
+
+2. **Numbers (F merged one period late, hard criterion, 21 phases):**
+
+   | profile | A(z3), late-F regime | nominal (fresh-F) regime | difference at the cliff cell |
+   |---|---|---|---|
+   | v10 | 150.5 (17/21 clean at 160.5; worst phase 15 hard) | 150.5 (18/21; 13 hard) | +5 mm |e_y| at 160.5 |
+   | v12.5 | **150.5** (21/21 at 150.5, max |e_y| 0.7987; 2/21 at 160.5) | **140.5** (phase 19.9 breaches 150.5 by 1.7 mm) | −3 mm: the staler F is MORE tolerant |
+   | v15 | 110.5 (14/21 at 120.5) | 110.5 (14/21) | 0 at 120.5 |
+
+   Within one instrument step everywhere, and not monotone. §8.3's 170 → 160
+   was a phase-0 effect: the nominal phase-0 value sits 1.7 mm under the
+   threshold and 5 mm of extra excursion tips it; at the worst phase the two
+   regimes coincide.
+
+3. **Certified constants — and precisely what they cover.** Stone's
+   decision (2026-09-04): the certified constant is the min over the measured
+   F regimes: **A(z3) = 150.5 / 140.5 / 110.5 ms (v10 / v12.5 / v15)** —
+   unchanged from the nominal min-over-phase values. Every boundary statement
+   stands as written (v10 at the boundary by 1.1 ms; v12.5 below it by
+   11.1 ms). Coverage: both Estimator-read regimes (F fresh / F one period
+   old at E's second job) under CONSTANT F lateness, with the Merger reading
+   a period-old F — the order the certificate schedule shares inside the zone
+   by construction (F-demoted band: M elevated above F with the same
+   release, so M activates before F can finish) and classical RM at N=8
+   shares wherever R_M < R_F. Two things the tables do NOT cover, stated as
+   assumptions rather than waved: (a) the third regime — the Merger reading
+   a FRESH F — which the N=1 RM instrument cannot produce; on the one cell
+   probed (prm, v12.5 z3 +60 phase 19.9) it is worth 7.5 cm in the BENIGN
+   direction (0.6935 vs 0.7683 m), twenty times the Estimator effect;
+   (b) per-job MIXING of the two Estimator regimes, which N=8 has (solver R_F
+   63–183 ticks across vehicles, R_E up to 44, so consecutive F jobs land on
+   both sides of E's read point) — the min over two constant-lateness tables
+   bounds a mixed sequence only under a monotonicity assumption that v12.5's
+   result (staler F MORE tolerant by 3 mm) does not support. Both are
+   millimetre-scale on every cell measured and neither moves a constant at
+   the instrument's 10 ms resolution. The per-schedule A2 correction is
+   RETIRED (no measured regime moves any constant by an instrument step);
+   PROOF_DRAFT §8.3/§8.5's "160" is retired; PLAN.md §3's "fold A2 into the
+   constant?" is moot. Open (Stone): whether to build a per-job lateness
+   instrument to close (b) empirically.
+
+4. **Comfort under late F.** A_soft (hard-clean AND soft% ≤ 5 at every
+   phase): v10 120.5 (unchanged); v12.5 none — the uninjected baseline at the
+   worst phase is already 5.04 % with late F (4.99 % fresh); v15 none
+   (baseline 9.2–12.5 %). One more line for the limitations paragraph: at v12.5
+   the comfort budget is exhausted by N=8 contention alone.
+
+**Evidence / repro.** `tools/zone_sweep.py --ff-extra-ms 13.5|20 --phases-ms
+0:20:1` (phase mode only; the delivered dose is recorded per row as
+`f_stale_max_ms`, the commanded one as `ff_extra_ms`; the six existing phase
+tables were regenerated with those two provenance columns, content
+identical, legacy tables byte-identical). Six new CSVs
+`zone_tolerance_z3_a2cert_phase{,_v12.5,_v15}.csv` and
+`zone_tolerance_z3_a2p1_phase{,_v12.5,_v15}.csv`; `reproduce.py zones`.
+Decimated/undecimated agreement: 1,260/1,260 rows. Threshold probe: ff 1..7.5
+nominal, 8..25 saturated (v10 z3 +80 phase 0); pinned at 7.6 → 7.7 ms on
+v12.5 z3 +60 phase 19.9. Solver R_F: `solve_rta` on `build_cloud_tasks(8,
+worst, top_k=8, demote_f=True)` under limited-t gives max R_F 185 ticks
+(classical N=8: 63–183 across vehicles; N=1: 35). Dose label: 13.5 ms is
+§8.3's demotion delta (R_F 48 → 183 under its earlier figures); the
+limited-t figures 35 → 183/185 imply 14.8–15.0 ms — both saturate, no
+consequence. Note `f_stale_max_ms` is the age of F's output register
+(22.3 + D, clamped at 39.8); it does not say which Estimator regime a row is
+in — the threshold does.
+
+    for ff in 0 7.5 8 13.5 20; do ./build/cps --headless --vehicles 1 --scheduler rm \
+        --exec worst --duration 120 --profile 10 --zone-target 3 --zone-extra-ms 80 \
+        --start-offsets-ms 0 --ff-extra-ms $ff; done       # 0.7983 x2, then 0.8032 x3
+
+**Where it lands.** Retires the A2 correction as a separate step. Methods:
+one sentence on the two Estimator-read regimes and the Merger order shared
+with the certificate. Limitations: the unmeasured fresh-Merger regime, per-job
+regime mixing at N=8, and v12.5's comfort budget under late F.
+
+---
+
 ## 2026-09-04 — A(zone) is a min over the chain phase: 21-phase enumeration; every published single-phase value was the LUCKIEST phase; new numbers of record
 
 **What it is.** The 2026-08-24 refutation (paper/PLAN.md §3) found that v10's
@@ -100,11 +212,13 @@ instrument, and committed as the A(zone) tables of record. Five results.
    system is outside the Challenge's comfort envelope regardless of
    scheduling. v10 z1/z2: A_soft 250.5 / 240.5 against hard 400.5 / 290.5;
    z0 and the v12.5/v15 spot ranges start above their soft crossings
-   (A_soft unresolved there). **Decision needed (Stone + EE):** the committed
-   A(zone) tables stay hard-only and are labelled so; if the soft constraint
-   is normative, the binding budget on v10 becomes 120.5 and the theorem's
-   input changes accordingly. The sustained-vs-transient caveat (2026-08-24
-   item 4) applies to soft% exactly as to hard.
+   (A_soft unresolved there). **DECIDED (Stone, 2026-09-04): A(zone) is
+   certified against the hard constraint only; the soft data is reported as
+   a stated limitation** — the comfort budget is whole-run, not per-zone, so
+   a zone budget derived from it would be a design choice rather than a
+   physics fact, and certifying against it would leave only v10 inside the
+   framework. The sustained-vs-transient caveat (2026-08-24 item 4) applies
+   to soft% exactly as to hard.
 
 5. **Instrument facts.** (a) The frame-decimated hard counter and the
    undecimated per-tick max |e_y| agreed on every one of the 1,449 new rows

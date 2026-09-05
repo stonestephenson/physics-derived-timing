@@ -62,6 +62,8 @@ HARD_RE = re.compile(r"hard z0=(\d+) z1=(\d+) z2=(\d+) z3=(\d+)")
 SOFT_RE = re.compile(r"^\s*0\s+[-0-9.]+\s+[-0-9.]+\s+([0-9.]+)%", re.M)   # vehicle-0 row
 EY_RE = re.compile(r"max \|e_y\| \(per-tick\): fleet ([0-9.]+) m .*\| zones "
                    r"([0-9.]+) ([0-9.]+) ([0-9.]+) ([0-9.]+)")
+FST_RE = re.compile(r"F staleness \(act-stamped, ms\): zone max "
+                    r"([0-9.]+) ([0-9.]+) ([0-9.]+) ([0-9.]+)")   # lateral only
 
 
 # ----------------------------------------------------------------------- parsing
@@ -71,12 +73,16 @@ def parse_output(out):
                            SOFT_RE.search(out), EY_RE.search(out))
     if not (age and hard and soft and ey):
         return None
+    fst = FST_RE.search(out)
     return {
         "age_path": float(age.group(1)),
         "hard": [int(hard.group(i)) for i in range(1, 5)],
         "soft_pct": float(soft.group(1)),
         "fleet_ey": float(ey.group(1)),
         "zone_ey": [float(ey.group(i)) for i in range(2, 6)],
+        # delivered F dose (act-stamped F age, max over zones) — the A2
+        # instrument's effect is visible here, never in age_path
+        "f_stale_max": max(float(fst.group(i)) for i in range(1, 5)) if fst else None,
     }
 
 
@@ -110,6 +116,16 @@ def parse_seeds(spec):
     return seeds
 
 
+def check_ff_extra(ff_extra_ms, legacy):
+    """--ff-extra-ms must be >= 0 and needs a phase mode (the legacy CSV
+    schema has no column to record it)."""
+    if ff_extra_ms < 0:
+        sys.exit("--ff-extra-ms must be >= 0")
+    if legacy and ff_extra_ms > 0:
+        sys.exit("--ff-extra-ms needs a phase mode (--phases-ms / --offset-seeds): "
+                 "the legacy CSV schema has no column to record it")
+
+
 def git_sha():
     """HEAD (short), suffixed '-dirty' when the tree the binary was built from
     has uncommitted changes — provenance for the CSV rows."""
@@ -122,10 +138,17 @@ def git_sha():
 
 
 # ----------------------------------------------------------------------- one run
-def build_cmd(zone, extra_ms, duration, profile, phase=None):
+def build_cmd(zone, extra_ms, duration, profile, phase=None, ff_extra_ms=0.0):
     cmd = [str(BIN), "--headless", "--vehicles", "1", "--scheduler", "rm",
            "--exec", "worst", "--duration", str(duration), "--profile", profile,
            "--zone-target", str(zone), "--zone-extra-ms", str(extra_ms)]
+    if ff_extra_ms > 0:
+        # A2 instrument (PROOF_DRAFT §8.3): every F publish D ms later, the
+        # feedforward staleness a contended schedule adds. The response is
+        # binary at ~7.7 ms (the Estimator's second job then reads a
+        # period-old F); the Merger reads a period-old F at every dose under
+        # the N=1 RM order. PAPER_NOTES 2026-09-04 (b).
+        cmd += ["--ff-extra-ms", f"{ff_extra_ms:g}"]
     if phase is not None:
         kind, val = phase
         if kind == "offset_ms":
@@ -137,9 +160,9 @@ def build_cmd(zone, extra_ms, duration, profile, phase=None):
     return cmd
 
 
-def run(zone, extra_ms, duration, profile="10", phase=None):
+def run(zone, extra_ms, duration, profile="10", phase=None, ff_extra_ms=0.0):
     """Run one N=1 worst-case full-lap sim; return the parsed summary dict."""
-    out = subprocess.run(build_cmd(zone, extra_ms, duration, profile, phase),
+    out = subprocess.run(build_cmd(zone, extra_ms, duration, profile, phase, ff_extra_ms),
                          capture_output=True, text=True).stdout
     r = parse_output(out)
     if r is None:
@@ -168,7 +191,7 @@ def csv_header(phases, extra_cols=()):
     return (["zone", "zone_name", "extra_ms", "phase_kind", "phase", "age_path_ms",
              "total_hard", "z0_hard", "z1_hard", "z2_hard", "z3_hard", "soft_pct",
              "fleet_max_ey_m", "z0_max_ey_m", "z1_max_ey_m", "z2_max_ey_m",
-             "z3_max_ey_m"] + list(extra_cols))
+             "z3_max_ey_m", "f_stale_max_ms"] + list(extra_cols))
 
 
 def sweep(zones, grid, phases, runner, jobs=1, soft_budget=SOFT_BUDGET_PCT, log=None):
@@ -207,7 +230,8 @@ def sweep(zones, grid, phases, runner, jobs=1, soft_budget=SOFT_BUDGET_PCT, log=
                 else:
                     kind, val = phases[pi]
                     rows.append([z, ZONES[z], extra, kind, val, r["age_path"], total,
-                                 *r["hard"], r["soft_pct"], r["fleet_ey"], *r["zone_ey"]])
+                                 *r["hard"], r["soft_pct"], r["fleet_ey"], *r["zone_ey"],
+                                 r["f_stale_max"]])
                 # per-phase A = that phase's largest clean age below ITS OWN
                 # first breach (the spread reports how much A varies by phase)
                 if total == 0 and not phase_breached[pi]:
@@ -265,6 +289,11 @@ def main():
                          "reproducibility; not the axis of record")
     ap.add_argument("--jobs", type=int, default=1,
                     help="parallel simulator processes (runs are independent)")
+    ap.add_argument("--ff-extra-ms", type=float, default=0.0,
+                    help="A2-corrected tables: delay every Feedforward publish "
+                         "by D ms (the F lateness a contended schedule adds; "
+                         "13.5 = the N=8 certificate, PROOF_DRAFT §8.3). Phase "
+                         "mode only (recorded in the ff_extra_ms column).")
     ap.add_argument("--soft-budget", type=float, default=SOFT_BUDGET_PCT,
                     help="soft%% ceiling for the secondary A_soft (default 5.0 = "
                          "the Challenge's >= 95%% within 0.2 m)")
@@ -288,6 +317,7 @@ def main():
     else:
         phases = [None]
     legacy = phases == [None]
+    check_ff_extra(args.ff_extra_ms, legacy)
     sha = git_sha()
 
     def log(z, extra, phase, r):
@@ -296,16 +326,18 @@ def main():
               f"hard={sum(r['hard']):<4} soft={r['soft_pct']:.2f}% "
               f"maxEy={r['fleet_ey']:.4f}", flush=True)
 
-    runner = lambda z, extra, phase: run(z, extra, args.duration, args.profile, phase)
+    runner = lambda z, extra, phase: run(z, extra, args.duration, args.profile,
+                                         phase, args.ff_extra_ms)
     rows, table = sweep(zones, grid, phases, runner, jobs=args.jobs,
                         soft_budget=args.soft_budget, log=log)
 
-    extra_cols = () if legacy else ("profile", "duration_s", "git_sha")
+    extra_cols = () if legacy else ("profile", "duration_s", "git_sha", "ff_extra_ms")
     with open(args.out, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(csv_header(phases, extra_cols))
         for r in rows:
-            w.writerow(r if legacy else r + [args.profile, args.duration, sha])
+            w.writerow(r if legacy else
+                       r + [args.profile, args.duration, sha, args.ff_extra_ms])
 
     if legacy:
         print("\n=== Causal A(zone) (largest delivered age with ZERO hard breaches) ===")
@@ -318,8 +350,9 @@ def main():
     else:
         kind = phases[0][0]
         vals = [p[1] for p in phases]
+        ff = f"; F publish delayed {args.ff_extra_ms:g} ms (A2)" if args.ff_extra_ms > 0 else ""
         print(f"\n=== Causal A(zone), MIN OVER PHASE ({len(phases)} phases, {kind} "
-              f"{vals[0]:g}..{vals[-1]:g}; hard-clean at EVERY phase) ===")
+              f"{vals[0]:g}..{vals[-1]:g}; hard-clean at EVERY phase{ff}) ===")
         print(f"  {'zone':<14} {'A(zone) ms':<12} {'per-phase A':<16} "
               f"{'A_soft ms':<11} first any-phase breach (worst phase)")
         for e in table:

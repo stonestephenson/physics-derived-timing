@@ -18,8 +18,19 @@ phase on every profile (PAPER_NOTES 2026-09-04). Tables of record are now the
 z1 400.5 / 240.5 / 190.5; z2 290.5 / 190.5 / 140.5 (hard criterion). The
 single-phase files below remain as the max-over-phase reference. The soft
 constraint (≥ 95 % within 0.2 m) is now recorded per row (`soft_pct`) and binds
-earlier (v10 z3: 120.5 ms; v15 violates it uninjected); the tables stay
-hard-only until that question is decided (EE side + Stone).
+earlier (v10 z3: 120.5 ms; v15 violates it uninjected). **DECIDED 2026-09-04
+(Stone): A(zone) is certified against the HARD constraint only; the soft
+(comfort chance-constraint) data is reported as a stated limitation, never
+certified** — it is a whole-run budget, not a per-zone physical quantity.
+**A2 (feedforward staleness under contention) re-measured min-over-phase
+2026-09-04 (b):** the effect is binary — the Estimator's second job (tick
+100) reads F fresh vs one period old (threshold: F published after tick 100;
+the Merger reads a period-old F at every dose under the N=1 RM order) — and
+within one instrument step, non-monotone on v12.5; the constants above are
+the min over both measured regimes under constant lateness. Stated, not
+measured: the fresh-Merger regime (unreachable at N=1 RM) and per-job regime
+mixing at N=8 (`--ff-extra-ms`; `zone_tolerance_z3_a2{cert,p1}_phase*.csv`;
+PAPER_NOTES 2026-09-04 (b)).
 
 **Status 2026-07-04: Phase-1 + Phase-2 IMPLEMENTED; fine-grid cliffs + v12.5/v15
 tables MEASURED (see the 2026-07-04 block below); a zone-consuming scheduler

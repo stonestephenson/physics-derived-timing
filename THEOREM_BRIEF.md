@@ -130,7 +130,14 @@ plus the 19.9 ms last tick; `zone_sweep.py --phases-ms 0:20:1`,
 every phase on v10 and v12.5 (on v12.5 by one instrument step). The uniform
 F-demoted N=8 bound (151.6, limited-t) is NOT certified on v10 (by 1.1 ms,
 inside the instrument's 10 ms resolution: at the boundary) nor on v12.5 (by
-11.1 ms: clearly below it) — PROOF_DRAFT §8.1 addendum.
+11.1 ms: clearly below it) — PROOF_DRAFT §8.1 addendum. **A2 (feedforward
+staleness under contention) re-measured min-over-phase 2026-09-04 (b): the
+effect is binary (the Estimator's second job reads F fresh vs one period
+old; the Merger reads a period-old F at every dose under the N=1 RM order
+the certificate shares) and within one instrument step; these constants are
+the min over both measured regimes and no per-schedule correction applies;
+the fresh-Merger regime and per-job regime mixing are stated assumptions**
+(PROOF_DRAFT §8.3 addendum; the earlier "170 → 160" was a phase-0 effect).
 
 **Refined + generalized (2026-07-04; PROOF_DRAFT §8.1).** The 50 ms grid hid
 margin: delivered ages quantize in T_E = 10 ms steps (the instrument's true

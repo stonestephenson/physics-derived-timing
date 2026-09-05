@@ -673,12 +673,16 @@ instrument's 10 ms resolution: "at the boundary" — and 151.6 > 140.5 on v12.5
 load-bearing at N=8 on both. (ii) The conservative A(z3) = 140 packet
 constant survives at every phase on v10/v12.5 (on v12.5 by exactly one
 instrument step). (iii) §8.3's
-A2 shift (170 → 160) is a single-phase result; the F-demoted cliff must be
-re-measured min-over-phase before an F-demoted schedule is compared against it
-(queued). (iv) v15's floor tightens to 110.5 (single-phase 120.5), still below
+A2 shift (170 → 160) was a phase-0 effect: re-measured min-over-phase
+(2026-09-04 (b) addendum in §8.3), the F-lateness effect is binary (the
+Estimator's second job reads F fresh vs one period old; the Merger reads a
+period-old F at every dose under the N=1 RM order) and within one instrument
+step — the certified constants are the min over both measured regimes,
+150.5 / 140.5 / 110.5, and no per-schedule A2 correction is needed; the
+fresh-Merger regime and per-job mixing are stated assumptions. (iv) v15's floor tightens to 110.5 (single-phase 120.5), still below
 the 123.4 F-demoted uncontended bound — same conclusion. (v) The Challenge's
 soft constraint binds earlier still (v10 z3 A_soft = 120.5; v15 violates it
-uninjected); tables remain hard-only pending a decision.
+uninjected); DECIDED 2026-09-04 (Stone): certified hard-only, soft data reported as a limitation.
 
 **Partition caveat on the v12.5/v15 rows [council-successor audit]:** the zone
 segmentation constants (`Trajectory.h` thresholds) were hand-tuned to v10's
@@ -737,6 +741,32 @@ step of physics margin**; the certified operating point (bound_top = 137.4)
 retains ≥ 22 ms against the ff-adjusted cliff, and the conservative table
 value 140 remains below 160. **A2 closed with a number.**
 
+**Addendum 2026-09-04 (b) — re-measured min-over-phase; the 160 is retired
+(PAPER_NOTES 2026-09-04 (b)).** The 170 → 160 above is a phase-0 effect. Over
+all 21 chain phases, at the certificate dose (13.5 ms) and at the P1 boundary
+(20 ms, clamped to the tick before F's next release), the tables are identical
+row for row: the F-lateness effect is BINARY — up to 7.5 ms of added publish
+delay changes nothing, from 8 ms to the P1 boundary every outcome is
+identical. The consumer that flips is the ESTIMATOR's second job of the
+period (activation tick 100 reads `ff_out`; 24 + 76 = 100, threshold pinned
+at 76 → 77 ticks), not the Merger: under N=1 RM the Merger activates at tick
+5, before F publishes at tick 24, so it reads a period-old F at every dose
+(a single-core `prm` run shows the third, fresh-Merger regime: 0.6935 vs
+0.7683 m at v12.5 z3 +60 phase 19.9 — benign, and unreachable by this
+instrument). In the late-F regime A(z3) =
+150.5 / 150.5 / 110.5 (v10 / v12.5 / v15) against the fresh-F 150.5 / 140.5 /
+110.5 — within one instrument step, and non-monotone on v12.5 (the staler F
+clears the 150.5 cell by 1.3 mm where the fresh F breaches it by 1.7 mm).
+Classical RM at N=8 spans both Estimator regimes across vehicles (R_F 63–183
+ticks, limited-t; F-demoted top band 185). **Certified constants (Stone,
+2026-09-04): the min over the measured regimes, 150.5 / 140.5 / 110.5; §8.5's
+"ff-adjusted regimes" and the 160 are retired.** Stated assumptions, not
+measured: the fresh-Merger regime (unreachable at N=1 RM; benign on the one
+cell probed) and per-job mixing of the Estimator regimes at N=8 (the min over
+two constant-lateness tables bounds a mixed sequence only if the response is
+monotone in lateness, which v12.5's 3 mm inversion does not support) —
+PAPER_NOTES 2026-09-04 (b) item 3.
+
 ### 8.4 The zband adversary exists — and found nothing in the certified region
 
 `--scheduler zband` implements ZB-F-X exactly as analyzed: job band stamped at
@@ -788,8 +818,11 @@ at the refined cliff, the honest chain is: **classical 5–6 → +F-demotion 8
 make): exactly when the binding budget sits below the uniform bound at P1
 capacity — i.e. A(z3) < bound_uniform-Fdem(N_P1) ≈ 151.6. True for: v10 at
 the conservative 140 table (the §3.5/§4 result as drafted, margin 2.6 ms);
-v12.5 at its refined 160 (margin 8.4 ms — nearly); the ff-adjusted regimes
-(§8.3); and structurally tighter plants (cart-pole's analog ≈ 110 ms — though
+v12.5 at its refined 160 (margin 8.4 ms — nearly); ~~the ff-adjusted regimes
+(§8.3)~~ (retired 2026-09-04 (b): the F-lateness effect is within one
+instrument step; the min-over-phase constants 150.5 / 140.5 / 110.5 cover
+both measured Estimator-read regimes under constant lateness — §8.3
+addendum lists the two unmeasured cases); and structurally tighter plants (cart-pole's analog ≈ 110 ms — though
 below the 124 uncontended floor, its chain periods differ). The occupancy
 device is also the only one that *degrades gracefully in spacing* —
 F-demotion has no knob to give back when the route worsens.

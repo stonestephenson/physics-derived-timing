@@ -38,20 +38,35 @@ boundary**) nor on v12.5 (140.5: by 11.1 ms, more than one step — the
 decomposition is unambiguously load-bearing there). The conservative packet
 constant 140 survives at every phase on v10/v12.5. The Challenge's **soft** constraint (≥ 95 % within 0.2 m) binds
 much earlier (v10 z3 A_soft = 120.5; v15 violates it with no injection at
-N=1) — tables stay hard-only pending a decision. Fast gate green (G0+G1+G2);
-NOT pushed this session.
+N=1) — **DECIDED hard-only (Stone)**; the soft data is a reported limitation.
+(c) **A2 re-measured min-over-phase (2026-09-04 (b))**: the feedforward-
+lateness effect is BINARY — the Estimator's second job (tick 100) reads F
+fresh vs one period old (threshold 76 → 77 ticks of added publish delay; the
+Merger reads a period-old F at every dose under the N=1 RM order, which the
+certificate schedule shares inside the zone) — and within one instrument
+step: late-F A(z3) = 150.5 / 150.5 / 110.5 vs fresh-F 150.5 / 140.5 / 110.5.
+**Certified constants = the min over the measured regimes = 150.5 / 140.5 /
+110.5, unchanged; the per-schedule A2 correction and PROOF_DRAFT §8.5's "160"
+are retired.** Two stated assumptions (cold review): the fresh-Merger regime
+(unreachable at N=1 RM; benign 7.5 cm on the one single-core cell probed) and
+per-job mixing of the Estimator regimes at N=8 (untested). Six CSVs
+`zone_tolerance_z3_a2{cert,p1}_phase*.csv`; the six phase tables carry two
+new provenance columns (`f_stale_max_ms`, `ff_extra_ms`). Fast gate green
+(G0+G1+G2); NOT pushed this session.
 
 **NEXT (the live queue):**
-1. **Decide (Stone + EE):** is the Challenge soft constraint normative for
-   A(zone)? Hard-only keeps A(z3) = 150.5 on v10; soft makes it 120.5.
-   Recommendation on record (2026-09-04): certify HARD-only (safety is the
-   certified property; the comfort chance-constraint is whole-run, not
-   per-zone, so a zone budget derived from it is a design choice, not a
-   physics fact) and REPORT the soft data as a stated limitation — the paper
-   raises it before a reviewer does.
-2. Re-measure the A2-corrected cliff min-over-phase (`--ff-extra-ms 13.5` ×
-   `--phases-ms 0:20:1`, z3, all profiles) before restating PROOF_DRAFT §8.5:
-   an F-demoted schedule must be compared against the F-demoted budget.
+1. **DECIDED (Stone, 2026-09-04): A(zone) is certified HARD-only; the soft
+   (comfort chance-constraint) data is reported as a stated limitation, never
+   certified** (it is whole-run, not per-zone). Kurt/Guo informed by Stone.
+2. **DONE 2026-09-04 (b):** A2 re-measured min-over-phase — binary, within
+   one instrument step, constants unchanged (NOW (c)). **Stone to decide:**
+   build a per-job F-lateness instrument (alternating / random per-job
+   `--ff-extra`, a TaskModel change) to test regime MIXING at N=8, or carry it
+   as a stated assumption in the limitations. Next in the pre-freeze queue:
+   the corollary ratio recomputed at the new budgets (one solver run), then
+   the v12.5 zone-partition sensitivity check (v12.5 is now the cleanest
+   decomposition-load-bearing case, so ZONE_TOLERANCE's partition caveat is
+   load-bearing).
 3. PLAN.md §3's regime table is rewritten (done); the outreach emails are
    sent. Next: the LaTeX scaffold + figure pipeline from committed CSVs, then
    sections 2 / 5 / 6 (model, evaluation, hardware) — the parts that depend

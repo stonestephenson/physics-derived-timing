@@ -293,6 +293,33 @@ def exp_zones(cps, out_dir, dur):
         (["--profile", "15", "--duration", "79", "--zones", "0,1,2",
           "--min-extra", "50", "--max-extra", "200", "--step", "50"] + PH,
          "zone_tolerance_spot_phase_v15.csv"),
+        # A2-CORRECTED z3 tables (PROOF_DRAFT §8.3 min-over-phase; PAPER_NOTES
+        # 2026-09-04 (b)): every F publish delayed by (a) 13.5 ms = §8.3's
+        # demotion delta (the limited-t solver's N=8 R_F of 183-185 ticks
+        # implies 14.8-15.0; both saturate) and (b) 20 ms = the P1 boundary
+        # (clamped to the tick before F's next release). The effect is binary
+        # at ~7.7 ms (the Estimator's second job reads a period-old F), so
+        # (a) and (b) are identical; the certified constant is the min over
+        # the measured regimes (Stone, 2026-09-04). Delivered dose per row =
+        # f_stale_max_ms (F register age; it does not name the regime).
+        (["--profile", "10", "--duration", "120", "--zones", "3",
+          "--min-extra", "0", "--max-extra", "100", "--step", "10",
+          "--ff-extra-ms", "13.5"] + PH, "zone_tolerance_z3_a2cert_phase.csv"),
+        (["--profile", "12.5", "--duration", "95", "--zones", "3",
+          "--min-extra", "0", "--max-extra", "100", "--step", "10",
+          "--ff-extra-ms", "13.5"] + PH, "zone_tolerance_z3_a2cert_phase_v12.5.csv"),
+        (["--profile", "15", "--duration", "79", "--zones", "3",
+          "--min-extra", "0", "--max-extra", "70", "--step", "10",
+          "--ff-extra-ms", "13.5"] + PH, "zone_tolerance_z3_a2cert_phase_v15.csv"),
+        (["--profile", "10", "--duration", "120", "--zones", "3",
+          "--min-extra", "0", "--max-extra", "100", "--step", "10",
+          "--ff-extra-ms", "20"] + PH, "zone_tolerance_z3_a2p1_phase.csv"),
+        (["--profile", "12.5", "--duration", "95", "--zones", "3",
+          "--min-extra", "0", "--max-extra", "100", "--step", "10",
+          "--ff-extra-ms", "20"] + PH, "zone_tolerance_z3_a2p1_phase_v12.5.csv"),
+        (["--profile", "15", "--duration", "79", "--zones", "3",
+          "--min-extra", "0", "--max-extra", "70", "--step", "10",
+          "--ff-extra-ms", "20"] + PH, "zone_tolerance_z3_a2p1_phase_v15.csv"),
     ]
     if QUICK:
         runs = [(["--profile", "10", "--duration", "30", "--zones", "3",
@@ -391,7 +418,7 @@ REGISTRY = {
     "honest":    (exp_honest,    "oracle-vs-honest A/B -> honest_sweep.csv (PREDICTOR S5e)"),
     "floor":     (exp_floor,     "aguard --floor re-sweep -> aguard_sweep.csv (PREDICTOR S5c)"),
     "tolerance": (exp_tolerance, "per-plant tolerance cliff -> tolerance_sweep.csv (PREDICTOR S5d)"),
-    "zones":     (exp_zones,     "causal A(zone) tables + fine z3 cliffs + MIN-OVER-PHASE tables, all profiles -> zone_tolerance*.csv (THEOREM_BRIEF S3.2; PAPER_NOTES 2026-09-04)"),
+    "zones":     (exp_zones,     "causal A(zone) tables + fine z3 cliffs + MIN-OVER-PHASE tables + A2-corrected z3 (F delayed 13.5 / 20 ms), all profiles -> zone_tolerance*.csv (THEOREM_BRIEF S3.2; PAPER_NOTES 2026-09-04)"),
     "occupancy": (exp_occupancy, "packed-z3 Occ + rm/aguard pairing, all profiles -> occupancy_sweep*.csv (THEOREM_BRIEF S3.5)"),
     "danger":    (exp_danger,    "K(tau) danger-relative criticality, rm vs aguard (v10) -> danger_sweep.csv (THEOREM_BRIEF S3.6/S9.2c)"),
     "fzone":     (exp_fzone,     "A_F/A_B(zone) + enter-stale phases + cross-profile z3 -> fzone_tolerance*.csv, bzone_tolerance.csv, fzone_enterstale.csv (FCHANNEL S9)"),
