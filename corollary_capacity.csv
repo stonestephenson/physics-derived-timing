@@ -1,0 +1,10 @@
+profile,a_z3_ms,a_base_ms,workload,classical_cap,fdemoted_cap,decomposition_cap,decomposition_binder,occ_plus,top_bound_ms,base_bound_at_cap_ms,ratio_vs_classical,occupancy_gain_cars
+10,150.5,290.5,full,4,,,,4,,,,
+10,150.5,290.5,limited,4,8,8,P1,4,133.0,194.4,2.0,0
+10,150.5,290.5,limited-t,3,7,8,P1,4,137.4,196.0,2.6666666666666665,1
+12.5,140.5,230.5,full,3,,,,4,,,,
+12.5,140.5,230.5,limited,3,6,8,P1,4,133.0,194.4,2.6666666666666665,2
+12.5,140.5,230.5,limited-t,2,4,8,P1,4,137.4,196.0,4.0,4
+15,110.5,140.5,full,0,,,,4,,,,
+15,110.5,140.5,limited,0,0,0,top,4,133.0,,,0
+15,110.5,140.5,limited-t,0,0,0,top,4,137.4,,,0

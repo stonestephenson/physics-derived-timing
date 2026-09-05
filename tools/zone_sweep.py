@@ -240,7 +240,10 @@ def sweep(zones, grid, phases, runner, jobs=1, soft_budget=SOFT_BUDGET_PCT, log=
                     phase_breached[pi] = True
             n_clean = sum(1 for r in cell_res if sum(r["hard"]) == 0)
             e.clean_counts[extra] = n_clean
-            age = max(r["age_path"] for r in cell_res)   # identical across phases
+            # delivered age is identical across phases on z3 (the tables of
+            # record) but differs by one E period between phases on z1: the
+            # certified budget is the SMALLEST age every phase was clean at
+            age = min(r["age_path"] for r in cell_res)
             if n_clean == len(phases):
                 if e.first_breach is None:
                     e.a_zone = age                          # largest safe age below the cliff

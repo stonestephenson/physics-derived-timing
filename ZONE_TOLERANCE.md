@@ -15,7 +15,10 @@ phase on every profile (PAPER_NOTES 2026-09-04). Tables of record are now the
 `zone_tolerance_spot_phase{,_v12.5,_v15}.csv` (`tools/zone_sweep.py
 --phases-ms 0:20:1`, driven by the new `--start-offsets-ms` harness flag):
 **z3 = 150.5 / 140.5 / 110.5 ms (v10 / v12.5 / v15)**; z0 290.5 / 290.5 / 240.5;
-z1 400.5 / 240.5 / 190.5; z2 290.5 / 190.5 / 140.5 (hard criterion). The
+z1 390.5 / 240.5 / 190.5; z2 290.5 / 230.5 / 140.5 (hard criterion; z2 on
+v12.5 refined to the 10 ms grid, `zone_tolerance_z2_fine_phase_v12.5.csv` —
+the other non-z3 values are 50 ms brackets; z1 = min-over-phase delivered
+age, PAPER_NOTES 2026-09-04 (c)). The
 single-phase files below remain as the max-over-phase reference. The soft
 constraint (≥ 95 % within 0.2 m) is now recorded per row (`soft_pct`) and binds
 earlier (v10 z3: 120.5 ms; v15 violates it uninjected). **DECIDED 2026-09-04

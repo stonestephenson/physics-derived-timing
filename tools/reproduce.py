@@ -293,6 +293,12 @@ def exp_zones(cps, out_dir, dur):
         (["--profile", "15", "--duration", "79", "--zones", "0,1,2",
           "--min-extra", "50", "--max-extra", "200", "--step", "50"] + PH,
          "zone_tolerance_spot_phase_v15.csv"),
+        # z2 refined to the 10 ms grid on v12.5 (PAPER_NOTES 2026-09-04 (c)):
+        # the coarse bracket (190.5) would have bound the composition's base
+        # band at N=7; the refined value 230.5 leaves 34 ms -> N=8 stands.
+        (["--profile", "12.5", "--duration", "95", "--zones", "2",
+          "--min-extra", "100", "--max-extra", "150", "--step", "10"] + PH,
+         "zone_tolerance_z2_fine_phase_v12.5.csv"),
         # A2-CORRECTED z3 tables (PROOF_DRAFT §8.3 min-over-phase; PAPER_NOTES
         # 2026-09-04 (b)): every F publish delayed by (a) 13.5 ms = §8.3's
         # demotion delta (the limited-t solver's N=8 R_F of 183-185 ticks
@@ -331,6 +337,16 @@ def exp_zones(cps, out_dir, dur):
     for extra, out in runs:
         subprocess.run(base + extra + ["--out", os.path.join(out_dir, out)],
                        check=True)
+
+
+def exp_corollary(cps, out_dir, dur):
+    """Corollary capacities at the budgets of record (PAPER_NOTES 2026-09-04
+    (c)): classical / F-demoted / two-band composed certified N per profile
+    and workload, budgets derived from the committed min-over-phase tables.
+    Solver only (no cps runs); seconds. -> corollary_capacity.csv"""
+    subprocess.run([sys.executable, os.path.join(HERE, "corollary_table.py"),
+                    "--force", "--out", os.path.join(out_dir, "corollary_capacity.csv")],
+                   check=True)
 
 
 def exp_occupancy(cps, out_dir, dur):
@@ -419,6 +435,7 @@ REGISTRY = {
     "floor":     (exp_floor,     "aguard --floor re-sweep -> aguard_sweep.csv (PREDICTOR S5c)"),
     "tolerance": (exp_tolerance, "per-plant tolerance cliff -> tolerance_sweep.csv (PREDICTOR S5d)"),
     "zones":     (exp_zones,     "causal A(zone) tables + fine z3 cliffs + MIN-OVER-PHASE tables + A2-corrected z3 (F delayed 13.5 / 20 ms), all profiles -> zone_tolerance*.csv (THEOREM_BRIEF S3.2; PAPER_NOTES 2026-09-04)"),
+    "corollary": (exp_corollary, "certified capacities at the min-over-phase budgets: classical / F-demoted / composed, per profile x workload -> corollary_capacity.csv (PAPER_NOTES 2026-09-04 (c))"),
     "occupancy": (exp_occupancy, "packed-z3 Occ + rm/aguard pairing, all profiles -> occupancy_sweep*.csv (THEOREM_BRIEF S3.5)"),
     "danger":    (exp_danger,    "K(tau) danger-relative criticality, rm vs aguard (v10) -> danger_sweep.csv (THEOREM_BRIEF S3.6/S9.2c)"),
     "fzone":     (exp_fzone,     "A_F/A_B(zone) + enter-stale phases + cross-profile z3 -> fzone_tolerance*.csv, bzone_tolerance.csv, fzone_enterstale.csv (FCHANNEL S9)"),

@@ -204,6 +204,16 @@ class PhaseTests(unittest.TestCase):
         self.assertEqual([e.__dict__ for e in serial[1]],
                          [e.__dict__ for e in par[1]])
 
+    def test_cell_age_is_min_over_phases(self):
+        # phases deliver different ages in the same cell (z1): certify the min
+        def runner(zone, extra, phase):
+            age = 90.5 + extra + (10.0 if phase[1] == 0.0 else 0.0)
+            return result(age, [0, 0, 0, 0] if extra <= 60 else [0, 0, 0, 2])
+        _, table = zs.sweep([1], [50, 60, 70], self.PH, runner)
+        (e,) = table
+        self.assertEqual(e.a_zone, 150.5)             # not 160.5 (phase 0's age)
+        self.assertEqual(e.first_breach[0], 160.5)
+
     def test_seed_phase_rows(self):
         ph = [("seed", 1), ("seed", 2)]
         rows, table = zs.sweep([3], [50], ph, lambda z, x, p: result(140.5, [0] * 4))

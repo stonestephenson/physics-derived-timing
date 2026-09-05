@@ -362,6 +362,63 @@ def certified_capacity(m, exec_idx, max_n, wl_mode):
     return last_ok, None, None
 
 
+def fleet_bound(n, m, exec_idx, wl_mode, top_k=0, demote_f=False):
+    """(fleet-max or top-band bound, base-band bound or None, P1 overrun?)
+    for N vehicles; top_k > 0 = the Lemma-2b two-band order."""
+    tasks = solve_rta(build_cloud_tasks(n, exec_idx, top_k=top_k,
+                                        demote_f=demote_f), m, wl_mode)
+    over = any(t.R > t.T for t in tasks)
+    pv = per_vehicle_bounds(tasks, n, exec_idx)
+    if top_k <= 0:
+        return max(b for b, _ in pv.values()), None, over
+    top = max(pv[v][0] for v in range(top_k))
+    base = max((pv[v][0] for v in range(top_k, n)), default=0.0)
+    return top, base, over
+
+
+def uniform_capacity(a_z3_ms, m, exec_idx, wl_mode, demote_f=False, max_n=24):
+    """Largest N whose UNIFORM fleet-max age bound is <= a_z3_ms with P1
+    intact (every car must meet the binding budget everywhere). demote_f =
+    the fleet-wide F-demotion tweak (top band = all N, ZB-F). Corollary
+    helper (PAPER_NOTES 2026-09-04 (c)); 0 = not even one car certifiable."""
+    cap = 0
+    for n in range(1, max_n + 1):
+        bound, _, over = fleet_bound(n, m, exec_idx, wl_mode,
+                                     top_k=n if demote_f else 0, demote_f=demote_f)
+        if over or bound > a_z3_ms:
+            break
+        cap = n
+    return cap
+
+
+def decomposition_capacity(a_z3_ms, a_base_ms, occ_plus, m, exec_idx, wl_mode,
+                           max_n=24):
+    """Largest N admitted by the two-band ZB-F composition (PROOF_DRAFT
+    Lemma 2b): top band (occ_plus cars in the binding zone) <= a_z3_ms, base
+    band <= a_base_ms (the smallest NON-binding-zone budget: a base car may be
+    in any other zone), P1 for the whole system. Returns (capacity, binder)
+    where binder names what stopped the sweep: 'top' (never admitted), 'base',
+    'P1', or 'max_n'."""
+    cap, why = 0, "top"
+    for n in range(occ_plus, max_n + 1):
+        top, base, over = fleet_bound(n, m, exec_idx, wl_mode,
+                                      top_k=occ_plus, demote_f=True)
+        if top > a_z3_ms:
+            # The Occ+ top band never fits. A fleet SMALLER than Occ+ is all
+            # top band (closed band = the fleet-wide F-demoted bound at that
+            # N), so the composition still certifies up to min(that, Occ+ - 1)
+            # (cold review 2026-09-04 (c)).
+            small = uniform_capacity(a_z3_ms, m, exec_idx, wl_mode,
+                                     demote_f=True, max_n=occ_plus - 1)
+            return small, "top"
+        if over:
+            return cap, "P1"
+        if base > a_base_ms:
+            return cap, "base"
+        cap, why = n, "max_n"
+    return cap, why
+
+
 def band_report(n, top_k, m, exec_idx, wl_mode, demote_f=False):
     """Lemma-2b two-band instantiation (PROOF_DRAFT.md): vehicles 0..top_k-1
     elevated (their whole cloud chain outranks every base task), the rest base.
@@ -533,11 +590,25 @@ def main():
     ap.add_argument("--max-sim-n", type=int, default=18, help="cross-check capacity sweep ceiling")
     ap.add_argument("--duration", type=int, default=30)
     ap.add_argument("--cps", default="./build/cps")
+    ap.add_argument("--a-z3", type=float, default=None, metavar="MS",
+                    help="override the binding-zone budget A(z3) used by the "
+                         "band verdicts and crossover flags (default: the module "
+                         "constant 140 -- the conservative packet value; G3 "
+                         "byte-identical). Min-over-phase values of record: "
+                         "150.5 (v10) / 140.5 (v12.5) / 110.5 (v15)")
+    ap.add_argument("--a-base", type=float, default=None, metavar="MS",
+                    help="override the base-band budget (smallest non-z3 A(zone); "
+                         "default 290). Of record: 290.5 (v10) / 190.5 (v12.5) / "
+                         "140.5 (v15)")
     ap.add_argument("--soundness-grid", default="", metavar="N1,N2,...",
                     help="cross-check: also verify measured age <= per-vehicle "
                          "bound at these N (Theorem-2 bridge validation for the "
                          "limited candidate). Empty (default) => G3-identical.")
     args = ap.parse_args()
+    if args.a_z3 is not None:
+        A_ZONE_MS["z3 lane-change (binding)"] = args.a_z3
+    if args.a_base is not None:
+        A_ZONE_MS["z0/z2 straight/sharp"] = args.a_base
 
     m = args.cores
     exec_idx = EXEC_IDX[args.exec]

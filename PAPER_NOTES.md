@@ -10,6 +10,100 @@ Newest first.
 
 ---
 
+## 2026-09-04 (c) — The corollary at the budgets of record: v10 8 vs classical 4 / 3 (2.0× / 2.67×), v12.5 8 vs 3 / 2 (2.67× / 4×), v15 the floor — and a 50 ms bracket nearly cost v12.5 a car
+
+**What it is.** paper/PLAN.md §3 ("the corollary ratio drops": 2.7× / 4× →
+1.33× / 1.6× at A(z3) = 170) recomputed at the min-over-phase constants, by
+the solver rather than by hand: helpers `rta_solve.fleet_bound` /
+`uniform_capacity` / `decomposition_capacity`, budget overrides `--a-z3` /
+`--a-base` (defaults 140 / 290 untouched, G3 byte-identical), and
+`tools/corollary_table.py` → `corollary_capacity.csv`, which derives A(z3)
+and the base-band budget (the smallest NON-z3 A(zone): a base car may be in
+any other zone — PROOF_DRAFT §3.5 conjunct (ii)) from the union of every
+committed fresh-F phase table per profile. m = 3, worst; Θ=R = `limited`
+(the Guan RTA-LC candidate), Θ=T = `limited-t` (jitter-only); Occ⁺ = 4 at
+s ≥ 4 s on every profile (PROOF_DRAFT §3.5). Four results.
+
+1. **The table** (certified N, Θ=R / Θ=T; "classical" = every car meets A(z3)
+   everywhere under the RM order; "+F-demotion" = the fleet-wide ZB-F tweak
+   without occupancy; "composed" = the two-band composition):
+
+   | profile | A(z3) / base (ms) | classical | +F-demotion | composed (Occ⁺=4) | binder | ratio vs classical | occupancy earns |
+   |---|---|---|---|---|---|---|---|
+   | v10 | 150.5 / 290.5 | 4 / 3 | 8 / 7 | **8 / 8** | P1 | **2.0× / 2.67×** | 0 / 1 car |
+   | v12.5 | 140.5 / 230.5 | 3 / 2 | 6 / 4 | **8 / 8** | P1 | **2.67× / 4×** | 2 / 4 cars |
+   | v15 | 110.5 / 140.5 | 0 / 0 | 0 / 0 | 0 / 0 | top band | — | applicability floor |
+
+   (`full` workload, BOUND §7.2 as written, classical column: 4 / 3 / 0.)
+   Top-band bounds are N-independent: 133.0 (Θ=R) / 137.4 (Θ=T); margins to
+   A(z3): v10 17.5 / 13.1 ms, v12.5 7.5 / 3.1 ms. Base-band bounds at N = 8:
+   194.4 / 196.0 against 290.5 (v10, 94 ms slack) and 230.5 (v12.5, 34 ms).
+   P1 caps the composition at 8 on both candidates (N = 9 fails in band
+   mode); the empirical P1 ceiling is still 10. v12.5's ratio is the original
+   headline pair, now at the accurate budget; v10's is 2.0× / 2.67×.
+
+2. **A 50 ms bracket nearly cost v12.5 a car — the cold review caught it.**
+   The first pass of this entry took v12.5's base budget from the coarse spot
+   table, where z2 read 190.5 (21/21 clean at 190.5, 17/21 at 240.5), and
+   concluded that the base band binds at N = 7 (194.4 / 196.0 > 190.5). That
+   190.5 was a 50 ms bracket, [190.5, 240.5), quoted against a 4–5.5 ms
+   shortfall. Refined on the 10 ms grid at 21 phases
+   (`zone_tolerance_z2_fine_phase_v12.5.csv`): **A(z2, v12.5) = 230.5** (21/21
+   clean through 230.5; first breach at 240.5, phase 19.9, manifesting in
+   z1). The base band has 34 ms of slack and N = 8 stands. Rule, enforced in
+   `corollary_table.budgets` (union of every table per zone) and stated for
+   the paper: never quote a margin finer than the grid it came from; refine
+   before naming a binder. z0 on v10/v12.5 and z1/z2 on v15 remain 50 ms
+   brackets — none is within 50 ms of binding anything (v10 base slack 94 ms;
+   v15 is the floor).
+
+3. **The boundary statement, per workload.** On v10, uniform F-demotion alone
+   certifies 8 under Θ=R (147.0 ≤ 150.5, margin 3.5 ms) and 7 under Θ=T
+   (151.6 > 150.5 by 1.1 ms): occupancy earns nothing beyond F-demotion under
+   the Guan-RTA-LC candidate and one car under the jitter-only variant — "at
+   the boundary", exactly as the 2026-09-04 entry says. On v12.5 occupancy
+   earns 2 (Θ=R) / 4 (Θ=T) cars, to the P1 cap. Two razor's-edge cells to
+   state as such: Θ=R uniform F-demotion on v12.5 passes N = 6 by 0.5 ms
+   (140.0 vs 140.5), and v12.5's top band under Θ=T passes by 3.1 ms — both
+   inside the instrument's 10 ms.
+
+4. **The honest chain per profile** (the shape PLAN.md §5 item 6 asks for —
+   assert dominance, give the specific numbers, promise no percentage):
+   v10 classical 4 / 3 → +F-demotion 8 / 7 → +occupancy 8 / 8;
+   v12.5 classical 3 / 2 → 6 / 4 → 8 / 8; v15: nothing certifiable at these
+   task periods.
+
+**Two bookkeeping corrections from the same review.** (i) Delivered age is
+identical across phases on z0, z2 and z3, but on z1's short arcs it differs by
+one E period between phases (v10 z1 +300: 390.5 at 17 phases, 400.5 at phases
+0–3). The tools now take the MIN over phases as a cell's age — the smallest
+age every phase was verified clean at — so v10's z1 of record is **390.5**
+(the 400.5 in the 2026-09-04 entry was the phase-0 delivered age). No
+constant depends on z1. (ii) `decomposition_capacity` now handles fleets
+smaller than Occ⁺ (all top band): with Occ⁺ = 5 at v12.5 the composition
+still certifies 4 cars; v15 stays 0 (the F-demoted N = 1 bound, 123.4,
+exceeds 110.5).
+
+**Evidence / repro.** `python3 tools/corollary_table.py --force` (or
+`reproduce.py corollary`, seconds) → `corollary_capacity.csv`. Any cell by
+hand: `python3 tools/rta_solve.py --a-z3 140.5 --a-base 230.5 --band 4
+--band-n 8 --band-demote-f --workload limited-t` → ADMITTED (base 196.0 vs
+230); with `--a-base 190.5` → NOT ADMITTED and `--band-n 7` → ADMITTED (the
+coarse-bracket false alarm, kept as a solver pin). Pins:
+`tools/tests/test_rta_corollary.py` (the 140 / 170 headline numbers reproduce:
+3 / 2 and 6 / 5; the CLI overrides), `test_corollary_table.py` (budgets of
+record from the CSVs, including the z2 refinement); gate G0; G3
+byte-identical. `reproduce.py zones` regenerates the z2 refinement.
+
+**Where it lands.** Section 4: the per-profile honest chain replaces any
+single ratio; the number Guo last saw as 2.7× is 2.0× / 2.67× on v10 and
+2.67× / 4× on v12.5 — restate it to him explicitly. Methods: "no margin finer
+than its grid" as a stated rule. Limitations: base bands inherit the smallest
+non-binding-zone budget; the 50 ms brackets on the non-binding zones are
+labelled as such.
+
+---
+
 ## 2026-09-04 (b) — The A2 correction is binary and within one instrument step: a period-old F at the Estimator moves A(z3) by ≤ 3 mm at the threshold; the min-over-phase constants stand (with two stated assumptions)
 
 **What it is.** PROOF_DRAFT §8.3 measured, at a single phase, that delaying
@@ -84,8 +178,9 @@ act-stamped F age 22.3 → 39.8 ms). Four results.
    the instrument's 10 ms resolution. The per-schedule A2 correction is
    RETIRED (no measured regime moves any constant by an instrument step);
    PROOF_DRAFT §8.3/§8.5's "160" is retired; PLAN.md §3's "fold A2 into the
-   constant?" is moot. Open (Stone): whether to build a per-job lateness
-   instrument to close (b) empirically.
+   constant?" is moot. DECIDED (Stone, 2026-09-04): (b) is carried as a
+   stated assumption in the limitations; a per-job lateness instrument is
+   built only if Kurt or a reviewer asks.
 
 4. **Comfort under late F.** A_soft (hard-clean AND soft% ≤ 5 at every
    phase): v10 120.5 (unchanged); v12.5 none — the uninjected baseline at the
@@ -165,8 +260,8 @@ instrument, and committed as the A(zone) tables of record. Five results.
 
    | profile | z3 lane-change | z0 straight | z1 slight | z2 sharp |
    |---|---|---|---|---|
-   | v10 | **150.5** (was 170; per-phase 150.5..170.5; 18/21 clean at 160.5, 1/21 at 170.5) | 290.5 robust | 400.5 robust | 290.5 robust |
-   | v12.5 | **140.5** (was 160; 140.5..160.5; 20/21 clean at 150.5 — phase 19.9 breaches by 1.7 mm; 1/21 at 160.5) | 290.5 robust | 240.5 robust | **190.5** (was 240; 17/21 clean at 240.5) |
+   | v10 | **150.5** (was 170; per-phase 150.5..170.5; 18/21 clean at 160.5, 1/21 at 170.5) | 290.5 robust | 390.5 robust (phase-0 delivered age 400.5 — see (c)) | 290.5 robust |
+   | v12.5 | **140.5** (was 160; 140.5..160.5; 20/21 clean at 150.5 — phase 19.9 breaches by 1.7 mm; 1/21 at 160.5) | 290.5 robust | 240.5 robust | **230.5** (was 240; coarse bracket 190.5, refined on the 10 ms grid — (c); 17/21 clean at 240.5) |
    | v15 | **110.5** (was 120.5 [08-24 fine grid], 90 [coarse]; 110.5..120.5; 14/21 clean at 120.5) | 240.5 robust | **190.5** (was 240; 7/21 at 240.5) | **140.5** (was 190; 10/21 at 190.5) |
 
    So PLAN.md's 08-26 scope statement ("confined to z3 on v10") holds on v10
@@ -186,7 +281,8 @@ instrument, and committed as the A(zone) tables of record. Five results.
    boundary" — the same shape as v15's applicability floor. On v12.5, against
    A(z3) = 140.5, the bound misses by 11.1 ms — more than one instrument step
    — so the uniform mechanism is unambiguously insufficient there and the
-   decomposition is load-bearing without qualification. The corollary flip
+   decomposition is load-bearing without qualification (composed certificate
+   8 on v12.5 too, at the refined base budget 230.5 — 2026-09-04 (c)). The corollary flip
    PLAN.md feared is real, and it is no longer a coin toss on v12.5. **The
    conservative packet constant A(z3) = 140 (THEOREM_BRIEF / BOUND /
    PROOF_DRAFT Lemma-2 packet) survives at every phase on v10 and v12.5**
@@ -224,8 +320,9 @@ instrument, and committed as the A(zone) tables of record. Five results.
    undecimated per-tick max |e_y| agreed on every one of the 1,449 new rows
    (no row with hard = 0 and max |e_y| ≥ 0.8, or the reverse), so the standing
    "hard counts are lower bounds" pitfall did not bite at any measured cliff.
-   (b) Delivered age is identical across phases — the phase changes the
-   outcome, not the dose. (c) Worst-phase breaches at the non-z3 cliffs
+   (b) Delivered age is identical across phases on z0, z2 and z3 — the phase
+   changes the outcome, not the dose; on z1's short arcs it differs by one E
+   period between phases (see (c)). (c) Worst-phase breaches at the non-z3 cliffs
    manifest in *other* zones (v12.5 z2's first breach lands in z1; v15 z1's in
    z1 + z2) — the manifestation-vs-cause distinction of 2026-06-26 again.
 

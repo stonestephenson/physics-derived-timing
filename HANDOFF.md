@@ -29,13 +29,13 @@ the luckiest phase; a first pass without 19.9 under-reported v12.5 by one
 step — caught by cold review). **Numbers of record: A(z3) = 150.5 / 140.5 /
 110.5 ms (v10 / v12.5 / v15)**
 (were 170 / 160 / 120.5); z0 phase-robust on all profiles (290.5 / 290.5 /
-240.5); z1 400.5 / 240.5 / **190.5**; z2 290.5 / **190.5** / **140.5**. Six
+240.5); z1 390.5 / 240.5 / **190.5**; z2 290.5 / **230.5** / **140.5**. Six
 committed CSVs `zone_tolerance_*phase*.csv`; `reproduce.py zones` regenerates
 them; unit tests `tools/tests/` = new gate G0 in `verify.sh`. Consequences:
 the uniform F-demoted N=8 bound (151.6, limited-t) is NOT certified on v10
 (150.5: by 1.1 ms, inside the instrument's 10 ms — **v10 sits AT the capacity
-boundary**) nor on v12.5 (140.5: by 11.1 ms, more than one step — the
-decomposition is unambiguously load-bearing there). The conservative packet
+boundary**) nor on v12.5 (140.5: by 11.1 ms under Θ=T — the decomposition is
+load-bearing there, to N = 8: see (d)). The conservative packet
 constant 140 survives at every phase on v10/v12.5. The Challenge's **soft** constraint (≥ 95 % within 0.2 m) binds
 much earlier (v10 z3 A_soft = 120.5; v15 violates it with no injection at
 N=1) — **DECIDED hard-only (Stone)**; the soft data is a reported limitation.
@@ -49,7 +49,18 @@ step: late-F A(z3) = 150.5 / 150.5 / 110.5 vs fresh-F 150.5 / 140.5 / 110.5.
 110.5, unchanged; the per-schedule A2 correction and PROOF_DRAFT §8.5's "160"
 are retired.** Two stated assumptions (cold review): the fresh-Merger regime
 (unreachable at N=1 RM; benign 7.5 cm on the one single-core cell probed) and
-per-job mixing of the Estimator regimes at N=8 (untested). Six CSVs
+per-job mixing of the Estimator regimes at N=8 (untested — DECIDED: carried
+as a stated assumption). (d) **Corollary recomputed at the constants of
+record (2026-09-04 (c))**, by the solver (`rta_solve.uniform_capacity` /
+`decomposition_capacity`, `--a-z3/--a-base` overrides with G3-identical
+defaults; `tools/corollary_table.py` → `corollary_capacity.csv`,
+`reproduce.py corollary`): certified N as Θ=R / Θ=T — **v10: classical 4 / 3
+→ +F-demotion 8 / 7 → composed 8 / 8 (2.0× / 2.67×); v12.5: 3 / 2 → 6 / 4 →
+composed 8 / 8 (2.67× / 4×); v15: 0 (floor).** A 50 ms bracket nearly cost
+v12.5 a car: its z2 read 190.5 on the coarse grid and would have bound the
+base band at N = 7; refined at 10 ms it is **230.5** (34 ms slack; the cold
+review caught it). The old 2.7× / 4× and the 08-24 1.33× / 1.6× are retired.
+Six CSVs
 `zone_tolerance_z3_a2{cert,p1}_phase*.csv`; the six phase tables carry two
 new provenance columns (`f_stale_max_ms`, `ff_extra_ms`). Fast gate green
 (G0+G1+G2); NOT pushed this session.
@@ -59,12 +70,14 @@ new provenance columns (`f_stale_max_ms`, `ff_extra_ms`). Fast gate green
    (comfort chance-constraint) data is reported as a stated limitation, never
    certified** (it is whole-run, not per-zone). Kurt/Guo informed by Stone.
 2. **DONE 2026-09-04 (b):** A2 re-measured min-over-phase — binary, within
-   one instrument step, constants unchanged (NOW (c)). **Stone to decide:**
-   build a per-job F-lateness instrument (alternating / random per-job
-   `--ff-extra`, a TaskModel change) to test regime MIXING at N=8, or carry it
-   as a stated assumption in the limitations. Next in the pre-freeze queue:
-   the corollary ratio recomputed at the new budgets (one solver run), then
-   the v12.5 zone-partition sensitivity check (v12.5 is now the cleanest
+   one instrument step, constants unchanged (NOW (c)). **DECIDED (Stone,
+   2026-09-04): per-job regime MIXING at N=8 is carried as a stated
+   assumption in the limitations; no per-job instrument (build it only if
+   Kurt or a reviewer asks).** **DONE 2026-09-04 (c):** the corollary recomputed at the
+   constants of record (NOW (d)). **Stone to decide (paper framing):** state
+   the corollary as the per-profile honest chain (recommended, PLAN.md §5
+   item 6) or as ratios. Next in the pre-freeze queue: the v12.5
+   zone-partition sensitivity check (v12.5 is now the cleanest
    decomposition-load-bearing case, so ZONE_TOLERANCE's partition caveat is
    load-bearing).
 3. PLAN.md §3's regime table is rewritten (done); the outreach emails are

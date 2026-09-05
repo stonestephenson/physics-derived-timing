@@ -125,12 +125,13 @@ phase at zone entry (period 20 ms, lap-invariant); every value quoted before
 this date was measured at the luckiest phase. 21-phase enumeration (1 ms grid
 plus the 19.9 ms last tick; `zone_sweep.py --phases-ms 0:20:1`,
 `zone_tolerance_*phase*.csv`): **A(z3) = 150.5 (v10), 140.5 (v12.5), 110.5
-(v15)**; z0 290.5 / 290.5 / 240.5, z1 400.5 / 240.5 / 190.5, z2 290.5 / 190.5 /
-140.5. The conservative 140 this brief's packet is stated against holds at
+(v15)**; z0 290.5 / 290.5 / 240.5, z1 390.5 / 240.5 / 190.5, z2 290.5 / 230.5 /
+140.5 (z2 on v12.5 refined at 10 ms; the other non-z3 values are 50 ms brackets). The conservative 140 this brief's packet is stated against holds at
 every phase on v10 and v12.5 (on v12.5 by one instrument step). The uniform
 F-demoted N=8 bound (151.6, limited-t) is NOT certified on v10 (by 1.1 ms,
 inside the instrument's 10 ms resolution: at the boundary) nor on v12.5 (by
-11.1 ms: clearly below it) — PROOF_DRAFT §8.1 addendum. **A2 (feedforward
+11.1 ms under Θ=T: clearly below it; composed certificate 8 there too —
+2026-09-04 (c)) — PROOF_DRAFT §8.1 addendum. **A2 (feedforward
 staleness under contention) re-measured min-over-phase 2026-09-04 (b): the
 effect is binary (the Estimator's second job reads F fresh vs one period
 old; the Merger reads a period-old F at every dose under the N=1 RM order
@@ -587,7 +588,9 @@ test, of which the §9.2d aguard run is the existence witness.
 
 **Dr. Guo's directive (2026-07-17):** Theorem 2 — the limited-carry-in RTA — carries the headline
 capacity lift (the "2.7× more cars" = ZB-F-X composed **N = 8 @ s ≥ 4 s** certified vs classical
-**3**, §5 Corollary / PROOF_DRAFT §5). It is presently a **candidate** (`rta_solve.py`,
+**3**, §5 Corollary / PROOF_DRAFT §5; **at the 2026-09-04 min-over-phase constants: v10 8 vs
+4 / 3 = 2.0× / 2.67×, v12.5 8 vs 3 / 2 = 2.67× / 4× — PAPER_NOTES 2026-09-04 (c),
+`corollary_capacity.csv`**). It is presently a **candidate** (`rta_solve.py`,
 machine-checked + sim-cross-checked, *not* proven). The remaining publication step is to **bridge
 the brute-force script to a general analytic proof under our tick-quantum model.** Below is the
 candidate as implemented (`rta_solve.py::hp_interference`, modes `limited` / `limited-t`), written

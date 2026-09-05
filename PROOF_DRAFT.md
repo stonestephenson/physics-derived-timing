@@ -41,6 +41,14 @@ replication scripts (session scratchpad), outputs quoted, logic described.
 > occupancy device earns capacity exactly when the binding budget sits below
 > the uniform bound at P1 capacity (§8.5), which is the conservative-140
 > reading of v10, all of v12.5's margin questions, and any tighter plant.
+>
+> **Update 2026-09-04 (c) — the corollary at the min-over-phase constants
+> (A(z3) 150.5 / 140.5 / 110.5, base budgets 290.5 / 190.5 / 140.5;
+> `corollary_capacity.csv`, §8.5 addendum):** v10 composed **8** vs classical
+> 4 (Θ=R) / 3 (Θ=T) = **2.0× / 2.67×**, with fleet-wide F-demotion alone at
+> 8 / 7; v12.5 composed **8** vs 3 / 2 = **2.67× / 4×** (base band 196.0 vs
+> the 10 ms-refined z2 = 230.5 — its 50 ms bracket, 190.5, would have bound
+> it at 7), F-demotion alone 6 / 4; v15 = the applicability floor.
 
 Two physics assumptions (A1 in-zone/exit budgets, A2 F-demotion) and one
 scheduling argument (band transients, §3.4) carried the pre-execution risk;
@@ -431,7 +439,13 @@ premise (§3.1) covers base windows too (≤ T_max = 200 under P1 — within the
 | 5 | 141.0 | FAIL | 196.6 | PASS | — | — | not admitted |
 
 (Top-band numbers are N-independent — the band is closed, verified. P1 holds
-through N = 8; N = 10 fails P1 under limited-t, F_8 R = 210 > 200.) Under
+through N = 8; N = 10 fails P1 under limited-t, F_8 R = 210 > 200.)
+**2026-09-04 (c):** at the min-over-phase base budgets (v10 290.5; v12.5
+230.5 after the z2 10 ms refinement — its coarse 190.5 bracket would have
+bound the base band at N = 7) the base band passes at N = 8 on both (196.0
+Θ=T / 194.4 Θ=R; slack 94 / 34 ms): composed certificate **8** on v10 and
+v12.5. `rta_solve.py --a-z3 140.5 --a-base 230.5 --band 4 --band-n 8
+--band-demote-f --workload limited-t` → ADMITTED. §8.5 addendum. Under
 Θ = R (`--workload limited`; its cross-band induction is exactly what S6
 cannot give — [UNCERTAIN], for Kurt) Occ⁺ = 5 would also pass (136.4). Without
 F-demotion the top band certifies only Occ⁺ ≤ 2 (Θ=T) / 3 (Θ=R) — below v10's
@@ -479,6 +493,9 @@ replication evidence for the band analysis; the harness-level `zband` policy
 > the uniform system by S6) and N = 2 under Θ = T. The occupancy-parameterized
 > test admits **N = 8 at s ≥ 4 s: 2.7× more cars per core (4× against the
 > same-workload baseline)**, earned exactly by the route's non-z3 fraction.
+> *(2026-09-04 (c): at the min-over-phase constants the corollary is v10 8 vs
+> 4 / 3 = 2.0× / 2.67×, v12.5 8 vs 3 / 2 = 2.67× / 4× — §8.5 addendum,
+> `corollary_capacity.csv`.)*
 > Degradation is honest: s → 0 ⇒ Occ⁺ → N ⇒ conjunct (i) fails for N > 4 and
 > the claim collapses to classical.
 
@@ -662,15 +679,16 @@ the hyperperiod with the worst phase at its sup. 21-phase enumeration — the
 
 | profile | A(z3) min-over-phase (pass / first any-phase breach) | per-phase A(z3) range | non-z3 A min-over-phase |
 |---|---|---|---|
-| v10 | **150.5 / 160.5 (18/21 phases clean at 160.5)** | 150.5..170.5 | 290.5 / 400.5 / 290.5 (all phase-robust) |
-| v12.5 | **140.5 / 150.5 (20/21 clean at 150.5; phase 19.9 breaches by 1.7 mm)** | 140.5..160.5 | 290.5 / 240.5 / **190.5** (z2 was 240) |
+| v10 | **150.5 / 160.5 (18/21 phases clean at 160.5)** | 150.5..170.5 | 290.5 / 390.5 / 290.5 (all phase-robust; z1 = min-over-phase delivered age, (c)) |
+| v12.5 | **140.5 / 150.5 (20/21 clean at 150.5; phase 19.9 breaches by 1.7 mm)** | 140.5..160.5 | 290.5 / 240.5 / **230.5** (z2 was 240; coarse bracket 190.5, refined at 10 ms — (c)) |
 | v15 | **110.5 / 120.5 (14/21 clean at 120.5)** | 110.5..120.5 | 240.5 / **190.5** / **140.5** (z1, z2 were 240 / 190) |
 
 Consequences for this draft: (i) §8.5's boundary comparison (151.6 F-demoted
 top-band bound vs A(z3)) is now 151.6 > 150.5 on v10 — by 1.1 ms, inside the
 instrument's 10 ms resolution: "at the boundary" — and 151.6 > 140.5 on v12.5
 — by 11.1 ms, more than one step: clearly below it. The decomposition is
-load-bearing at N=8 on both. (ii) The conservative A(z3) = 140 packet
+load-bearing on both, to N = 8 (P1) — v12.5's base band passes at 230.5 after
+the z2 refinement (2026-09-04 (c), §8.5 addendum). (ii) The conservative A(z3) = 140 packet
 constant survives at every phase on v10/v12.5 (on v12.5 by exactly one
 instrument step). (iii) §8.3's
 A2 shift (170 → 160) was a phase-0 effect: re-measured min-over-phase
@@ -826,6 +844,25 @@ addendum lists the two unmeasured cases); and structurally tighter plants (cart-
 below the 124 uncontended floor, its chain periods differ). The occupancy
 device is also the only one that *degrades gracefully in spacing* —
 F-demotion has no knob to give back when the route worsens.
+
+**Addendum 2026-09-04 (c) — recomputed at the constants of record
+(PAPER_NOTES 2026-09-04 (c); `corollary_capacity.csv`).** Certified N as
+Θ=R / Θ=T, Occ⁺ = 4:
+
+| profile | A(z3) / base | classical | +F-demotion | composed | binder | ratio |
+|---|---|---|---|---|---|---|
+| v10 | 150.5 / 290.5 | 4 / 3 | 8 / 7 | **8 / 8** | P1 | 2.0× / 2.67× |
+| v12.5 | 140.5 / 230.5 | 3 / 2 | 6 / 4 | **8 / 8** | P1 | 2.67× / 4× |
+| v15 | 110.5 / 140.5 | 0 | 0 | 0 | top band | floor |
+
+So on v10 occupancy earns nothing beyond F-demotion under Θ=R (147.0 ≤
+150.5) and one car under Θ=T (151.6 > 150.5 by 1.1 ms) — "at the boundary"
+exactly as stated; on v12.5 it earns 2 / 4 cars to the P1 cap. The base
+band inherits the smallest non-z3 budget: v12.5's z2 read 190.5 on the
+50 ms bracket and would have bound the base band at N = 7 (194.4 / 196.0);
+refined on the 10 ms grid it is 230.5 and N = 8 stands with 34 ms — never
+quote a margin finer than its grid. The honest chain per profile: v10
+4/3 → 8/7 → 8/8; v12.5 3/2 → 6/4 → 8/8.
 
 ### 8.6 Instrument and reproducibility closures
 
